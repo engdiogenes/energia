@@ -11,27 +11,35 @@ import streamlit_authenticator as stauth
 # Usuário e senha
 names = ['energiajlr']
 usernames = ['energiajlr']
-hashed_passwords = ['$2b$12$KIXQZKZVZz8ZkZz8ZkZz8uZz8ZkZz8ZkZz8ZkZz8ZkZz8ZkZz8ZK']  # Substitua pelo hash real
+hashed_passwords = ['$2b$12$KIXQZKZVZz8ZkZz8ZkZz8uZz8ZkZz8ZkZz8ZkZz8ZkZz8ZkZz8ZK']  # Exemplo
 
+# Criar o autenticador
 authenticator = stauth.Authenticate(
-    names=names,
-    usernames=usernames,
-    passwords=hashed_passwords,
-    cookie_name='energia_app',
-    key='abcdef',
+    credentials={
+        "usernames": {
+            usernames[0]: {
+                "name": names[0],
+                "password": hashed_passwords[0]
+            }
+        }
+    },
+    cookie_name="energia_app",
+    key="abcdef",
     cookie_expiry_days=90
 )
 
+# Tela de login
+name, authentication_status, username = authenticator.login("Login", "main")
 
-name, authentication_status, username = authenticator.login('Login', 'main')
-
+# Verificação de login
 if authentication_status is False:
-    st.error('Usuário ou senha incorretos')
+    st.error("Usuário ou senha incorretos")
 elif authentication_status is None:
-    st.warning('Por favor, insira seu usuário e senha')
+    st.warning("Por favor, insira seu usuário e senha")
 else:
-    st.success(f'Bem-vindo, {name}!')
+    st.success(f"Bem-vindo, {name}!")
     # Aqui começa o conteúdo da sua aplicação
+
 
 
 
