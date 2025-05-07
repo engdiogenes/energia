@@ -4,6 +4,34 @@ import io
 import matplotlib.pyplot as plt
 import json
 import os
+import streamlit_authenticator as stauth
+
+# Configuração do login
+names = ['energiajlr']
+usernames = ['energiajlr']
+passwords = ['jlr25']
+
+hashed_passwords = stauth.Hasher(passwords).generate()
+
+authenticator = stauth.Authenticate(
+    names,
+    usernames,
+    hashed_passwords,
+    'energia_app',  # nome do cookie
+    'abcdef',       # chave secreta do cookie
+    cookie_expiry_days=1
+)
+
+name, authentication_status, username = authenticator.login('Login', 'main')
+
+if authentication_status is False:
+    st.error('Usuário ou senha incorretos')
+elif authentication_status is None:
+    st.warning('Por favor, insira seu usuário e senha')
+else:
+    st.success(f'Bem-vindo, {name}!')
+    # Aqui vai o restante da sua aplicação
+
 
 # --- Funções auxiliares ---
 def limpar_valores(texto):
