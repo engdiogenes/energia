@@ -1,7 +1,4 @@
 import streamlit as st
-st.set_page_config(layout="wide")
-from streamlit_autorefresh import st_autorefresh
-st_autorefresh(interval=300000, key="auto_refresh")  # Atualiza a cada 5 minutos
 import pandas as pd
 import io
 import matplotlib.pyplot as plt
