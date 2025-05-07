@@ -35,7 +35,6 @@ if authentication_status is False:
 elif authentication_status is None:
     st.warning("Por favor, insira seu usuário e senha")
 else:
-    st.success(f"Bem-vindo, {name}!")
     # Aqui começa o conteúdo da sua aplicação
 
 
@@ -243,4 +242,6 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
+        
+    st.success(f"Bem-vindo, {name}!")
 
