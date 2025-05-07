@@ -8,9 +8,6 @@ import streamlit as st
 import streamlit_authenticator as stauth
 
 # Controle de acesso
-import streamlit as st
-import streamlit_authenticator as stauth
-
 # Credenciais
 credentials = {
     "usernames": {
@@ -29,17 +26,18 @@ authenticator = stauth.Authenticate(
     cookie_expiry_days=90
 )
 
-# Login
-authenticator.login(location="main", fields={'Form name': 'Login', 'Username': 'Usuário', 'Password': 'Senha'})
+# Login (com retorno de valores)
+name, authentication_status, username = authenticator.login("Login", location="main")
 
 # Verificação
-if authenticator.authentication_status is False:
+if authentication_status is False:
     st.error("Usuário ou senha incorretos")
-elif authenticator.authentication_status is None:
+elif authentication_status is None:
     st.warning("Por favor, insira seu usuário e senha")
 else:
-    st.success(f"Bem-vindo, {authenticator.name}!")
+    st.success(f"Bem-vindo, {name}!")
     # Aqui começa o conteúdo da sua aplicação
+
 
 
 # --- Funções auxiliares ---
