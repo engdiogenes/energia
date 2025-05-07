@@ -60,12 +60,12 @@ def carregar_dados(dados_colados):
 
 # --- Menu lateral ---
 pagina = st.sidebar.selectbox("Escolha a página:", [
-    "Página Principal", "Gráficos por Medidor", "Limites de Consumo", "Dashboard"
+    "Home", "Graphs by Meter", "Consumption Limits", "Dashboard"
 ])
-st.markdown("<div style='font-size:17px; text-align:left;'>Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size:17px; text-align:left;'>Application for managing electricity consumption Brazil- JLR (kWh)</div>", unsafe_allow_html=True)
 #st.title("Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)")
 
-dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
+dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
 
 if dados_colados:
     try:
@@ -83,8 +83,8 @@ if dados_colados:
         medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
         # Página 1 - Principal
-        if pagina == "Página Principal":
-            medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis, default=medidores_disponiveis)
+        if pagina == "Home":
+            medidores_selecionados = st.multiselect("Select the meters:", medidores_disponiveis, default=medidores_disponiveis)
 
             fig, ax = plt.subplots(figsize=(16, 6))
             for medidor in medidores_selecionados:
@@ -93,7 +93,7 @@ if dados_colados:
                 if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
                     ax.plot(range(24), st.session_state.limites_por_medidor[medidor], linestyle="--", color="red", label=f"Limite - {medidor}")
 
-            ax.set_title(f"Consumo horário em {data_selecionada} (kWh)")
+            ax.set_title(f"Hourly consumption in {data_selecionada} (kWh)")
             ax.set_xlabel("Hora do dia")
             ax.set_ylabel("Consumo (kWh)")
             ax.set_xticks(range(0, 24))
@@ -101,19 +101,19 @@ if dados_colados:
             plt.xticks(rotation=45)
             st.pyplot(fig)
 
-            st.markdown("### Consumo Horário (kWh)")
+            st.markdown("### Hourly consumption (kWh)")
             st.dataframe(
                 dados_dia.set_index("Datetime")[medidores_selecionados].round(2).style.set_properties(**{"text-align": "center"}),
                 use_container_width=True
             )
 
-            st.markdown("### Consumo Total por Medidor (kWh)")
+            st.markdown("### Total Consumption per Meter (kWh)")
             totais = dados_dia[medidores_disponiveis].sum().round(2).to_frame(name="Consumo Total (kWh)")
             st.dataframe(totais.style.set_properties(**{"text-align": "center"}), use_container_width=True)
 
         # Página 2 - Gráficos por Medidor
-        elif pagina == "Gráficos por Medidor":
-            st.markdown("### Gráficos Individuais com Curva de Limite")
+        elif pagina == "Graphs by Meter":
+            st.markdown("### Individual Charts with Limit Curve")
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
             for idx, medidor in enumerate(medidores_disponiveis):
                 fig, ax = plt.subplots(figsize=(12, 4))
@@ -127,30 +127,30 @@ if dados_colados:
                     ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
                     limite_total = sum(limites)
 
-                ax.set_title(f"{medidor} - Consumo por hora (kWh)")
-                ax.set_xlabel("Hora do dia")
-                ax.set_ylabel("Consumo (kWh)")
+                ax.set_title(f"{medidor} - Consumption per hour (kWh)")
+                ax.set_xlabel("Time of day")
+                ax.set_ylabel("Consumption (kWh)")
                 ax.set_xticks(range(0, 24))
                 ax.legend(fontsize='small')
                 st.pyplot(fig)
 
-                st.markdown(f"**Resumo - {medidor}**")
+                st.markdown(f"**Resume - {medidor}**")
                 resumo_df = pd.DataFrame({
                     "Soma dos Limites (kWh)": [round(limite_total, 2)],
                     "Soma do Consumo (kWh)": [round(consumo_total, 2)]
                 }, index=["Total"])
 
                 def highlight_excesso(val):
-                    consumo = resumo_df["Soma do Consumo (kWh)"].values[0]
-                    limite = resumo_df["Soma dos Limites (kWh)"].values[0]
+                    consumo = resumo_df["Sum of Consumption (kWh)"].values[0]
+                    limite = resumo_df["Sum of Limits (kWh)"].values[0]
                     return ["", "background-color: red; color: white"] if consumo > limite else ["", ""]
 
                 styled = resumo_df.style.set_properties(**{"text-align": "center"}).apply(highlight_excesso, axis=1)
                 st.dataframe(styled, use_container_width=True)
 
         # Página 3 - Configuração de Limites
-        elif pagina == "Limites de Consumo":
-            st.markdown("### Configure os limites por hora para cada medidor")
+        elif pagina == "Consumption Limits":
+            st.markdown("### Configure the hourly limits for each meter")
 
             if "limites_por_medidor" not in st.session_state:
                 st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
@@ -188,7 +188,7 @@ if dados_colados:
 
         # Página 4 - Dashboard
         elif pagina == "Dashboard":
-            st.markdown("### Dashboard - Gráficos por Medidor")
+            st.markdown("### Dashboard - Graphs by Meter")
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
             for i in range(0, len(medidores_disponiveis), 4):
@@ -213,7 +213,7 @@ if dados_colados:
 
 
     except Exception as e:
-        st.error(f"Erro ao processar os dados: {e}")
+        st.error(f"Error processing the data: {e}")
         
     
 
