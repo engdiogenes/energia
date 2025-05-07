@@ -62,7 +62,7 @@ def carregar_dados(dados_colados):
 pagina = st.sidebar.selectbox("Escolha a página:", [
     "Página Principal", "Gráficos por Medidor", "Limites de Consumo", "Dashboard"
 ])
-st.markdown("<div style='font-size:6px; text-align:center;'>Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size:14px; text-align:center;'>Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)</div>", unsafe_allow_html=True)
 #st.title("Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)")
 
 dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
