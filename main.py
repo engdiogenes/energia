@@ -8,21 +8,22 @@ import streamlit as st
 import streamlit_authenticator as stauth
 
 # Controle de acesso
-# Usuário e senha
-names = ['energiajlr']
-usernames = ['energiajlr']
-hashed_passwords = ['$2b$12$KIXQZKZVZz8ZkZz8ZkZz8uZz8ZkZz8ZkZz8ZkZz8ZkZz8ZkZz8ZK']  # Exemplo
+import streamlit as st
+import streamlit_authenticator as stauth
+
+# Configuração de credenciais no novo formato
+credentials = {
+    "usernames": {
+        "energiajlr": {
+            "name": "energiajlr",
+            "password": "$2b$12$KIXQZKZVZz8ZkZz8ZkZz8uZz8ZkZz8ZkZz8ZkZz8ZkZz8ZkZz8ZK"  # Exemplo de hash
+        }
+    }
+}
 
 # Criar o autenticador
 authenticator = stauth.Authenticate(
-    credentials={
-        "usernames": {
-            usernames[0]: {
-                "name": names[0],
-                "password": hashed_passwords[0]
-            }
-        }
-    },
+    credentials=credentials,
     cookie_name="energia_app",
     key="abcdef",
     cookie_expiry_days=90
@@ -39,9 +40,6 @@ elif authentication_status is None:
 else:
     st.success(f"Bem-vindo, {name}!")
     # Aqui começa o conteúdo da sua aplicação
-
-
-
 
 # --- Funções auxiliares ---
 def limpar_valores(texto):
