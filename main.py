@@ -11,7 +11,7 @@ def limpar_valores(texto):
 
 def carregar_dados(dados_colados):
     dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
-    dados["Datetime"] = pd.to_datetime(dados["Date"] + " " + dados["Time"])
+    dados["Datetime"] = pd.to_datetime(dados["Date"] + " " + dados["Time"], dayfirst=True)
     dados = dados.sort_values("Datetime")
 
     colunas_originais = [
