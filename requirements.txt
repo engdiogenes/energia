@@ -2,3 +2,4 @@ streamlit
 streamlit-autorefresh
 pandas
 matplotlib
+streamlit-authenticator
