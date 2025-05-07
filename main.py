@@ -13,7 +13,7 @@ credentials = {
     "usernames": {
         "energiajlr": {
             "name": "energiajlr",
-            "password": "123"
+            "password": "2b$12$KIXQZKZVZz8ZkZz8ZkZz8uZz8ZkZz8ZkZz8ZkZz8ZkZz8ZkZz8ZK"
         }
     }
 }
