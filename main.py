@@ -8,36 +8,8 @@ import streamlit as st
 import streamlit_authenticator as stauth
 
 # Controle de acesso
-# Credenciais
-credentials = {
-    "usernames": {
-        "energiajlr": {
-            "name": "energiajlr",
-            "password": "2b$12$KIXQZKZVZz8ZkZz8ZkZz8uZz8ZkZz8ZkZz8ZkZz8ZkZz8ZkZz8ZK"
-        }
-    }
-}
 
-# Autenticador
-authenticator = stauth.Authenticate(
-    credentials=credentials,
-    cookie_name="energia_app",
-    key="abcdef",
-    cookie_expiry_days=90
-)
-
-# Login (com retorno de valores)
-name, authentication_status, username = authenticator.login("Login", location="main")
-
-# Verificação
-if authentication_status is False:
-    st.error("Usuário ou senha incorretos")
-elif authentication_status is None:
-    st.warning("Por favor, insira seu usuário e senha")
-else:
-    # Aqui começa o conteúdo da sua aplicação
-
-
+# Aqui começa o conteúdo da sua aplicação
 
 # --- Funções auxiliares ---
 def limpar_valores(texto):
@@ -243,5 +215,5 @@ if dados_colados:
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
         
-    st.success(f"Bem-vindo, {name}!")
+    
 
