@@ -30,15 +30,15 @@ authenticator = stauth.Authenticate(
 )
 
 # Login
-name, authentication_status, username = authenticator.login("Login", location="main")
+authenticator.login(location="main", fields={'Form name': 'Login', 'Username': 'Usuário', 'Password': 'Senha'})
 
 # Verificação
-if authentication_status is False:
+if authenticator.authentication_status is False:
     st.error("Usuário ou senha incorretos")
-elif authentication_status is None:
+elif authenticator.authentication_status is None:
     st.warning("Por favor, insira seu usuário e senha")
 else:
-    st.success(f"Bem-vindo, {name}!")
+    st.success(f"Bem-vindo, {authenticator.name}!")
     # Aqui começa o conteúdo da sua aplicação
 
 
