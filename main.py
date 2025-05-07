@@ -4,15 +4,16 @@ import io
 import matplotlib.pyplot as plt
 import json
 import os
+import streamlit as st
 import streamlit_authenticator as stauth
 
-# Configuração do login
+# Controle de acesso
+# Usuário e senha
 names = ['energiajlr']
 usernames = ['energiajlr']
-passwords = ['jlr25']
+hashed_passwords = ['$2b$12$KIXQZKZVZz8ZkZz8ZkZz8uZz8ZkZz8ZkZz8ZkZz8ZkZz8ZkZz8ZK']  # Substitua pelo hash real
 
-hashed_passwords = stauth.Hasher(passwords).generate()
-
+# Autenticador
 authenticator = stauth.Authenticate(
     names,
     usernames,
@@ -30,7 +31,8 @@ elif authentication_status is None:
     st.warning('Por favor, insira seu usuário e senha')
 else:
     st.success(f'Bem-vindo, {name}!')
-    # Aqui vai o restante da sua aplicação
+    # Aqui começa o conteúdo da sua aplicação
+
 
 
 # --- Funções auxiliares ---
