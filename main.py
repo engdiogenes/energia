@@ -57,7 +57,7 @@ pagina = st.sidebar.selectbox("Escolha a página:", [
     "Página Principal", "Gráficos por Medidor", "Limites de Consumo", "Dashboard"
 ])
 
-#st.title("Análise de Consumo de Energia (kWh)")
+st.title("Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)")
 
 dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
 
