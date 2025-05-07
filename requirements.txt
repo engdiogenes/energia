@@ -2,4 +2,4 @@ streamlit
 streamlit-autorefresh
 pandas
 matplotlib
-streamlit-authenticator
+streamlit-authenticator>=0.2.3
