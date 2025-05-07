@@ -20,7 +20,7 @@ authenticator = stauth.Authenticate(
     hashed_passwords,
     'energia_app',  # nome do cookie
     'abcdef',       # chave secreta do cookie
-    cookie_expiry_days=1
+    cookie_expiry_days=90
 )
 
 name, authentication_status, username = authenticator.login('Login', 'main')
