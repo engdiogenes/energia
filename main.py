@@ -13,15 +13,15 @@ names = ['energiajlr']
 usernames = ['energiajlr']
 hashed_passwords = ['$2b$12$KIXQZKZVZz8ZkZz8ZkZz8uZz8ZkZz8ZkZz8ZkZz8ZkZz8ZkZz8ZK']  # Substitua pelo hash real
 
-# Autenticador
 authenticator = stauth.Authenticate(
-    names,
-    usernames,
-    hashed_passwords,
-    'energia_app',  # nome do cookie
-    'abcdef',       # chave secreta do cookie
+    names=names,
+    usernames=usernames,
+    passwords=hashed_passwords,
+    cookie_name='energia_app',
+    key='abcdef',
     cookie_expiry_days=90
 )
+
 
 name, authentication_status, username = authenticator.login('Login', 'main')
 
