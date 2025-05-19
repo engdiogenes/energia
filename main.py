@@ -65,7 +65,7 @@ pagina = st.sidebar.selectbox("Escolha a página:", [
 st.markdown("<div style='font-size:20px; text-align:left;'>Application for managing electricity consumption Brazil- JLR (kWh)</div>", unsafe_allow_html=True)
 #st.title("Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)")
 
-dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
+    dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
 
 if dados_colados:
     try:
