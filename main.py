@@ -62,10 +62,10 @@ def carregar_dados(dados_colados):
 pagina = st.sidebar.selectbox("Escolha a página:", [
     "Home", "Graphs by Meter", "Consumption Limits", "Dashboard"
 ])
-st.markdown("<div style='font-size:17px; text-align:left;'>Application for managing electricity consumption Brazil- JLR (kWh)</div>", unsafe_allow_html=True)
+st.markdown("<div style='font-size:20px; text-align:left;'>Application for managing electricity consumption Brazil- JLR (kWh)</div>", unsafe_allow_html=True)
 #st.title("Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)")
 
-dados_colados = st.sidebar.text_area("Paste the data here (tabulated):", height=300)
+dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
 
 if dados_colados:
     try:
@@ -74,6 +74,19 @@ if dados_colados:
         datas_disponiveis = consumo["Datetime"].dt.date.unique()
         data_selecionada = st.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
+        st.markdown("### 📋 Resumo do Consumo Diário")
+
+resumo_texto = []
+for medidor in medidores_disponiveis:
+    consumo_total = dados_dia[medidor].sum()
+    limite_total = sum(st.session_state.limites_por_medidor.get(medidor, [0]*24))
+    status = "✅ Dentro da meta" if consumo_total <= limite_total else "🚨 Acima da meta"
+    resumo_texto.append(f"- **{medidor}**: {consumo_total:.2f} kWh (Limite: {limite_total:.2f} kWh) → {status}")
+
+st.markdown(f"**Data:** {data_selecionada}")
+st.markdown("**Resumo por medidor:**")
+st.markdown("\n".join(resumo_texto))
+
 
         if dados_dia.empty:
             st.warning("Nenhum dado disponível para a data selecionada.")
