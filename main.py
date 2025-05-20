@@ -216,8 +216,8 @@ if dados_colados:
 
         # Página 4 - Dashboard
         elif pagina == "Dashboard":
-        st.markdown("### " + traduzir("Dashboard - Graphs by Meter"))
-        cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
+            st.markdown("### " + traduzir("Dashboard - Graphs by Meter"))
+            cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
         # Cria 6 colunas para exibir os gráficos lado a lado
         cols = st.columns(6)
