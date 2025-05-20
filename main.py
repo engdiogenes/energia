@@ -336,8 +336,7 @@ if dados_colados:
                 unsafe_allow_html=True
             )
         else:
-            st.markdown(
-                \"""
+            st.markdown("""
                 <style>
                 body {
                     background-color: #FFFFFF;
@@ -352,7 +351,7 @@ if dados_colados:
                     color: #000000;
                 }
                 </style>
-                \"",
+                \""",
                 unsafe_allow_html=True
             )
 
