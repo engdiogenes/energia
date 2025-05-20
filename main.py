@@ -312,49 +312,7 @@ if dados_colados:
         data_selecionada = st.sidebar.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
 
-        # --- Modo Escuro/Claro ---
-        modo_escuro = st.sidebar.checkbox("Modo Escuro")
-
-        if modo_escuro:
-            st.markdown(
-                \"""
-                <style>
-                body {
-                    background-color: #2E2E2E;
-                    color: #FFFFFF;
-                }
-                .stTextInput, .stNumberInput, .stSelectbox, .stTextArea {
-                    background-color: #3E3E3E;
-                    color: #FFFFFF;
-                }
-                .stButton button {
-                    background-color: #5E5E5E;
-                    color: #FFFFFF;
-                }
-                </style>
-                \"",
-                unsafe_allow_html=True
-            )
-        else:
-            st.markdown("""
-                <style>
-                body {
-                    background-color: #FFFFFF;
-                    color: #000000;
-                }
-                .stTextInput, .stNumberInput, .stSelectbox, .stTextArea {
-                    background-color: #FFFFFF;
-                    color: #000000;
-                }
-                .stButton button {
-                    background-color: #F0F0F0;
-                    color: #000000;
-                }
-                </style>
-                \""",
-                unsafe_allow_html=True
-            )
-
+       
         if dados_dia.empty:
             st.warning("Nenhum dado disponível para a data selecionada.")
             st.stop()
