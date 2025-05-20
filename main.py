@@ -7,9 +7,15 @@ import os
 import streamlit as st
 import streamlit_authenticator as stauth
 
+
+# Controle de acesso
+
+# Aqui começa o conteúdo da sua aplicação
+
 # --- Funções auxiliares ---
 def limpar_valores(texto):
     return texto.replace(",", "")
+
 
 def carregar_dados(dados_colados):
     dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
@@ -54,12 +60,15 @@ def carregar_dados(dados_colados):
 
     return consumo
 
+
 # --- Menu lateral ---
 pagina = st.sidebar.selectbox("Escolha a página:", [
     "Home", "Graphs by Meter", "Consumption Limits", "Dashboard"
 ])
-st.markdown("<div style='font-size:20px; text-align:left;'>Application for managing electricity consumption Brazil- JLR (kWh)</div>", unsafe_allow_html=True)
-#st.title("Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)")
+st.markdown(
+    "<div style='font-size:20px; text-align:left;'>Application for managing electricity consumption Brazil- JLR (kWh)</div>",
+    unsafe_allow_html=True)
+# st.title("Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)")
 
 dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
 
@@ -70,8 +79,6 @@ if dados_colados:
         datas_disponiveis = consumo["Datetime"].dt.date.unique()
         data_selecionada = st.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
-        
-        
 
         if dados_dia.empty:
             st.warning("Nenhum dado disponível para a data selecionada.")
@@ -82,14 +89,16 @@ if dados_colados:
 
         # Página 1 - Principal
         if pagina == "Home":
-            medidores_selecionados = st.multiselect("Select the meters:", medidores_disponiveis, default=medidores_disponiveis)
+            medidores_selecionados = st.multiselect("Select the meters:", medidores_disponiveis,
+                                                    default=medidores_disponiveis)
 
             fig, ax = plt.subplots(figsize=(16, 6))
             for medidor in medidores_selecionados:
                 ax.plot(horas, dados_dia[medidor], label=medidor)
 
                 if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
-                    ax.plot(range(24), st.session_state.limites_por_medidor[medidor], linestyle="--", color="red", label=f"Limite - {medidor}")
+                    ax.plot(range(24), st.session_state.limites_por_medidor[medidor], linestyle="--", color="red",
+                            label=f"Limite - {medidor}")
 
             ax.set_title(f"Hourly consumption in {data_selecionada} (kWh)")
             ax.set_xlabel("Hora do dia")
@@ -101,7 +110,8 @@ if dados_colados:
 
             st.markdown("### Hourly consumption (kWh)")
             st.dataframe(
-                dados_dia.set_index("Datetime")[medidores_selecionados].round(2).style.set_properties(**{"text-align": "center"}),
+                dados_dia.set_index("Datetime")[medidores_selecionados].round(2).style.set_properties(
+                    **{"text-align": "center"}),
                 use_container_width=True
             )
 
@@ -138,10 +148,12 @@ if dados_colados:
                     "Soma do Consumo (kWh)": [round(consumo_total, 2)]
                 }, index=["Total"])
 
+
                 def highlight_excesso(val):
                     consumo = resumo_df["Sum of Consumption (kWh)"].values[0]
                     limite = resumo_df["Sum of Limits (kWh)"].values[0]
                     return ["", "background-color: red; color: white"] if consumo > limite else ["", ""]
+
 
                 styled = resumo_df.style.set_properties(**{"text-align": "center"}).apply(highlight_excesso, axis=1)
                 st.dataframe(styled, use_container_width=True)
@@ -151,7 +163,7 @@ if dados_colados:
             st.markdown("### Configure the hourly limits for each meter")
 
             if "limites_por_medidor" not in st.session_state:
-                st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
+                st.session_state.limites_por_medidor = {m: [5.0] * 24 for m in medidores_disponiveis}
 
             uploaded_file = st.file_uploader("Carregar limites a partir de um arquivo JSON", type="json")
             if uploaded_file is not None:
@@ -170,7 +182,7 @@ if dados_colados:
                     with cols[i % 6]:
                         valor = st.number_input(
                             f"{i}h", min_value=0.0, max_value=800.0,
-                            value=float(st.session_state.limites_por_medidor.get(medidor, [5.0]*24)[i]),
+                            value=float(st.session_state.limites_por_medidor.get(medidor, [5.0] * 24)[i]),
                             step=0.5, key=f"{medidor}_{i}"
                         )
                         novos_valores.append(valor)
@@ -182,27 +194,30 @@ if dados_colados:
                 st.success("Limites salvos com sucesso!")
 
             limites_json = json.dumps(st.session_state.limites_por_medidor, indent=2)
-            st.download_button("Download dos limites", data=limites_json, file_name="limites_por_medidor.json", mime="application/json")
+            st.download_button("Download dos limites", data=limites_json, file_name="limites_por_medidor.json",
+                               mime="application/json")
 
-     elif pagina == "Dashboard":
-    st.markdown("### Dashboard - Graphs by Meter")
-    cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
+        # Página 4 - Dashboard
+        elif pagina == "Dashboard":
+            st.markdown("### Dashboard - Graphs by Meter")
+            cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
-    for idx, medidor in enumerate(medidores_disponiveis):
-        fig, ax = plt.subplots(figsize=(12, 4))  # Gráfico mais largo
-        ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
-        if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
-            limites = st.session_state.limites_por_medidor[medidor]
-            ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
-        ax.set_title(medidor)
-        ax.set_xticks(range(0, 24))
-        ax.set_xlabel("Hora")
-        ax.set_ylabel("kWh")
-        ax.legend(fontsize="small")
-        st.pyplot(fig)
+            for idx, medidor in enumerate(medidores_disponiveis):
+                fig, ax = plt.subplots(figsize=(12, 4))  # Gráfico mais largo
+                ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
+                if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
+                    limites = st.session_state.limites_por_medidor[medidor]
+                    ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
+                ax.set_title(medidor)
+                ax.set_xticks(range(0, 24))
+                ax.set_xlabel("Hora")
+                ax.set_ylabel("kWh")
+                ax.legend(fontsize="small")
+                st.pyplot(fig)
+
 
     except Exception as e:
         st.error(f"Error processing the data: {e}")
-        
-    
+
+
 
