@@ -216,22 +216,26 @@ if dados_colados:
             st.download_button(traduzir("Download limits"), data=limites_json, file_name="limites_por_medidor.json", mime="application/json")
 
         # Página 4 - Dashboard
-        elif pagina == "Dashboard":
-            st.markdown("### " + traduzir("Dashboard - Graphs by Meter"))
-            cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
+elif pagina == "Dashboard":
+    st.markdown("### " + traduzir("Dashboard - Graphs by Meter"))
+    cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
-            for idx, medidor in enumerate(medidores_disponiveis):
-                fig, ax = plt.subplots(figsize=(12, 4))
-                ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
-                if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
-                    limites = st.session_state.limites_por_medidor[medidor]
-                    ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
-                ax.set_title(medidor)
-                ax.set_xticks(range(0, 24))
-                ax.set_xlabel("Hora")
-                ax.set_ylabel("kWh")
-                ax.legend(fontsize="small")
-                st.pyplot(fig)
+    # Cria 6 colunas para exibir os gráficos lado a lado
+    cols = st.columns(6)
+    for idx, medidor in enumerate(medidores_disponiveis):
+        with cols[idx % 6]:
+            fig, ax = plt.subplots(figsize=(6, 3))
+            ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
+            if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
+                limites = st.session_state.limites_por_medidor[medidor]
+                ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
+            ax.set_title(medidor)
+            ax.set_xticks(range(0, 24))
+            ax.set_xlabel("Hora")
+            ax.set_ylabel("kWh")
+            ax.legend(fontsize="small")
+            st.pyplot(fig)
+
 
     except Exception as e:
         st.error(f"{traduzir('Error processing the data:')} {e}")
