@@ -184,37 +184,22 @@ if dados_colados:
             limites_json = json.dumps(st.session_state.limites_por_medidor, indent=2)
             st.download_button("Download dos limites", data=limites_json, file_name="limites_por_medidor.json", mime="application/json")
 
-        # Página 4 - Dashboard
-        elif pagina == "Dashboard":
-            st.markdown("### Dashboard - Graphs by Meter")
-            cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
+     elif pagina == "Dashboard":
+    st.markdown("### Dashboard - Graphs by Meter")
+    cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
-            for medidor in medidores_disponiveis:
-                fig, ax = plt.subplots(figsize=(12, 4))  # Gráfico mais largo
-                ax.plot(horas, dados_dia[medidor], label="Consumo", color="blue")
-                if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
-                    limites = st.session_state.limites_por_medidor[medidor]
-                    ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
-                ax.set_title(medidor)
-                ax.set_xticks(range(0, 24))
-                ax.set_xlabel("Hora")
-                ax.set_ylabel("kWh")
-                ax.legend(fontsize="small")
-                st.pyplot(fig)
-
-                            ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(i + j))
-
-                            if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
-                                limites = st.session_state.limites_por_medidor[medidor]
-                                ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
-
-                            ax.set_title(medidor)
-                            ax.set_xticks(range(0, 24))
-                            ax.set_xlabel("Hora")
-                            ax.set_ylabel("kWh")
-                            ax.legend(fontsize="x-small")
-                            st.pyplot(fig)
-
+    for idx, medidor in enumerate(medidores_disponiveis):
+        fig, ax = plt.subplots(figsize=(12, 4))  # Gráfico mais largo
+        ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
+        if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
+            limites = st.session_state.limites_por_medidor[medidor]
+            ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
+        ax.set_title(medidor)
+        ax.set_xticks(range(0, 24))
+        ax.set_xlabel("Hora")
+        ax.set_ylabel("kWh")
+        ax.legend(fontsize="small")
+        st.pyplot(fig)
 
     except Exception as e:
         st.error(f"Error processing the data: {e}")
