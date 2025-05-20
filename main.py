@@ -7,10 +7,6 @@ import os
 import streamlit as st
 import streamlit_authenticator as stauth
 
-# Controle de acesso
-
-# Aqui começa o conteúdo da sua aplicação
-
 # --- Funções auxiliares ---
 def limpar_valores(texto):
     return texto.replace(",", "")
@@ -193,13 +189,19 @@ if dados_colados:
             st.markdown("### Dashboard - Graphs by Meter")
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
-            for i in range(0, len(medidores_disponiveis), 4):
-                cols = st.columns(4)
-                for j in range(4):
-                    if i + j < len(medidores_disponiveis):
-                        medidor = medidores_disponiveis[i + j]
-                        with cols[j]:
-                            fig, ax = plt.subplots(figsize=(5, 3))
+            for medidor in medidores_disponiveis:
+    fig, ax = plt.subplots(figsize=(12, 4))  # Gráfico mais largo
+    ax.plot(horas, dados_dia[medidor], label="Consumo", color="blue")
+    if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
+        limites = st.session_state.limites_por_medidor[medidor]
+        ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
+    ax.set_title(medidor)
+    ax.set_xticks(range(0, 24))
+    ax.set_xlabel("Hora")
+    ax.set_ylabel("kWh")
+    ax.legend(fontsize="small")
+    st.pyplot(fig)
+
                             ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(i + j))
 
                             if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
