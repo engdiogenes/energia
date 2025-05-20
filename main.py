@@ -216,24 +216,24 @@ if dados_colados:
 
         # Página 4 - Dashboard
         elif pagina == "Dashboard":
-            st.markdown("### " + traduzir("Dashboard - Graphs by Meter"))
-            cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
+        st.markdown("### " + traduzir("Dashboard - Graphs by Meter"))
+        cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
-        # Cria 6 colunas para exibir os gráficos lado a lado
-        cols = st.columns(6)
-        for idx, medidor in enumerate(medidores_disponiveis):
-            with cols[idx % 6]:
-                fig, ax = plt.subplots(figsize=(12, 6))
-                ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
-                if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
-                    limites = st.session_state.limites_por_medidor[medidor]
-                    ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
-                    ax.set_title(medidor)
-                    ax.set_xticks(range(0, 24))
-                    ax.set_xlabel("Hora")
-                    ax.set_ylabel("kWh")
-                    ax.legend(fontsize="small")
-                    st.pyplot(fig)
+    # Cria 3 colunas para exibir os gráficos lado a lado
+    cols = st.columns(3)
+    for idx, medidor in enumerate(medidores_disponiveis):
+        with cols[idx % 3]:
+            fig, ax = plt.subplots(figsize=(10, 5))  # Tamanho maior do gráfico
+            ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
+            if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
+                limites = st.session_state.limites_por_medidor[medidor]
+                ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
+            ax.set_title(medidor)
+            ax.set_xticks(range(0, 24))
+            ax.set_xlabel("Hora")
+            ax.set_ylabel("kWh")
+            ax.legend(fontsize="small")
+            st.pyplot(fig)
 
 
     except Exception as e:
