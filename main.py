@@ -244,4 +244,3 @@ def traduzir(texto):
                 
                 except Exception as e:
                 st.error(f"{traduzir('Error processing the data:')} {e}")
-                
