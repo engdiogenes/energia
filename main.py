@@ -3,6 +3,13 @@ import pandas as pd
 import io
 import matplotlib.pyplot as plt
 import json
+import os
+import streamlit as st
+import streamlit_authenticator as stauth
+
+# Controle de acesso
+
+# Aqui começa o conteúdo da sua aplicação
 
 # --- Funções auxiliares ---
 def limpar_valores(texto):
@@ -52,21 +59,25 @@ def carregar_dados(dados_colados):
     return consumo
 
 # --- Menu lateral ---
-with st.sidebar.expander("Menu"):
-    pagina = st.selectbox("Escolha a página:", [
-        "Home", "Graphs by Meter", "Consumption Limits", "Dashboard"
-    ])
-    dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
+pagina = st.sidebar.selectbox("Escolha a página:", [
+    "Home", "Graphs by Meter", "Consumption Limits", "Dashboard"
+])
+st.markdown("<div style='font-size:20px; text-align:left;'>Application for managing electricity consumption Brazil- JLR (kWh)</div>", unsafe_allow_html=True)
+#st.title("Aplicativo para gestão de consumo de energia elétrica - JLR (kWh)")
+
+dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
 
 if dados_colados:
     try:
         consumo = carregar_dados(dados_colados)
 
         datas_disponiveis = consumo["Datetime"].dt.date.unique()
-        data_selecionada = st.sidebar.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
+        data_selecionada = st.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
+        
+        
 
-            if dados_dia.empty:
+        if dados_dia.empty:
             st.warning("Nenhum dado disponível para a data selecionada.")
             st.stop()
 
@@ -182,115 +193,26 @@ if dados_colados:
             st.markdown("### Dashboard - Graphs by Meter")
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
-            for idx, medidor in enumerate(medidores_disponiveis):
-                fig, ax = plt.subplots(figsize=(12, 4))  # Gráfico mais largo
-                ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
-                if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
-                    limites = st.session_state.limites_por_medidor[medidor]
-                    ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
-                ax.set_title(medidor)
-                ax.set_xticks(range(0, 24))
-                ax.set_xlabel("Hora")
-                ax.set_ylabel("kWh")
-                ax.legend(fontsize="small")
-                st.pyplot(fig)
+            for i in range(0, len(medidores_disponiveis), 4):
+                cols = st.columns(4)
+                for j in range(4):
+                    if i + j < len(medidores_disponiveis):
+                        medidor = medidores_disponiveis[i + j]
+                        with cols[j]:
+                            fig, ax = plt.subplots(figsize=(5, 3))
+                            ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(i + j))
+
+                            if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
+                                limites = st.session_state.limites_por_medidor[medidor]
+                                ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
+
+                            ax.set_title(medidor)
+                            ax.set_xticks(range(0, 24))
+                            ax.set_xlabel("Hora")
+                            ax.set_ylabel("kWh")
+                            ax.legend(fontsize="x-small")
+                            st.pyplot(fig)
+
 
     except Exception as e:
         st.error(f"Error processing the data: {e}")
-
-# Salvar o código em um arquivo .py
-codigo_completo = """
-import streamlit as st
-import pandas as pd
-import io
-import matplotlib.pyplot as plt
-import json
-
-# --- Funções auxiliares ---
-def limpar_valores(texto):
-    return texto.replace(",", "")
-
-def carregar_dados(dados_colados):
-    dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\\t")
-    dados["Datetime"] = pd.to_datetime(dados["Date"] + " " + dados["Time"], dayfirst=True)
-    dados = dados.sort_values("Datetime")
-
-    colunas_originais = [
-        "MM_MPTF_QGBT-03_KWH.PresentValue", "MM_GAHO_QLFE-01-01_KWH.PresentValue",
-        "MM_MAIW_QGBT-GERAL_KWH.PresentValue", "MM_MPTF_QGBT-01_KWH.PresentValue",
-        "MM_MPTF_QGBT-02_KWH.PresentValue", "MM_MPTF_CEAG_KWH.PresentValue",
-        "MM_SEOB_QGBT-01-01_KWH.PresentValue", "MM_OFFI_QGBT-01_KWH.PresentValue",
-        "MM_EBPC_QLF-01-01_KWH.PresentValue", "KWH_PCCB_SEPAM-S40-01.PresentValue",
-        "MM_OFFI_QGBT-01-02_KWH.PresentValue"
-    ]
-
-    novos_rotulos = {
-        "MM_MPTF_QGBT-03_KWH.PresentValue": "MP&L",
-        "MM_GAHO_QLFE-01-01_KWH.PresentValue": "GAHO",
-        "MM_MAIW_QGBT-GERAL_KWH.PresentValue": "MAIW",
-        "MM_MPTF_QGBT-01_KWH.PresentValue": "QGBT1-MPTF",
-        "MM_MPTF_QGBT-02_KWH.PresentValue": "QGBT2-MPTF",
-        "MM_MPTF_CEAG_KWH.PresentValue": "CAG",
-        "MM_SEOB_QGBT-01-01_KWH.PresentValue": "SEOB",
-        "MM_OFFI_QGBT-01_KWH.PresentValue": "OFFICE",
-        "MM_EBPC_QLF-01-01_KWH.PresentValue": "EBPC",
-        "KWH_PCCB_SEPAM-S40-01.PresentValue": "PCCB",
-        "MM_OFFI_QGBT-01-02_KWH.PresentValue": "PMDC-OFFICE"
-    }
-
-    dados = dados.rename(columns=novos_rotulos)
-    medidores = list(novos_rotulos.values())
-    dados[medidores] = dados[medidores].astype(float)
-
-    consumo = dados[["Datetime"] + medidores].copy()
-    for col in medidores:
-        consumo[col] = consumo[col].diff().abs()
-    consumo = consumo.dropna()
-
-    consumo["TRIM&FINAL"] = consumo["QGBT1-MPTF"] + consumo["QGBT2-MPTF"]
-    consumo["OFFICE + CANTEEN"] = consumo["OFFICE"] - consumo["PMDC-OFFICE"]
-    consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"])
-
-    return consumo
-
-# --- Menu lateral ---
-with st.sidebar.expander("Menu"):
-    pagina = st.selectbox("Escolha a página:", [
-        "Home", "Graphs by Meter", "Consumption Limits", "Dashboard"
-    ])
-    dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
-
-if dados_colados:
-    try:
-        consumo = carregar_dados(dados_colados)
-
-        datas_disponiveis = consumo["Datetime"].dt.date.unique()
-        data_selecionada = st.sidebar.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
-        dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
-
-       
-        if dados_dia.empty:
-            st.warning("Nenhum dado disponível para a data selecionada.")
-            st.stop()
-
-        horas = dados_dia["Datetime"].dt.hour
-        medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
-
-        # Página 1 - Principal
-        if pagina == "Home":
-            medidores_selecionados = st.multiselect("Select the meters:", medidores_disponiveis, default=medidores_disponiveis)
-
-            fig, ax = plt.subplots(figsize=(16, 6))
-            for medidor in medidores_selecionados:
-                ax.plot(horas, dados_dia[medidor], label=medidor)
-
-                if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
-                    ax.plot(range(24), st.session_state.limites_por_medidor[medidor], linestyle="--", color="red", label=f"Limite - {medidor}")
-
-            ax.set_title(f"Hourly consumption in {data_selecionada} (kWh)")
-            ax.set_xlabel("Hora do dia")
-            ax.set_ylabel("Consumo (kWh)")
-            ax.set_xticks(range(0, 24))
-            ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.4), ncol=3, fontsize='small')
-            plt.xticks(rotation=45)
-           
