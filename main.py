@@ -97,6 +97,7 @@ def limpar_valores(texto):
 
                     if dados_colados:
                         try:
+    try:
                             consumo = carregar_dados(dados_colados)
 
                             datas_disponiveis = consumo["Datetime"].dt.date.unique()
@@ -111,12 +112,13 @@ def limpar_valores(texto):
                                 medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
                                 if "limites_por_medidor" not in st.session_state:
                                     try:
+    try:
                                         with open("limites_por_medidor.json", "r") as f:
                                             st.session_state.limites_por_medidor = json.load(f)
                                             st.success(traduzir("Limits loaded successfully!"))
-                                            except FileNotFoundError:
+                                                except FileNotFoundError:
                                                 st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
-                                                except Exception as e:
+                                                    except Exception as e:
                                                     st.error(f"{traduzir('Error loading limits:')} {e}")
                                                     st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
 
@@ -196,9 +198,10 @@ def limpar_valores(texto):
                                                                                     uploaded_file = st.file_uploader(traduzir("Upload limits from a JSON file"), type="json")
                                                                                     if uploaded_file is not None:
                                                                                         try:
+    try:
                                                                                             st.session_state.limites_por_medidor = json.load(uploaded_file)
                                                                                             st.success(traduzir("Limits loaded successfully!"))
-                                                                                            except Exception as e:
+                                                                                                except Exception as e:
                                                                                                 st.error(f"{traduzir('Error loading limits:')} {e}")
 
                                                                                                 for medidor in medidores_disponiveis:
@@ -242,5 +245,5 @@ def limpar_valores(texto):
                                                                                                                                 ax.legend(fontsize="small")
                                                                                                                                 st.pyplot(fig)
 
-                                                                                                                                except Exception as e:
+                                                                                                                                    except Exception as e:
                                                                                                                                     st.error(f"{traduzir('Error processing the data:')} {e}")
