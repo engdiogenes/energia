@@ -215,7 +215,7 @@ if dados_colados:
             st.download_button(traduzir("Download limits"), data=limites_json, file_name="limites_por_medidor.json", mime="application/json")
 
         # Página 4 - Dashboard
-    elif pagina == "Dashboard":
+        elif pagina == "Dashboard":
         st.markdown("### " + traduzir("Dashboard - Graphs by Meter"))
         cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
