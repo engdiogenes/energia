@@ -110,6 +110,17 @@ if dados_colados:
 
         horas = dados_dia["Datetime"].dt.hour
         medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
+        if "limites_por_medidor" not in st.session_state:
+    try:
+        with open("limites_por_medidor.json", "r") as f:
+            st.session_state.limites_por_medidor = json.load(f)
+        st.success(traduzir("Limits loaded successfully!"))
+    except FileNotFoundError:
+        st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
+    except Exception as e:
+        st.error(f"{traduzir('Error loading limits:')} {e}")
+        st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
+
 
         # Página 1 - Principal
         if pagina == "Home":
@@ -181,8 +192,7 @@ if dados_colados:
         elif pagina == "Consumption Limits":
             st.markdown("### " + traduzir("Configure the hourly limits for each meter"))
 
-            if "limites_por_medidor" not in st.session_state:
-                st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
+            
 
             uploaded_file = st.file_uploader(traduzir("Upload limits from a JSON file"), type="json")
             if uploaded_file is not None:
