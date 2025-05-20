@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import io
@@ -61,6 +60,51 @@ with st.sidebar.expander("Menu"):
     dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
     modo_escuro = st.checkbox("Modo Escuro")
     idioma = st.selectbox("Idioma", ["Português", "English"])
+    
+    # --- Modo Escuro/Claro ---
+modo_escuro = st.sidebar.checkbox("Modo Escuro")
+
+if modo_escuro:
+    st.markdown(
+        """
+        <style>
+        body {
+            background-color: #2E2E2E;
+            color: #FFFFFF;
+        }
+        .stTextInput, .stNumberInput, .stSelectbox, .stTextArea {
+            background-color: #3E3E3E;
+            color: #FFFFFF;
+        }
+        .stButton button {
+            background-color: #5E5E5E;
+            color: #FFFFFF;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+else:
+    st.markdown(
+        """
+        <style>
+        body {
+            background-color: #FFFFFF;
+            color: #000000;
+        }
+        .stTextInput, .stNumberInput, .stSelectbox, .stTextArea {
+            background-color: #FFFFFF;
+            color: #000000;
+        }
+        .stButton button {
+            background-color: #F0F0F0;
+            color: #000000;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 if dados_colados:
     try:
