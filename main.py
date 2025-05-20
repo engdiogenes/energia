@@ -221,7 +221,7 @@ if dados_colados:
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
             for idx, medidor in enumerate(medidores_disponiveis):
-                fig, ax = plt.subplots(figsize=(4, 1))
+                fig, ax = plt.subplots(figsize=(12, 4))
                 ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
                 if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
                     limites = st.session_state.limites_por_medidor[medidor]
