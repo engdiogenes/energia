@@ -190,17 +190,17 @@ if dados_colados:
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
             for medidor in medidores_disponiveis:
-    fig, ax = plt.subplots(figsize=(12, 4))  # Gráfico mais largo
-    ax.plot(horas, dados_dia[medidor], label="Consumo", color="blue")
-    if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
-        limites = st.session_state.limites_por_medidor[medidor]
-        ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
-    ax.set_title(medidor)
-    ax.set_xticks(range(0, 24))
-    ax.set_xlabel("Hora")
-    ax.set_ylabel("kWh")
-    ax.legend(fontsize="small")
-    st.pyplot(fig)
+                fig, ax = plt.subplots(figsize=(12, 4))  # Gráfico mais largo
+                ax.plot(horas, dados_dia[medidor], label="Consumo", color="blue")
+                if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
+                    limites = st.session_state.limites_por_medidor[medidor]
+                    ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
+                ax.set_title(medidor)
+                ax.set_xticks(range(0, 24))
+                ax.set_xlabel("Hora")
+                ax.set_ylabel("kWh")
+                ax.legend(fontsize="small")
+                st.pyplot(fig)
 
                             ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(i + j))
 
