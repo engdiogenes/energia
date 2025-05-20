@@ -223,7 +223,7 @@ if dados_colados:
         cols = st.columns(6)
         for idx, medidor in enumerate(medidores_disponiveis):
             with cols[idx % 6]:
-                fig, ax = plt.subplots(figsize=(8, 6))
+                fig, ax = plt.subplots(figsize=(12, 6))
                 ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
                 if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
                     limites = st.session_state.limites_por_medidor[medidor]
