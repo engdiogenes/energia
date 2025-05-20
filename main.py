@@ -3,7 +3,6 @@ import pandas as pd
 import io
 import matplotlib.pyplot as plt
 import json
-import os
 
 # --- Funções auxiliares ---
 def limpar_valores(texto):
@@ -58,53 +57,6 @@ with st.sidebar.expander("Menu"):
         "Home", "Graphs by Meter", "Consumption Limits", "Dashboard"
     ])
     dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
-    modo_escuro = st.checkbox("Modo Escuro")
-    idioma = st.selectbox("Idioma", ["Português", "English"])
-    
-    # --- Modo Escuro/Claro ---
-modo_escuro = st.sidebar.checkbox("Modo Escuro")
-
-if modo_escuro:
-    st.markdown(
-        """
-        <style>
-        body {
-            background-color: #2E2E2E;
-            color: #FFFFFF;
-        }
-        .stTextInput, .stNumberInput, .stSelectbox, .stTextArea {
-            background-color: #3E3E3E;
-            color: #FFFFFF;
-        }
-        .stButton button {
-            background-color: #5E5E5E;
-            color: #FFFFFF;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-else:
-    st.markdown(
-        """
-        <style>
-        body {
-            background-color: #FFFFFF;
-            color: #000000;
-        }
-        .stTextInput, .stNumberInput, .stSelectbox, .stTextArea {
-            background-color: #FFFFFF;
-            color: #000000;
-        }
-        .stButton button {
-            background-color: #F0F0F0;
-            color: #000000;
-        }
-        </style>
-        """,
-        unsafe_allow_html=True
-    )
-
 
 if dados_colados:
     try:
@@ -114,6 +66,50 @@ if dados_colados:
         data_selecionada = st.sidebar.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
 
+        # --- Modo Escuro/Claro ---
+        modo_escuro = st.sidebar.checkbox("Modo Escuro")
+
+        if modo_escuro:
+            st.markdown(
+                """
+                <style>
+                body {
+                    background-color: #2E2E2E;
+                    color: #FFFFFF;
+                }
+                .stTextInput, .stNumberInput, .stSelectbox, .stTextArea {
+                    background-color: #3E3E3E;
+                    color: #FFFFFF;
+                }
+                .stButton button {
+                    background-color: #5E5E5E;
+                    color: #FFFFFF;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                """
+                <style>
+                body {
+                    background-color: #FFFFFF;
+                    color: #000000;
+                }
+                .stTextInput, .stNumberInput, .stSelectbox, .stTextArea {
+                    background-color: #FFFFFF;
+                    color: #000000;
+                }
+                .stButton button {
+                    background-color: #F0F0F0;
+                    color: #000000;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True
+            )
+
         if dados_dia.empty:
             st.warning("Nenhum dado disponível para a data selecionada.")
             st.stop()
@@ -121,13 +117,14 @@ if dados_colados:
         horas = dados_dia["Datetime"].dt.hour
         medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-        # Páginas da aplicação
+        # Página 1 - Principal
         if pagina == "Home":
             medidores_selecionados = st.multiselect("Select the meters:", medidores_disponiveis, default=medidores_disponiveis)
 
             fig, ax = plt.subplots(figsize=(16, 6))
             for medidor in medidores_selecionados:
                 ax.plot(horas, dados_dia[medidor], label=medidor)
+
                 if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
                     ax.plot(range(24), st.session_state.limites_por_medidor[medidor], linestyle="--", color="red", label=f"Limite - {medidor}")
 
@@ -149,6 +146,7 @@ if dados_colados:
             totais = dados_dia[medidores_disponiveis].sum().round(2).to_frame(name="Consumo Total (kWh)")
             st.dataframe(totais.style.set_properties(**{"text-align": "center"}), use_container_width=True)
 
+        # Página 2 - Gráficos por Medidor
         elif pagina == "Graphs by Meter":
             st.markdown("### Individual Charts with Limit Curve")
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
@@ -185,6 +183,7 @@ if dados_colados:
                 styled = resumo_df.style.set_properties(**{"text-align": "center"}).apply(highlight_excesso, axis=1)
                 st.dataframe(styled, use_container_width=True)
 
+        # Página 3 - Configuração de Limites
         elif pagina == "Consumption Limits":
             st.markdown("### Configure the hourly limits for each meter")
 
@@ -222,12 +221,13 @@ if dados_colados:
             limites_json = json.dumps(st.session_state.limites_por_medidor, indent=2)
             st.download_button("Download dos limites", data=limites_json, file_name="limites_por_medidor.json", mime="application/json")
 
+        # Página 4 - Dashboard
         elif pagina == "Dashboard":
             st.markdown("### Dashboard - Graphs by Meter")
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
             for idx, medidor in enumerate(medidores_disponiveis):
-                fig, ax = plt.subplots(figsize=(12, 4))
+                fig, ax = plt.subplots(figsize=(12, 4))  # Gráfico mais largo
                 ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
                 if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
                     limites = st.session_state.limites_por_medidor[medidor]
@@ -241,3 +241,143 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Error processing the data: {e}")
+
+# Salvar o código em um arquivo .py
+codigo_completo = """
+import streamlit as st
+import pandas as pd
+import io
+import matplotlib.pyplot as plt
+import json
+
+# --- Funções auxiliares ---
+def limpar_valores(texto):
+    return texto.replace(",", "")
+
+def carregar_dados(dados_colados):
+    dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\\t")
+    dados["Datetime"] = pd.to_datetime(dados["Date"] + " " + dados["Time"], dayfirst=True)
+    dados = dados.sort_values("Datetime")
+
+    colunas_originais = [
+        "MM_MPTF_QGBT-03_KWH.PresentValue", "MM_GAHO_QLFE-01-01_KWH.PresentValue",
+        "MM_MAIW_QGBT-GERAL_KWH.PresentValue", "MM_MPTF_QGBT-01_KWH.PresentValue",
+        "MM_MPTF_QGBT-02_KWH.PresentValue", "MM_MPTF_CEAG_KWH.PresentValue",
+        "MM_SEOB_QGBT-01-01_KWH.PresentValue", "MM_OFFI_QGBT-01_KWH.PresentValue",
+        "MM_EBPC_QLF-01-01_KWH.PresentValue", "KWH_PCCB_SEPAM-S40-01.PresentValue",
+        "MM_OFFI_QGBT-01-02_KWH.PresentValue"
+    ]
+
+    novos_rotulos = {
+        "MM_MPTF_QGBT-03_KWH.PresentValue": "MP&L",
+        "MM_GAHO_QLFE-01-01_KWH.PresentValue": "GAHO",
+        "MM_MAIW_QGBT-GERAL_KWH.PresentValue": "MAIW",
+        "MM_MPTF_QGBT-01_KWH.PresentValue": "QGBT1-MPTF",
+        "MM_MPTF_QGBT-02_KWH.PresentValue": "QGBT2-MPTF",
+        "MM_MPTF_CEAG_KWH.PresentValue": "CAG",
+        "MM_SEOB_QGBT-01-01_KWH.PresentValue": "SEOB",
+        "MM_OFFI_QGBT-01_KWH.PresentValue": "OFFICE",
+        "MM_EBPC_QLF-01-01_KWH.PresentValue": "EBPC",
+        "KWH_PCCB_SEPAM-S40-01.PresentValue": "PCCB",
+        "MM_OFFI_QGBT-01-02_KWH.PresentValue": "PMDC-OFFICE"
+    }
+
+    dados = dados.rename(columns=novos_rotulos)
+    medidores = list(novos_rotulos.values())
+    dados[medidores] = dados[medidores].astype(float)
+
+    consumo = dados[["Datetime"] + medidores].copy()
+    for col in medidores:
+        consumo[col] = consumo[col].diff().abs()
+    consumo = consumo.dropna()
+
+    consumo["TRIM&FINAL"] = consumo["QGBT1-MPTF"] + consumo["QGBT2-MPTF"]
+    consumo["OFFICE + CANTEEN"] = consumo["OFFICE"] - consumo["PMDC-OFFICE"]
+    consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"])
+
+    return consumo
+
+# --- Menu lateral ---
+with st.sidebar.expander("Menu"):
+    pagina = st.selectbox("Escolha a página:", [
+        "Home", "Graphs by Meter", "Consumption Limits", "Dashboard"
+    ])
+    dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
+
+if dados_colados:
+    try:
+        consumo = carregar_dados(dados_colados)
+
+        datas_disponiveis = consumo["Datetime"].dt.date.unique()
+        data_selecionada = st.sidebar.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
+        dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
+
+        # --- Modo Escuro/Claro ---
+        modo_escuro = st.sidebar.checkbox("Modo Escuro")
+
+        if modo_escuro:
+            st.markdown(
+                \"""
+                <style>
+                body {
+                    background-color: #2E2E2E;
+                    color: #FFFFFF;
+                }
+                .stTextInput, .stNumberInput, .stSelectbox, .stTextArea {
+                    background-color: #3E3E3E;
+                    color: #FFFFFF;
+                }
+                .stButton button {
+                    background-color: #5E5E5E;
+                    color: #FFFFFF;
+                }
+                </style>
+                \"",
+                unsafe_allow_html=True
+            )
+        else:
+            st.markdown(
+                \"""
+                <style>
+                body {
+                    background-color: #FFFFFF;
+                    color: #000000;
+                }
+                .stTextInput, .stNumberInput, .stSelectbox, .stTextArea {
+                    background-color: #FFFFFF;
+                    color: #000000;
+                }
+                .stButton button {
+                    background-color: #F0F0F0;
+                    color: #000000;
+                }
+                </style>
+                \"",
+                unsafe_allow_html=True
+            )
+
+        if dados_dia.empty:
+            st.warning("Nenhum dado disponível para a data selecionada.")
+            st.stop()
+
+        horas = dados_dia["Datetime"].dt.hour
+        medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
+
+        # Página 1 - Principal
+        if pagina == "Home":
+            medidores_selecionados = st.multiselect("Select the meters:", medidores_disponiveis, default=medidores_disponiveis)
+
+            fig, ax = plt.subplots(figsize=(16, 6))
+            for medidor in medidores_selecionados:
+                ax.plot(horas, dados_dia[medidor], label=medidor)
+
+                if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
+                    ax.plot(range(24), st.session_state.limites_por_medidor[medidor], linestyle="--", color="red", label=f"Limite - {medidor}")
+
+            ax.set_title(f"Hourly consumption in {data_selecionada} (kWh)")
+            ax.set_xlabel("Hora do dia")
+            ax.set_ylabel("Consumo (kWh)")
+            ax.set_xticks(range(0, 24))
+            ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.4), ncol=3, fontsize='small')
+            plt.xticks(rotation=45)
+           
