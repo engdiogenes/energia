@@ -5,6 +5,9 @@ import matplotlib.pyplot as plt
 import json
 import os
 
+# Configuração para usar toda a largura da tela
+st.set_page_config(layout="wide")
+
 # Funções auxiliares
 def limpar_valores(texto):
     return texto.replace(",", "")
