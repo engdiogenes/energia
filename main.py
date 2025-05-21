@@ -114,26 +114,37 @@ if dados_colados:
         # TABS 2 - POR MEDIDOR
         with tabs[1]:
             st.subheader("📊 Gráficos por Medidor com Curva de Limite")
-            for medidor in medidores_disponiveis:
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=horas,
-                    y=dados_dia[medidor],
-                    mode="lines+markers",
-                    name="Consumo"
-                ))
+            linhas = [st.columns(4) for _ in range(3)]  # 3 linhas de 4 colunas
+for idx, medidor in enumerate(medidores_disponiveis):
+    linha = idx // 4
+    coluna = idx % 4
+    with linhas[linha][coluna]:
+        fig = go.Figure()
+        fig.add_trace(go.Scatter(
+            x=horas,
+            y=dados_dia[medidor],
+            mode="lines+markers",
+            name="Consumo",
+            line=dict(color="blue")
+        ))
+        limites = st.session_state.limites_por_medidor.get(medidor, [5.0]*24)
+        fig.add_trace(go.Scatter(
+            x=list(range(24)),
+            y=limites,
+            mode="lines",
+            name="Limite",
+            line=dict(color="red", dash="dash")
+        ))
+        fig.update_layout(
+            title=medidor,
+            xaxis_title="Hora",
+            yaxis_title="kWh",
+            height=350,
+            template="plotly_white",
+            legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
+        )
+        st.plotly_chart(fig, use_container_width=True)
 
-                limites = st.session_state.limites_por_medidor.get(medidor, [5.0]*24)
-                fig.add_trace(go.Scatter(
-                    x=list(range(24)),
-                    y=limites,
-                    mode="lines",
-                    name="Limite",
-                    line=dict(dash="dash", color="red")
-                ))
-
-                fig.update_layout(title=medidor, xaxis_title="Hora", yaxis_title="kWh", height=300, template="plotly_white")
-                st.plotly_chart(fig, use_container_width=True)
 
         # TABS 3 - CONFIGURAR LIMITES
         with tabs[2]:
