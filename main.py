@@ -60,6 +60,24 @@ st.sidebar.title("Menu")
 pagina = st.sidebar.selectbox("Escolha a página:", ["Home", "Graphs by Meter", "Consumption Limits", "Dashboard"])
 
 # Seção de idioma
+idioma = st.sidebar.selectbox("Idioma / Language", ["Português", "English"])
+
+# Função para traduzir textos
+def traduzir(texto):
+    traducoes = {
+        "Português": {
+            "Paste the data here (tabulated):": "Cole os dados aqui (tabulados):",
+            "Select the meters:": "Selecione os medidores:",
+            "Hourly consumption in": "Consumo horário em",
+            "Time of day": "Hora do dia",
+            "Consumption (kWh)": "Consumo (kWh)",
+            "Configure the hourly limits for each meter": "Configure os limites horários para cada medidor",
+            "Upload limits from a JSON file": "Carregar limites a partir de um arquivo JSON",
+            "Save hourly limits": "Salvar limites horários",
+            "Download limits": "Download dos limites",
+            "Dashboard - Graphs by Meter": "Dashboard - Gráficos por Medidor",
+            "Error processing the data:": "Erro ao processar os dados:"
+        },
         "English": {
             "Paste the data here (tabulated):": "Paste the data here (tabulated):",
             "Select the meters:": "Select the meters:",
@@ -77,8 +95,6 @@ pagina = st.sidebar.selectbox("Escolha a página:", ["Home", "Graphs by Meter", 
     return traducoes[idioma].get(texto, texto)
 
 # Caixa de texto para colar os dados
-datas_disponiveis = consumo["Datetime"].dt.date.unique()
-data_selecionada = st.sidebar.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
 with st.sidebar.expander(traduzir("Paste the data here (tabulated):")):
     dados_colados = st.text_area(traduzir("Paste the data here (tabulated):"), height=300)
 
