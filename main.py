@@ -182,7 +182,7 @@ if dados_colados:
         # Página 3 - Configuração de Limites
         elif pagina == "Consumption Limits":
             st.markdown("### " + traduzir("Configure the hourly limits for each meter"))
-
+            cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
             if "limites_por_medidor" not in st.session_state:
                 st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
 
