@@ -59,17 +59,21 @@ def carregar_dados(dados_colados):
 st.sidebar.title("Menu")
 pagina = st.sidebar.selectbox("Escolha a página:", ["Home", "Graphs by Meter", "Consumption Limits", "Dashboard"])
 
+# Seção de idioma
+idioma = st.sidebar.selectbox("Idioma / Language", ["Português", "English"])
+
+# Função para traduzir textos
 
 # Caixa de texto para colar os dados
 with st.sidebar.expander("Paste the data here (tabulated):"):
-    dados_colados = st.text_area("Paste the data here (tabulated):"), height=300)
+    dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
 
 if dados_colados:
     try:
         consumo = carregar_dados(dados_colados)
 
         datas_disponiveis = consumo["Datetime"].dt.date.unique()
-        data_selecionada = st.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
+        data_selecionada = st.sidebar.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
 
         if dados_dia.empty:
@@ -81,7 +85,7 @@ if dados_colados:
 
         # Página 1 - Principal
         if pagina == "Home":
-            medidores_selecionados = st.multiselect("Select the meters:"), medidores_disponiveis, default=medidores_disponiveis)
+            medidores_selecionados = st.multiselect("Select the meters:", medidores_disponiveis, default=medidores_disponiveis)
 
             fig, ax = plt.subplots(figsize=(16, 6))
             for medidor in medidores_selecionados:
@@ -90,9 +94,9 @@ if dados_colados:
             if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
                 ax.plot(range(24), st.session_state.limites_por_medidor[medidor], linestyle="--", color="red", label=f"Limite - {medidor}")
 
-            ax.set_title(f"{('Hourly consumption in')} {data_selecionada} (kWh)")
-            ax.set_xlabel("Time of day"))
-            ax.set_ylabel("Consumption (kWh)"))
+            ax.set_title(f"{traduzir('Hourly consumption in')} {data_selecionada} (kWh)")
+            ax.set_xlabel("Time of day")
+            ax.set_ylabel("Consumption (kWh)")
             ax.set_xticks(range(0, 24))
             ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.4), ncol=3, fontsize='small')
             plt.xticks(rotation=45)
@@ -124,22 +128,22 @@ if dados_colados:
                     ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
                     limite_total = sum(limites)
 
-                ax.set_title(f"{medidor} - {'Consumption per hour (kWh)'}")
+                ax.set_title(f"{medidor} - {traduzir('Consumption per hour (kWh)')}")
                 ax.set_xlabel("Time of day")
                 ax.set_ylabel("Consumption (kWh)")
                 ax.set_xticks(range(0, 24))
                 ax.legend(fontsize='small')
                 st.pyplot(fig)
 
-                st.markdown(f"**{'Resume'} - {medidor}**")
+                st.markdown(f"**{traduzir('Resume')} - {medidor}**")
                 resumo_df = pd.DataFrame({
-                    ("Sum of Limits (kWh)"): [round(limite_total, 2)],
-                    ("Sum of Consumption (kWh)"): [round(consumo_total, 2)]
+                    "Sum of Limits (kWh)": [round(limite_total, 2)],
+                    "Sum of Consumption (kWh)": [round(consumo_total, 2)]
                 }, index=["Total"])
 
                 def highlight_excesso(val):
-                    consumo = resumo_df[("Sum of Consumption (kWh)")].values[0]
-                    limite = resumo_df[("Sum of Limits (kWh)")].values[0]
+                    consumo = resumo_df["Sum of Consumption (kWh)"].values[0]
+                    limite = resumo_df["Sum of Limits (kWh)"].values[0]
                     return ["", "background-color: red; color: white"] if consumo > limite else ["", ""]
 
                 styled = resumo_df.style.set_properties(**{"text-align": "center"}).apply(highlight_excesso, axis=1)
@@ -152,17 +156,17 @@ if dados_colados:
             if "limites_por_medidor" not in st.session_state:
                 st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
 
-            uploaded_file = st.file_uploader("Upload limits from a JSON file"), type="json")
+            uploaded_file = st.file_uploader("Upload limits from a JSON file", type="json")
             if uploaded_file is not None:
                 try:
                     st.session_state.limites_por_medidor = json.load(uploaded_file)
                     st.success("Limits loaded successfully!")
                 except Exception as e:
-                    st.error(f"{'Error loading limits:'} {e}")
+                    st.error(f"{traduzir('Error loading limits:')} {e}")
 
             for medidor in medidores_disponiveis:
                 st.markdown(f"#### {medidor}")
-                st.markdown(f"##### {'Hourly limits for'} {medidor}")
+                st.markdown(f"##### {traduzir('Hourly limits for')} {medidor}")
                 cols = st.columns(6)
                 novos_valores = []
                 for i in range(24):
@@ -178,7 +182,7 @@ if dados_colados:
             if st.button("Save hourly limits"):
                 with open("limites_salvos.json", "w") as f:
                     json.dump(st.session_state.limites_por_medidor, f)
-                st.success("Limits saved successfully!")
+                st.success(traduzir("Limits saved successfully!"))
 
             limites_json = json.dumps(st.session_state.limites_por_medidor, indent=2)
             st.download_button("Download limits", data=limites_json, file_name="limites_por_medidor.json", mime="application/json")
@@ -206,4 +210,4 @@ if dados_colados:
 
 
     except Exception as e:
-        st.error(f"{'Error processing the data:'} {e}")
+        st.error(f"{traduzir('Error processing the data:')} {e}")
