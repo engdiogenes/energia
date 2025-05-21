@@ -172,7 +172,7 @@ if dados_colados:
             st.divider()
             st.subheader("📊 Gráficos de Consumo vs Limite")
                 # Criar 3 linhas com 4 colunas cada
-linhas = [st.columns(4) for _ in range(3)]
+                linhas = [st.columns(4) for _ in range(3)]
 
 # Inserir gráficos nos slots
                 for idx, medidor in enumerate(medidores_disponiveis):
