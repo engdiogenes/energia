@@ -7,6 +7,17 @@ import os
 
 # Configuração para usar toda a largura da tela
 st.set_page_config(layout="wide")
+# Reduzir margem superior e ajustar layout
+st.markdown("""
+    <style>
+        .block-container {
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+        header, footer {visibility: hidden;}
+    </style>
+""", unsafe_allow_html=True)
+
 
 # Funções auxiliares
 def limpar_valores(texto):
