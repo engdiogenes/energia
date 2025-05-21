@@ -188,7 +188,7 @@ if dados_colados:
                             line=dict(color="blue")
                         ))
             limites = st.session_state.limites_por_medidor.get(medidor, [5.0]*24)
-                        fig.add_trace(go.Scatter(
+                fig.add_trace(go.Scatter(
                             x=list(range(24)),
                             y=limites,
                             mode="lines",
