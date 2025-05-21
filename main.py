@@ -175,9 +175,9 @@ if dados_colados:
             linhas = [st.columns(4) for _ in range(3)]
 
 # Inserir gráficos nos slots
-                for idx, medidor in enumerate(medidores_disponiveis):
-                    linha = idx // 4
-                    coluna = idx % 4
+              for idx, medidor in enumerate(medidores_disponiveis):
+                linha = idx // 4
+                coluna = idx % 4
                     with linhas[linha][coluna]:
                         fig = go.Figure()
                         fig.add_trace(go.Scatter(
