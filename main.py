@@ -178,9 +178,9 @@ if dados_colados:
             for idx, medidor in enumerate(medidores_disponiveis):
                 linha = idx // 4
                 coluna = idx % 4
-                    with linhas[linha][coluna]:
-                        fig = go.Figure()
-                        fig.add_trace(go.Scatter(
+                with linhas[linha][coluna]:
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
                             x=horas,
                             y=dados_dia[medidor],
                             mode="lines+markers",
