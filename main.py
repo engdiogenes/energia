@@ -11,7 +11,7 @@ st.set_page_config(layout="wide")
 # Funções auxiliares
 def limpar_valores(texto):
     return texto.replace(",", "")
-cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
+
 def carregar_dados(dados_colados):
     dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
     dados["Datetime"] = pd.to_datetime(dados["Date"] + " " + dados["Time"], dayfirst=True)
@@ -116,7 +116,7 @@ if dados_colados:
         # Página 1 - Principal
         if pagina == "Home":
             medidores_selecionados = st.multiselect(traduzir("Select the meters:"), medidores_disponiveis, default=medidores_disponiveis)
-
+            cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
             fig, ax = plt.subplots(figsize=(16, 6))
             for medidor in medidores_selecionados:
                 ax.plot(horas, dados_dia[medidor], label=medidor)
