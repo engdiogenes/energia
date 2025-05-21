@@ -103,7 +103,7 @@ if dados_colados:
         consumo = carregar_dados(dados_colados)
 
         datas_disponiveis = consumo["Datetime"].dt.date.unique()
-        data_selecionada = st.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
+        data_selecionada = st.sidebar.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
 
         if dados_dia.empty:
@@ -116,7 +116,7 @@ if dados_colados:
         # Página 1 - Principal
         if pagina == "Home":
             medidores_selecionados = st.multiselect(traduzir("Select the meters:"), medidores_disponiveis, default=medidores_disponiveis)
-            cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
+
             fig, ax = plt.subplots(figsize=(16, 6))
             for medidor in medidores_selecionados:
                 ax.plot(horas, dados_dia[medidor], label=medidor)
@@ -182,7 +182,7 @@ if dados_colados:
         # Página 3 - Configuração de Limites
         elif pagina == "Consumption Limits":
             st.markdown("### " + traduzir("Configure the hourly limits for each meter"))
-            
+
             if "limites_por_medidor" not in st.session_state:
                 st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
 
