@@ -94,9 +94,9 @@ def traduzir(texto):
     }
     return traducoes[idioma].get(texto, texto)
 
-# Caixa de texto para colar os dados
-with st.sidebar.expander(traduzir("Paste the data here (tabulated):")):
-    dados_colados = st.text_area(traduzir("Paste the data here (tabulated):"), height=300)
+
+# Caixa de texto direta para colar os dados
+dados_colados = st.sidebar.text_area(traduzir("Paste the data here (tabulated):"), height=300)
 
 if dados_colados:
     try:
