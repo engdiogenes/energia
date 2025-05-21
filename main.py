@@ -121,7 +121,8 @@ if dados_colados:
             with col1:
                 st.markdown("###  Consumo por hora")
                 st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
-           col2 = st.columns(12)
+          
+            col2 = st.columns(12)
             with col2:
                 st.markdown("### 📌 Total por Medidor")
                 for medidor in medidores_selecionados:
