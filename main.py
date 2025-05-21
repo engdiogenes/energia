@@ -11,7 +11,7 @@ st.set_page_config(layout="wide")
 # Funções auxiliares
 def limpar_valores(texto):
     return texto.replace(",", "")
-
+cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 def carregar_dados(dados_colados):
     dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
     dados["Datetime"] = pd.to_datetime(dados["Date"] + " " + dados["Time"], dayfirst=True)
