@@ -1,3 +1,4 @@
+
 import streamlit as st
 import pandas as pd
 import io
@@ -56,7 +57,7 @@ def carregar_dados(dados_colados):
 st.title("📊 Monitoramento de Consumo de Energia")
 
 with st.sidebar:
-    st.header("📎 Entrada de Dados")
+    st.header("📋 Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
     idioma = st.selectbox("Idioma / Language", ["Português", "English"])
 
@@ -171,36 +172,50 @@ if dados_colados:
 
             st.divider()
             st.subheader("📊 Gráficos de Consumo vs Limite")
-            for medidor in medidores_disponiveis:
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=horas,
-                    y=dados_dia[medidor],
-                    mode="lines+markers",
-                    name="Consumo",
-                    line=dict(color="blue")
-                ))
 
-                limites = st.session_state.limites_por_medidor.get(medidor, [5.0]*24)
-                fig.add_trace(go.Scatter(
-                    x=list(range(24)),
-                    y=limites,
-                    mode="lines",
-                    name="Limite",
-                    line=dict(color="red", dash="dash")
-                ))
+            # Criar 3 linhas com 4 colunas cada
+            linhas = [st.columns(4) for _ in range(3)]
 
-                fig.update_layout(
-                    title=medidor,
-                    xaxis_title="Hora",
-                    yaxis_title="kWh",
-                    height=350,
-                    template="plotly_white",
-                    legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
-                )
-                
-                st.plotly_chart(fig, use_container_width=True, key=f"plot_{medidor}")
+            # Inserir gráficos nos slots
+            for idx, medidor in enumerate(medidores_disponiveis):
+                linha = idx // 4
+                coluna = idx % 4
+                with linhas[linha][coluna]:
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=horas,
+                        y=dados_dia[medidor],
+                        mode="lines+markers",
+                        name="Consumo",
+                        line=dict(color="blue")
+                    ))
+                    limites = st.session_state.limites_por_medidor.get(medidor, [5.0]*24)
+                    fig.add_trace(go.Scatter(
+                        x=list(range(24)),
+                        y=limites,
+                        mode="lines",
+                        name="Limite",
+                        line=dict(color="red", dash="dash")
+                    ))
+                    fig.update_layout(
+                        title=medidor,
+                        xaxis_title="Hora",
+                        yaxis_title="kWh",
+                        height=350,
+                        template="plotly_white",
+                        legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
+                    )
+                    st.plotly_chart(fig, use_container_width=True, key=f"plot_{medidor}")
 
+            # Preencher espaços vazios com placeholders
+            total_graficos = len(medidores_disponiveis)
+            total_posicoes = 12
+            if total_graficos < total_posicoes:
+                for idx in range(total_graficos, total_posicoes):
+                    linha = idx // 4
+                    coluna = idx % 4
+                    with linhas[linha][coluna]:
+                        st.markdown("### Espaço reservado")
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
