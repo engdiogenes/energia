@@ -223,9 +223,9 @@ if dados_colados:
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
     # Cria 3 colunas para exibir os gráficos lado a lado
-        cols = st.columns(3)
+        cols = st.columns(4)
         for idx, medidor in enumerate(medidores_disponiveis):
-            with cols[idx % 3]:
+            with cols[idx % 4]:
                 fig, ax = plt.subplots(figsize=(8, 4))  # Tamanho maior do gráfico
                 ax.plot(horas, dados_dia[medidor], label="Consumo", color=cores(idx))
                 if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
