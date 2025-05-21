@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import io
@@ -117,10 +116,8 @@ if dados_colados:
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            col1 = st.columns(1)
-            with col1:
-                st.markdown("###  Consumo por hora")
-                st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
+            st.markdown("###  Consumo por hora")
+            st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
           
             
 
