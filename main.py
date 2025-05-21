@@ -150,7 +150,7 @@ if dados_colados:
             plt.xticks(rotation=45)
             st.pyplot(fig)
 
-            st.markdown("### " + traduzir("<h4>Hourly consumption (kWh)</h4>", unsafe_allow_html=True))
+            st.markdown("### " + traduzir("<h4>Hourly consumption (kWh)</h4>"), unsafe_allow_html=True)
             st.dataframe(
                 dados_dia.set_index("Datetime")[medidores_selecionados].round(2).style.set_properties(**{"text-align": "center"}),
                 use_container_width=True
