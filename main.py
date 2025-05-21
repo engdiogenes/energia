@@ -7,6 +7,17 @@ import plotly.graph_objects as go
 import datetime
 
 st.set_page_config(layout="wide", page_title="Monitor de Energia")
+st.markdown("""
+    <style>
+        .block-container {
+            padding-top: 0rem;
+            padding-bottom: 1rem;
+        }
+        header, footer {
+            visibility: hidden;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 def limpar_valores(texto):
     return texto.replace(",", "")
