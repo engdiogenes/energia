@@ -198,7 +198,9 @@ if dados_colados:
                     template="plotly_white",
                     legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                 )
-                st.plotly_chart(fig, use_container_width=True)
+                
+                st.plotly_chart(fig, use_container_width=True, key=f"plot_{medidor}")
+
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
