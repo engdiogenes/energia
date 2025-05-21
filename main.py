@@ -150,19 +150,19 @@ if dados_colados:
             plt.xticks(rotation=45)
             st.pyplot(fig)
 
-            st.markdown("### " + traduzir("<h4>Hourly consumption (kWh)</h4>"))
+            st.markdown("### " + traduzir("Hourly consumption (kWh)"))
             st.dataframe(
                 dados_dia.set_index("Datetime")[medidores_selecionados].round(2).style.set_properties(**{"text-align": "center"}),
                 use_container_width=True
             )
 
-            st.markdown("### " + traduzir("<h4>Total Consumption per Meter (kWh)</h4>"))
+            st.markdown("### " + traduzir("Total Consumption per Meter (kWh)"))
             totais = dados_dia[medidores_disponiveis].sum().round(2).to_frame(name=traduzir("Total Consumption (kWh)"))
             st.dataframe(totais.style.set_properties(**{"text-align": "center"}), use_container_width=True)
 
         # Página 2 - Gráficos por Medidor
         elif pagina == "Graphs by Meter":
-            st.markdown("### " + traduzir("<h4>Individual Charts with Limit Curve</h4>"))
+            st.markdown("### " + traduzir("Individual Charts with Limit Curve"))
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
             for idx, medidor in enumerate(medidores_disponiveis):
                 fig, ax = plt.subplots(figsize=(12, 4))
@@ -199,7 +199,7 @@ if dados_colados:
 
         # Página 3 - Configuração de Limites
         elif pagina == "Consumption Limits":
-            st.markdown("### " + traduzir("<h4>Configure the hourly limits for each meter</h4>"))
+            st.markdown("### " + traduzir("Configure the hourly limits for each meter"))
 
             if "limites_por_medidor" not in st.session_state:
                 st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
@@ -237,7 +237,7 @@ if dados_colados:
 
         # Página 4 - Dashboard
         elif pagina == "Dashboard":
-            st.markdown("### " + traduzir("<h4>Dashboard - Graphs by Meter</h4>"))
+            st.markdown("### " + traduzir("Dashboard - Graphs by Meter"))
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
     # Cria 3 colunas para exibir os gráficos lado a lado
