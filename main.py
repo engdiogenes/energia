@@ -7,6 +7,17 @@ import plotly.graph_objects as go
 import datetime
 
 st.set_page_config(layout="wide", page_title="Monitor de Energia")
+st.markdown("""
+    <style>
+        .block-container {
+            padding-top: 0rem;
+            padding-bottom: 1rem;
+        }
+        header, footer {
+            visibility: hidden;
+        }
+    </style>
+""", unsafe_allow_html=True)
 
 def limpar_valores(texto):
     return texto.replace(",", "")
@@ -50,16 +61,17 @@ def carregar_dados(dados_colados):
 
     consumo["TRIM&FINAL"] = consumo["QGBT1-MPTF"] + consumo["QGBT2-MPTF"]
     consumo["OFFICE + CANTEEN"] = consumo["OFFICE"] - consumo["PMDC-OFFICE"]
+    consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75
     consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"])
 
     return consumo
 
-st.title("📊 Monitoramento de Consumo de Energia")
+st.title(" Monitoramento de Consumo de Energia")
 
 with st.sidebar:
-    st.header("📋 Entrada de Dados")
+    st.header(" Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
-    idioma = st.selectbox("Idioma / Language", ["Português", "English"])
+    idioma = st.selectbox("Idioma / Language", ["Portugus", "English"])
 
 if dados_colados:
     try:
@@ -78,11 +90,11 @@ if dados_colados:
         if "limites_por_medidor" not in st.session_state:
             st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
 
-        tabs = st.tabs(["📈 Visão Geral", "📊 Por Medidor", "🛠️ Limites", "📋 Dashboard"])
+        tabs = st.tabs([" Viso Geral", " Por Medidor", " Limites", " Dashboard"])
 
-        # TABS 1 - VISÃO GERAL
+        # TABS 1 - VISO GERAL
         with tabs[0]:
-            st.subheader(f"📆 Consumo horário em {data_selecionada.strftime('%d/%m/%Y')}")
+            st.subheader(f" Consumo horrio em {data_selecionada.strftime('%d/%m/%Y')}")
             medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis, default=medidores_disponiveis)
 
             fig = go.Figure()
@@ -105,16 +117,19 @@ if dados_colados:
 
             col1, col2 = st.columns(2)
             with col1:
-                st.markdown("### ⏱️ Consumo por hora")
+                st.markdown("###  Consumo por hora")
                 st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
+           
             with col2:
                 st.markdown("### 📌 Total por Medidor")
-                totais = dados_dia[medidores_disponiveis].sum().round(2).to_frame("Total (kWh)")
-                st.dataframe(totais, use_container_width=True)
+                for medidor in medidores_selecionados:
+                    total = round(dados_dia[medidor].sum(), 2)
+                    st.metric(label=medidor, value=f"{total} kWh")
+
 
         # TABS 2 - POR MEDIDOR
         with tabs[1]:
-            st.subheader("📊 Gráficos por Medidor com Curva de Limite")
+            st.subheader(" Grficos por Medidor com Curva de Limite")
             for medidor in medidores_disponiveis:
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
@@ -138,28 +153,28 @@ if dados_colados:
 
         # TABS 3 - CONFIGURAR LIMITES
         with tabs[2]:
-            st.subheader("🛠️ Configuração de Limites por Hora")
-            uploaded_file = st.file_uploader("📥 Carregar limites (JSON)", type="json")
+            st.subheader(" Configurao de Limites por Hora")
+            uploaded_file = st.file_uploader(" Carregar limites (JSON)", type="json")
             if uploaded_file:
                 st.session_state.limites_por_medidor = json.load(uploaded_file)
                 st.success("Limites carregados com sucesso.")
 
             for medidor in medidores_disponiveis:
-                with st.expander(f"⚙️ {medidor}"):
+                with st.expander(f" {medidor}"):
                     cols = st.columns(6)
                     novos = []
                     for i in range(24):
                         with cols[i % 6]:
                             novos.append(st.number_input(f"{i}h", value=st.session_state.limites_por_medidor[medidor][i],
-                                                         min_value=0.0, max_value=1000.0, step=0.5, key=f"{medidor}_{i}"))
+                                                         min_value=0.0, max_value=2000.0, step=0.5, key=f"{medidor}_{i}"))
                     st.session_state.limites_por_medidor[medidor] = novos
 
-            st.download_button("📤 Baixar Limites", json.dumps(st.session_state.limites_por_medidor, indent=2),
+            st.download_button(" Baixar Limites", json.dumps(st.session_state.limites_por_medidor, indent=2),
                                file_name="limites.json", mime="application/json")
 
         # TABS 4 - DASHBOARD
         with tabs[3]:
-            st.subheader("📋 Painel Resumo")
+            st.subheader(" Painel Resumo")
 
             colunas = st.columns(4)
             for idx, medidor in enumerate(medidores_disponiveis):
@@ -171,12 +186,12 @@ if dados_colados:
                               delta_color="inverse" if excedido else "inverse")
 
             st.divider()
-            st.subheader("📊 Gráficos de Consumo vs Limite")
+            st.subheader(" Grficos de Consumo vs Limite")
 
             # Criar 3 linhas com 4 colunas cada
             linhas = [st.columns(4) for _ in range(3)]
 
-            # Inserir gráficos nos slots
+            # Inserir grficos nos slots
             for idx, medidor in enumerate(medidores_disponiveis):
                 linha = idx // 4
                 coluna = idx % 4
@@ -207,7 +222,7 @@ if dados_colados:
                     )
                     st.plotly_chart(fig, use_container_width=True, key=f"plot_{medidor}")
 
-            # Preencher espaços vazios com placeholders
+            # Preencher espaos vazios com placeholders
             total_graficos = len(medidores_disponiveis)
             total_posicoes = 12
             if total_graficos < total_posicoes:
@@ -215,7 +230,7 @@ if dados_colados:
                     linha = idx // 4
                     coluna = idx % 4
                     with linhas[linha][coluna]:
-                        st.markdown("### Espaço reservado")
+                        st.markdown("### Espao reservado")
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
