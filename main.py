@@ -5,6 +5,11 @@ import io
 import json
 import plotly.graph_objects as go
 import datetime
+st.logo(
+    LOGO_URL_LARGE,
+    link="https://www.jlr.com/",
+    icon_image=LOGO_URL_SMALL,
+)
 
 st.set_page_config(layout="wide", page_title="Monitor de Energia")
 st.markdown("""
