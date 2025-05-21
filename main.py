@@ -7,17 +7,6 @@ import os
 
 # Configuração para usar toda a largura da tela
 st.set_page_config(layout="wide")
-# Reduzir margem superior e ajustar layout
-st.markdown("""
-    <style>
-        .block-container {
-            padding-top: 1rem;
-            padding-bottom: 1rem;
-        }
-        header, footer {visibility: hidden;}
-    </style>
-""", unsafe_allow_html=True)
-
 
 # Funções auxiliares
 def limpar_valores(texto):
@@ -106,22 +95,15 @@ def traduzir(texto):
     return traducoes[idioma].get(texto, texto)
 
 # Caixa de texto para colar os dados
-
-dados_colados = st.sidebar.text_area(traduzir("Paste the data here (tabulated):"), height=300)
+with st.sidebar.expander(traduzir("Paste the data here (tabulated):")):
+    dados_colados = st.text_area(traduzir("Paste the data here (tabulated):"), height=300)
 
 if dados_colados:
     try:
         consumo = carregar_dados(dados_colados)
 
         datas_disponiveis = consumo["Datetime"].dt.date.unique()
-        data_selecionada = st.sidebar.slider(
-        "Selecione a data",
-        min_value=min(datas_disponiveis),
-        max_value=max(datas_disponiveis),
-        value=max(datas_disponiveis),
-        format="DD/MM/YYYY"
-        )
-
+        data_selecionada = st.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
 
         if dados_dia.empty:
