@@ -103,7 +103,7 @@ if dados_colados:
         consumo = carregar_dados(dados_colados)
 
         datas_disponiveis = consumo["Datetime"].dt.date.unique()
-        data_selecionada = st.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
+data_selecionada = st.sidebar.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
 
         if dados_dia.empty:
