@@ -60,20 +60,44 @@ st.sidebar.title("Menu")
 pagina = st.sidebar.selectbox("Escolha a página:", ["Home", "Graphs by Meter", "Consumption Limits", "Dashboard"])
 
 # Seção de idioma
-idioma = st.sidebar.selectbox("Idioma / Language", ["Português", "English"])
 
 # Função para traduzir textos
+        "Português": {
+            "Paste the data here (tabulated):": "Cole os dados aqui (tabulados):",
+            "Select the meters:": "Selecione os medidores:",
+            "Hourly consumption in": "Consumo horário em",
+            "Time of day": "Hora do dia",
+            "Consumption (kWh)": "Consumo (kWh)",
+            "Configure the hourly limits for each meter": "Configure os limites horários para cada medidor",
+            "Upload limits from a JSON file": "Carregar limites a partir de um arquivo JSON",
+            "Save hourly limits": "Salvar limites horários",
+            "Download limits": "Download dos limites",
+            "Dashboard - Graphs by Meter": "Dashboard - Gráficos por Medidor",
+            "Error processing the data:": "Erro ao processar os dados:"
+        },
+        "English": {
+            "Paste the data here (tabulated):": "Paste the data here (tabulated):",
+            "Select the meters:": "Select the meters:",
+            "Hourly consumption in": "Hourly consumption in",
+            "Time of day": "Time of day",
+            "Consumption (kWh)": "Consumption (kWh)",
+            "Configure the hourly limits for each meter": "Configure the hourly limits for each meter",
+            "Upload limits from a JSON file": "Upload limits from a JSON file",
+            "Save hourly limits": "Save hourly limits",
+            "Download limits": "Download limits",
+            "Dashboard - Graphs by Meter": "Dashboard - Graphs by Meter",
+            "Error processing the data:": "Error processing the data:"
+        }
+    }
 
 # Caixa de texto para colar os dados
-with st.sidebar.expander("Paste the data here (tabulated):"):
-    dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
 
 if dados_colados:
     try:
         consumo = carregar_dados(dados_colados)
 
         datas_disponiveis = consumo["Datetime"].dt.date.unique()
-        data_selecionada = st.sidebar.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
+        data_selecionada = st.selectbox("Selecione a data", sorted(datas_disponiveis, reverse=True))
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
 
         if dados_dia.empty:
@@ -85,7 +109,6 @@ if dados_colados:
 
         # Página 1 - Principal
         if pagina == "Home":
-            medidores_selecionados = st.multiselect("Select the meters:", medidores_disponiveis, default=medidores_disponiveis)
 
             fig, ax = plt.subplots(figsize=(16, 6))
             for medidor in medidores_selecionados:
@@ -94,27 +117,20 @@ if dados_colados:
             if "limites_por_medidor" in st.session_state and medidor in st.session_state.limites_por_medidor:
                 ax.plot(range(24), st.session_state.limites_por_medidor[medidor], linestyle="--", color="red", label=f"Limite - {medidor}")
 
-            ax.set_title(f"{traduzir('Hourly consumption in')} {data_selecionada} (kWh)")
-            ax.set_xlabel("Time of day")
-            ax.set_ylabel("Consumption (kWh)")
             ax.set_xticks(range(0, 24))
             ax.legend(loc="lower center", bbox_to_anchor=(0.5, -0.4), ncol=3, fontsize='small')
             plt.xticks(rotation=45)
             st.pyplot(fig)
 
-            st.markdown("### " + "Hourly consumption (kWh)")
             st.dataframe(
                 dados_dia.set_index("Datetime")[medidores_selecionados].round(2).style.set_properties(**{"text-align": "center"}),
                 use_container_width=True
             )
 
-            st.markdown("### " + "Total Consumption per Meter (kWh)")
-            totais = dados_dia[medidores_disponiveis].sum().round(2).to_frame(name="Total Consumption (kWh)")
             st.dataframe(totais.style.set_properties(**{"text-align": "center"}), use_container_width=True)
 
         # Página 2 - Gráficos por Medidor
         elif pagina == "Graphs by Meter":
-            st.markdown("### " + "Individual Charts with Limit Curve")
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
             for idx, medidor in enumerate(medidores_disponiveis):
                 fig, ax = plt.subplots(figsize=(12, 4))
@@ -128,22 +144,14 @@ if dados_colados:
                     ax.plot(range(24), limites, label="Limite", linestyle="--", color="red")
                     limite_total = sum(limites)
 
-                ax.set_title(f"{medidor} - {traduzir('Consumption per hour (kWh)')}")
-                ax.set_xlabel("Time of day")
-                ax.set_ylabel("Consumption (kWh)")
                 ax.set_xticks(range(0, 24))
                 ax.legend(fontsize='small')
                 st.pyplot(fig)
 
-                st.markdown(f"**{traduzir('Resume')} - {medidor}**")
                 resumo_df = pd.DataFrame({
-                    "Sum of Limits (kWh)": [round(limite_total, 2)],
-                    "Sum of Consumption (kWh)": [round(consumo_total, 2)]
                 }, index=["Total"])
 
                 def highlight_excesso(val):
-                    consumo = resumo_df["Sum of Consumption (kWh)"].values[0]
-                    limite = resumo_df["Sum of Limits (kWh)"].values[0]
                     return ["", "background-color: red; color: white"] if consumo > limite else ["", ""]
 
                 styled = resumo_df.style.set_properties(**{"text-align": "center"}).apply(highlight_excesso, axis=1)
@@ -151,22 +159,17 @@ if dados_colados:
 
         # Página 3 - Configuração de Limites
         elif pagina == "Consumption Limits":
-            st.markdown("### " + "Configure the hourly limits for each meter")
 
             if "limites_por_medidor" not in st.session_state:
                 st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
 
-            uploaded_file = st.file_uploader("Upload limits from a JSON file", type="json")
             if uploaded_file is not None:
                 try:
                     st.session_state.limites_por_medidor = json.load(uploaded_file)
-                    st.success("Limits loaded successfully!")
                 except Exception as e:
-                    st.error(f"{traduzir('Error loading limits:')} {e}")
 
             for medidor in medidores_disponiveis:
                 st.markdown(f"#### {medidor}")
-                st.markdown(f"##### {traduzir('Hourly limits for')} {medidor}")
                 cols = st.columns(6)
                 novos_valores = []
                 for i in range(24):
@@ -179,17 +182,13 @@ if dados_colados:
                         novos_valores.append(valor)
                 st.session_state.limites_por_medidor[medidor] = novos_valores
 
-            if st.button("Save hourly limits"):
                 with open("limites_salvos.json", "w") as f:
                     json.dump(st.session_state.limites_por_medidor, f)
-                st.success(traduzir("Limits saved successfully!"))
 
             limites_json = json.dumps(st.session_state.limites_por_medidor, indent=2)
-            st.download_button("Download limits", data=limites_json, file_name="limites_por_medidor.json", mime="application/json")
 
         # Página 4 - Dashboard
         elif pagina == "Dashboard":
-            st.markdown("### " + "Dashboard - Graphs by Meter")
             cores = plt.cm.get_cmap("tab10", len(medidores_disponiveis))
 
     # Cria 3 colunas para exibir os gráficos lado a lado
@@ -210,4 +209,3 @@ if dados_colados:
 
 
     except Exception as e:
-        st.error(f"{traduzir('Error processing the data:')} {e}")
