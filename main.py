@@ -152,7 +152,7 @@ if dados_colados:
                     for i in range(24):
                         with cols[i % 6]:
                             novos.append(st.number_input(f"{i}h", value=st.session_state.limites_por_medidor[medidor][i],
-                                                         min_value=0.0, max_value=1000.0, step=0.5, key=f"{medidor}_{i}"))
+                                                         min_value=0.0, max_value=2000.0, step=0.5, key=f"{medidor}_{i}"))
                     st.session_state.limites_por_medidor[medidor] = novos
 
             st.download_button(" Baixar Limites", json.dumps(st.session_state.limites_por_medidor, indent=2),
