@@ -168,7 +168,7 @@ if dados_colados:
                     limite = round(sum(st.session_state.limites_por_medidor[medidor]), 2)
                     excedido = valor > limite
                     st.metric(label=f"{medidor}", value=f"{valor} kWh", delta=f"{valor - limite:.2f} kWh",
-                              delta_color="inverse" if excedido else "normal")
+                              delta_color="normal" if excedido else "normal")
 
             st.divider()
             st.subheader("📊 Gráficos de Consumo vs Limite")
