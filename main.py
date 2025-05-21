@@ -59,40 +59,6 @@ def carregar_dados(dados_colados):
 st.sidebar.title("Menu")
 pagina = st.sidebar.selectbox("Escolha a página:", ["Home", "Graphs by Meter", "Consumption Limits", "Dashboard"])
 
-# Seção de idioma
-idioma = st.sidebar.selectbox("Idioma / Language", ["Português", "English"])
-
-# Função para traduzir textos
-def traduzir(texto):
-    traducoes = {
-        "Português": {
-            "Paste the data here (tabulated):": "Cole os dados aqui (tabulados):",
-            "Select the meters:": "Selecione os medidores:",
-            "Hourly consumption in": "Consumo horário em",
-            "Time of day": "Hora do dia",
-            "Consumption (kWh)": "Consumo (kWh)",
-            "Configure the hourly limits for each meter": "Configure os limites horários para cada medidor",
-            "Upload limits from a JSON file": "Carregar limites a partir de um arquivo JSON",
-            "Save hourly limits": "Salvar limites horários",
-            "Download limits": "Download dos limites",
-            "Dashboard - Graphs by Meter": "Dashboard - Gráficos por Medidor",
-            "Error processing the data:": "Erro ao processar os dados:"
-        },
-        "English": {
-            "Paste the data here (tabulated):": "Paste the data here (tabulated):",
-            "Select the meters:": "Select the meters:",
-            "Hourly consumption in": "Hourly consumption in",
-            "Time of day": "Time of day",
-            "Consumption (kWh)": "Consumption (kWh)",
-            "Configure the hourly limits for each meter": "Configure the hourly limits for each meter",
-            "Upload limits from a JSON file": "Upload limits from a JSON file",
-            "Save hourly limits": "Save hourly limits",
-            "Download limits": "Download limits",
-            "Dashboard - Graphs by Meter": "Dashboard - Graphs by Meter",
-            "Error processing the data:": "Error processing the data:"
-        }
-    }
-    return traducoes[idioma].get(texto, texto)
 
 # Caixa de texto para colar os dados
 with st.sidebar.expander(traduzir("Paste the data here (tabulated):")):
