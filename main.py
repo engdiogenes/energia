@@ -89,8 +89,8 @@ if dados_colados:
                                                  max_value=max(datas_disponiveis))
         uploaded_file = st.sidebar.file_uploader(" Carregar limites (JSON)", type="json")
         if uploaded_file:
-            st.session_state.limites_por_medidor = json.load(uploaded_file)
-            st.success("Limites carregados com sucesso.")
+            st.sidebar.session_state.limites_por_medidor = json.load(uploaded_file)
+            st.sidebar.success("Limites carregados com sucesso.")
 
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
         horas = dados_dia["Datetime"].dt.hour
