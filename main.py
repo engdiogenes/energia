@@ -273,21 +273,21 @@ if dados_colados:
             if not dados_data.empty:
 
                     st.markdown(f"### Consumo em {data_calendario.strftime('%d/%m/%Y')}")
-               fig = go.Figure()
-               for medidor in medidores_disponiveis:
-                   fig.add_trace(go.Bar(
-                    x=[medidor],
-                    y=[dados_data.iloc[0][medidor]],
-                    name=medidor
-                ))
+                    fig = go.Figure()
+                       for medidor in medidores_disponiveis:
+                        fig.add_trace(go.Bar(
+                        x=[medidor],
+                        y=[dados_data.iloc[0][medidor]],
+                        name=medidor
+                    ))
 
-                    fig.update_layout(
-                    xaxis_title="Medidor",
-                    yaxis_title="Consumo (kWh)",
-                    template="plotly_white",
-                    height=500,
-                    showlegend=False
-                )
+                        fig.update_layout(
+                        xaxis_title="Medidor",
+                        yaxis_title="Consumo (kWh)",
+                        template="plotly_white",
+                        height=500,
+                        showlegend=False
+                    )
         st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("Nenhum dado disponível para a data selecionada.")
