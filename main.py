@@ -289,7 +289,7 @@ if dados_colados:
                         showlegend=False
                     )
         st.plotly_chart(fig, use_container_width=True)
-            else:
+        else:
             st.info("Nenhum dado disponível para a data selecionada.")        
 
     except Exception as e:
