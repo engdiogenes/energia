@@ -4,6 +4,7 @@ import io
 import json
 import plotly.graph_objects as go
 import datetime
+from streamlit_calendar import calendar
 
 st.set_page_config(layout="wide", page_title="Monitor de Energia")
 
@@ -259,42 +260,39 @@ if dados_colados:
                         st.markdown("### Espao reservado")
         # TABS 5 - CALENDÁRIO
         with tabs[4]:
-            st.subheader(" Consumo Diário por Medidor")
-            # TABS 5 - CALENDÁRIO
-            # Agrupar dados por data
+            st.subheader("Calendário Interativo de Consumo")
+
+             # Gerar eventos com base no consumo diário
             consumo_diario = consumo.copy()
             consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
             consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
 
-            # Calendário para seleção de data
-            data_calendario = st.date_input("Selecione uma data para visualizar o consumo diário:",
-                                            value=max(consumo_agrupado["Data"]),
-                                            min_value=min(consumo_agrupado["Data"]),
-                                            max_value=max(consumo_agrupado["Data"]))
+            calendar_events = []
+            for _, row in consumo_agrupado.iterrows():
+                total = sum(row[medidor] for medidor in medidores_disponiveis)
+                calendar_events.append({
+               "title": f"{total:.1f} kWh",
+               "start": str(row["Data"]),
+               "end": str(row["Data"]),
+               "allDay": True
+                 })
 
-            dados_data = consumo_agrupado[consumo_agrupado["Data"] == data_calendario]
+                calendar_options = {
+                "initialView": "dayGridMonth",
+                "headerToolbar": {
+                "left": "prev,next today",
+                "center": "title",
+                "right": "dayGridMonth,timeGridWeek"
+              }
+            }
 
-            if not dados_data.empty:
+                calendar_component = calendar(
+                 events=calendar_events,
+                 options=calendar_options,
+                 key="calendar"
+             )
 
-                st.markdown(f"### Consumo em {data_calendario.strftime('%d/%m/%Y')}")
-                fig = go.Figure()
-                for medidor in medidores_disponiveis:
-                    fig.add_trace(go.Bar(
-                        x=[medidor],
-                        y=[dados_data.iloc[0][medidor]],
-                        name=medidor
-                    ))
+            st.write("Clique em um evento para ver o consumo total do dia.")
 
-                fig.update_layout(
-                    xaxis_title="Medidor",
-                    yaxis_title="Consumo (kWh)",
-                    template="plotly_white",
-                    height=500,
-                    showlegend=False
-                )
-                st.plotly_chart(fig, use_container_width=True)
-
-            else:
-                st.info("Nenhum dado disponível para a data selecionada.")
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
