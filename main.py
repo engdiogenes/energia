@@ -233,7 +233,7 @@ if dados_colados:
             consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
 
             medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis, default=medidores_disponiveis)
-                fig = go.Figure()
+            fig = go.Figure()
                 for medidor in medidores_calendario:
                     fig.add_trace(go.Bar(
                     x=consumo_agrupado["Data"],
