@@ -116,6 +116,31 @@ if dados_colados:
                 legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
             )
             st.plotly_chart(fig, use_container_width=True)
+            st.subheader(" Consumo Diário por Medidor")
+            consumo_diario = consumo.copy()
+            consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
+            consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
+
+            medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis, default=medidores_disponiveis)
+            fig = go.Figure()
+            
+            for medidor in medidores_calendario:
+                fig.add_trace(go.Bar(
+                x=consumo_agrupado["Data"],
+                y=consumo_agrupado[medidor],
+                name=medidor
+                ))
+
+                fig.update_layout(
+                barmode="stack",
+                xaxis_title="Data",
+                yaxis_title="Consumo Total (kWh)",
+                template="plotly_white",
+                  height=500,
+                legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
+                )
+            st.plotly_chart(fig, use_container_width=True)
+
 
             st.markdown("###  Consumo por hora")
             st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
