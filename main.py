@@ -109,6 +109,7 @@ if dados_colados:
 
             fig = go.Figure()
             for medidor in medidores_selecionados:
+
                 fig.add_trace(go.Scatter(
                     x=dados_dia["Datetime"].dt.strftime("%H:%M"),
                     y=dados_dia[medidor],
@@ -184,7 +185,7 @@ if dados_colados:
         # TABS 3 - CONFIGURAR LIMITES
         with tabs[2]:
             st.subheader(" Configuração de Limites por Hora")
-            
+
 
             for medidor in medidores_disponiveis:
                 with st.expander(f" {medidor}"):
@@ -268,7 +269,11 @@ if dados_colados:
                 dias_unicos = sorted(dias_unicos)
 
                 # Limite diário e escala fixa
-                target_limit = 500
+                # Limite diário dinâmico com base nos limites por hora dos medidores
+                limites_por_medidor = st.session_state.get("limites_por_medidor", {})
+                limites_area = [sum(limites_por_medidor.get(m, [0] * 24)[h] for m in medidores_disponiveis) for h in
+                                range(24)]
+
                 max_consumo = consumo["Área Produtiva"].max()
 
                 dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
@@ -290,7 +295,7 @@ if dados_colados:
                                 ))
                                 fig.add_trace(go.Scatter(
                                     x=dados_dia["Datetime"].dt.strftime("%H:%M"),
-                                    y=[target_limit] * len(dados_dia),
+                                    y=[limites_area[dt.hour] for dt in dados_dia["Datetime"]],
                                     mode="lines",
                                     line=dict(color="red", dash="dash"),
                                     showlegend=False
