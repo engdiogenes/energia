@@ -258,53 +258,52 @@ if dados_colados:
                     coluna = idx % 4
                     with linhas[linha][coluna]:
                         st.markdown("### Espao reservado")
-#TABS 5 - CALENDÁRIO
+        # TABS 5 - CALENDÁRIO
         with tabs[4]:
-            st.markdown("### Visualização Semanal da Área Produtiva")
-            consumo["Data"] = consumo["Datetime"].dt.date
-            dias_unicos = consumo["Data"].unique()
-            dias_unicos = sorted(dias_unicos)
+                st.subheader("Calendário Interativo de Consumo")
 
-            target_limit = 500
-            max_consumo = consumo["Área Produtiva"].max()
-            dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
-            semanas = [dias_mes[i:i+7] for i in range(0, len(dias_mes), 7)]
+                consumo["Data"] = consumo["Datetime"].dt.date
+                dias_unicos = consumo["Data"].unique()
+                dias_unicos = sorted(dias_unicos)
 
-        for semana in semanas:
-            cols = st.columns(7)
-        for i, dia in enumerate(semana):
-            with cols[i]:
-                st.caption(dia.strftime('%d/%m'))
-                dados_dia = consumo[consumo["Datetime"].dt.date == dia.date()]
-            if not dados_dia.empty:
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=dados_dia["Datetime"].dt.strftime("%H:%M"),
-                    y=dados_dia["Área Produtiva"],
-                    mode="lines",
-                    line=dict(color="green"),
-                ))
-                fig.add_trace(go.Scatter(
-                    x=dados_dia["Datetime"].dt.strftime("%H:%M"),
-                    y=[target_limit] * len(dados_dia),
-                    mode="lines",
-                    line=dict(color="red", dash="dash"),
-                    showlegend=False
-                ))
-                fig.update_layout(
-                    margin=dict(l=0, r=0, t=0, b=0),
-                    height=120,
-                    xaxis=dict(showticklabels=False),
-                    yaxis=dict(showticklabels=False, range=[0, max_consumo]),
-                    showlegend=False
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.markdown("_Sem dados_")
+                # Limite diário e escala fixa
+                target_limit = 500
+                max_consumo = consumo["Área Produtiva"].max()
 
-        with tabs[4]:
-            st.subheader("Calendário Interativo de Consumo")
+                dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
+                semanas = [dias_mes[i:i + 7] for i in range(0, len(dias_mes), 7)]
 
-                       
+                for semana in semanas:
+                    cols = st.columns(7)
+                    for i, dia in enumerate(semana):
+                        with cols[i]:
+                            st.caption(dia.strftime('%d/%m'))
+                            dados_dia = consumo[consumo["Datetime"].dt.date == dia.date()]
+                            if not dados_dia.empty:
+                                fig = go.Figure()
+                                fig.add_trace(go.Scatter(
+                                    x=dados_dia["Datetime"].dt.strftime("%H:%M"),
+                                    y=dados_dia["Área Produtiva"],
+                                    mode="lines",
+                                    line=dict(color="green"),
+                                ))
+                                fig.add_trace(go.Scatter(
+                                    x=dados_dia["Datetime"].dt.strftime("%H:%M"),
+                                    y=[target_limit] * len(dados_dia),
+                                    mode="lines",
+                                    line=dict(color="red", dash="dash"),
+                                    showlegend=False
+                                ))
+                                fig.update_layout(
+                                    margin=dict(l=0, r=0, t=0, b=0),
+                                    height=120,
+                                    xaxis=dict(showticklabels=False),
+                                    yaxis=dict(showticklabels=False, range=[0, max_consumo]),
+                                    showlegend=False
+                                )
+                                st.plotly_chart(fig, use_container_width=True)
+                            else:
+                                st.markdown("_Sem dados_")
+
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
