@@ -116,6 +116,8 @@ if dados_colados:
                 legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
             )
             st.plotly_chart(fig, use_container_width=True)
+
+            #Gráfico de consumo de cada prédio/dia para as áreas produtivas
             st.subheader(" Consumo Diário por Medidor")
             consumo_diario = consumo.copy()
             consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
@@ -141,7 +143,7 @@ if dados_colados:
                 )
             st.plotly_chart(fig, use_container_width=True)
 
-
+            # Tabela de consumo horário dos prédios
             st.markdown("###  Consumo por hora")
             st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
            
