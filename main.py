@@ -72,7 +72,7 @@ st.title(" Monitoramento de Consumo de Energia")
 with st.sidebar:
     st.header(" Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
-    idioma = st.selectbox("Idioma / Language", ["Português", "English"])
+    idioma = st.selectbox("Idioma / Language", ["Portuguêss", "English"])
 
 if dados_colados:
     try:
