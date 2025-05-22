@@ -87,6 +87,10 @@ if dados_colados:
         data_selecionada = st.sidebar.date_input("Selecione a data", value=max(datas_disponiveis),
                                                  min_value=min(datas_disponiveis),
                                                  max_value=max(datas_disponiveis))
+        uploaded_file = st.sidebar.file_uploader(" Carregar limites (JSON)", type="json")
+        if uploaded_file:
+            st.session_state.limites_por_medidor = json.load(uploaded_file)
+            st.success("Limites carregados com sucesso.")
 
         dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
         horas = dados_dia["Datetime"].dt.hour
@@ -180,10 +184,7 @@ if dados_colados:
         # TABS 3 - CONFIGURAR LIMITES
         with tabs[2]:
             st.subheader(" Configuração de Limites por Hora")
-            uploaded_file = st.file_uploader(" Carregar limites (JSON)", type="json")
-            if uploaded_file:
-                st.session_state.limites_por_medidor = json.load(uploaded_file)
-                st.success("Limites carregados com sucesso.")
+            
 
             for medidor in medidores_disponiveis:
                 with st.expander(f" {medidor}"):
