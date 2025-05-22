@@ -72,7 +72,7 @@ st.title(" Monitoramento de Consumo de Energia")
 with st.sidebar:
     st.header(" Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
-    idioma = st.selectbox("Idioma / Language", ["Portugus", "English"])
+    idioma = st.selectbox("Idioma / Language", ["Português", "English"])
 
 if dados_colados:
     try:
@@ -95,7 +95,7 @@ if dados_colados:
 
         # TABS 1 - VISO GERAL
         with tabs[0]:
-            st.subheader(f" Consumo horrio em {data_selecionada.strftime('%d/%m/%Y')}")
+            st.subheader(f" Consumo horário em {data_selecionada.strftime('%d/%m/%Y')}")
             medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis, default=medidores_disponiveis)
 
             fig = go.Figure()
@@ -129,7 +129,7 @@ if dados_colados:
 
         # TABS 2 - POR MEDIDOR
         with tabs[1]:
-            st.subheader(" Grficos por Medidor com Curva de Limite")
+            st.subheader(" Gráficos por Medidor com Curva de Limite")
             for medidor in medidores_disponiveis:
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
@@ -153,7 +153,7 @@ if dados_colados:
 
         # TABS 3 - CONFIGURAR LIMITES
         with tabs[2]:
-            st.subheader(" Configurao de Limites por Hora")
+            st.subheader(" Configuração de Limites por Hora")
             uploaded_file = st.file_uploader(" Carregar limites (JSON)", type="json")
             if uploaded_file:
                 st.session_state.limites_por_medidor = json.load(uploaded_file)
