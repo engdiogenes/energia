@@ -118,14 +118,8 @@ if dados_colados:
 
             st.markdown("###  Consumo por hora")
             st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
+           
             
-            st.markdown("### 📌 Total por Medidor")
-            for medidor in medidores_selecionados:
-                total = round(dados_dia[medidor].sum(), 2)
-                st.metric(label=medidor, value=f"{total} kWh")
-          
-            
-
 
         # TABS 2 - POR MEDIDOR
         with tabs[1]:
