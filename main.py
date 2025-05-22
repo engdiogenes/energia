@@ -271,7 +271,8 @@ if dados_colados:
             dados_data = consumo_agrupado[consumo_agrupado["Data"] == data_calendario]
 
             if not dados_data.empty:
-        st.markdown(f"### Consumo em {data_calendario.strftime('%d/%m/%Y')}")
+
+st.markdown(f"### Consumo em {data_calendario.strftime('%d/%m/%Y')}")
         fig = go.Figure()
                for medidor in medidores_disponiveis:
                    fig.add_trace(go.Bar(
