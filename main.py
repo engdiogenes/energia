@@ -91,7 +91,8 @@ if dados_colados:
         if "limites_por_medidor" not in st.session_state:
             st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
 
-        tabs = st.tabs([" Viso Geral", " Por Medidor", " Limites", " Dashboard"])
+        
+        tabs = st.tabs([" Viso Geral", " Por Medidor", " Limites", " Dashboard", " Calendário"])
 
         # TABS 1 - VISO GERAL
         with tabs[0]:
@@ -234,6 +235,7 @@ if dados_colados:
 
             medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis, default=medidores_disponiveis)
             fig = go.Figure()
+            
                 for medidor in medidores_calendario:
                     fig.add_trace(go.Bar(
                     x=consumo_agrupado["Data"],
