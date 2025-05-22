@@ -304,66 +304,66 @@ if dados_colados:
 
         with tabs[4]:
             st.subheader("Calendário Interativo de Consumo")
+            # st.title("Monitoramento de Consumo de Energia")
 
-            data_selecionada_calendario = st.date_input(
-                "Selecione uma data para visualizar a curva de consumo:",
-                value=max(consumo["Datetime"].dt.date),
-                min_value=min(consumo["Datetime"].dt.date),
-                max_value=max(consumo["Datetime"].dt.date),
-                key="data_calendario_area_produtiva"
-            )
+            with st.sidebar:
+                st.header("Entrada de Dados")
+                dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
+                idioma = st.selectbox("Idioma / Language", ["Português", "English"])
 
-            dados_dia_calendario = consumo[consumo["Datetime"].dt.date == data_selecionada_calendario]
+            if dados_colados:
+                try:
+                    with st.spinner("Processando os dados..."):
+                        consumo = carregar_dados(dados_colados)
 
-            if not dados_dia_calendario.empty:
-                fig = go.Figure()
-                fig.add_trace(go.Scatter(
-                    x=dados_dia_calendario["Datetime"],
-                    y=dados_dia_calendario["Área Produtiva"],
-                    mode="lines",
-                    name="Área Produtiva"
-                ))
-                fig.update_layout(
-                    xaxis_title="Hora do dia",
-                    yaxis_title="Consumo (kWh)",
-                    template="plotly_white",
-                    height=500
-                )
-                st.plotly_chart(fig, use_container_width=True)
-            else:
-                st.info("Nenhum dado disponível para a data selecionada.")
+                    st.subheader("Calendário com Curva de Consumo da Área Produtiva")
 
-            # Gerar eventos com base no consumo diário
-            consumo_diario = consumo.copy()
-            consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
-            consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
+                    consumo["Data"] = consumo["Datetime"].dt.date
+                    dias_unicos = consumo["Data"].unique()
+                    dias_unicos = sorted(dias_unicos)
 
-            calendar_events = []
-            for _, row in consumo_agrupado.iterrows():
-                total = sum(row[medidor] for medidor in medidores_disponiveis)
-                calendar_events.append({
-                    "title": f"{total:.1f} kWh",
-                    "start": str(row["Data"]),
-                    "end": str(row["Data"]),
-                    "allDay": True
-                })
+                    # Limite diário e escala fixa
+                    target_limit = 500
+                    max_consumo = consumo["Área Produtiva"].max()
 
-                calendar_options = {
-                    "initialView": "dayGridMonth",
-                    "headerToolbar": {
-                        "left": "prev,next today",
-                        "center": "title",
-                        "right": "dayGridMonth,timeGridWeek"
-                    }
-                }
+                    dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
+                    semanas = [dias_mes[i:i + 7] for i in range(0, len(dias_mes), 7)]
 
-                calendar_component = calendar(
-                    events=calendar_events,
-                    options=calendar_options,
-                    key="calendar_area_produtiva"
-                )
+                    for semana in semanas:
+                        cols = st.columns(7)
+                        for i, dia in enumerate(semana):
+                            with cols[i]:
+                                st.caption(dia.strftime('%d/%m'))
+                                dados_dia = consumo[consumo["Datetime"].dt.date == dia.date()]
+                                if not dados_dia.empty:
+                                    fig = go.Figure()
+                                    fig.add_trace(go.Scatter(
+                                        x=dados_dia["Datetime"].dt.strftime("%H:%M"),
+                                        y=dados_dia["Área Produtiva"],
+                                        mode="lines",
+                                        line=dict(color="green"),
 
-            st.write("Clique em um evento para ver o consumo total do dia.")
+                                    ))
+                                    fig.add_trace(go.Scatter(
+                                        x=dados_dia["Datetime"].dt.strftime("%H:%M"),
+                                        y=[target_limit] * len(dados_dia),
+                                        mode="lines",
+                                        line=dict(color="red", dash="dash"),
+                                        showlegend=False
+
+                                    ))
+                                    fig.update_layout(
+                                        margin=dict(l=0, r=0, t=0, b=0),
+                                        height=120,
+                                        xaxis=dict(showticklabels=False),
+                                        yaxis=dict(showticklabels=False, range=[0, max_consumo]),
+                                        showlegend=False
+                                    )
+                                    st.plotly_chart(fig, use_container_width=True)
+                                else:
+                                    st.markdown("_Sem dados_")
+                except Exception as e:
+                    st.error(f"Erro ao processar os dados: {e}")
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
