@@ -304,7 +304,7 @@ if dados_colados:
 
         with tabs[4]:
             st.subheader("Calendário Interativo de Consumo")
-           
+
             if dados_colados:
                 try:
                     with st.spinner("Processando os dados..."):
