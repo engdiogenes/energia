@@ -274,7 +274,7 @@ if dados_colados:
 
                     st.markdown(f"### Consumo em {data_calendario.strftime('%d/%m/%Y')}")
                     fig = go.Figure()
-                       for medidor in medidores_disponiveis:
+                    for medidor in medidores_disponiveis:
                         fig.add_trace(go.Bar(
                         x=[medidor],
                         y=[dados_data.iloc[0][medidor]],
