@@ -5,7 +5,6 @@ import json
 import plotly.graph_objects as go
 import datetime
 
-
 st.set_page_config(layout="wide", page_title="Monitor de Energia")
 
 st.markdown("""
@@ -20,8 +19,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
 def limpar_valores(texto):
     return texto.replace(",", "")
+
 
 def carregar_dados(dados_colados):
     dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
@@ -62,10 +63,12 @@ def carregar_dados(dados_colados):
 
     consumo["TRIM&FINAL"] = consumo["QGBT1-MPTF"] + consumo["QGBT2-MPTF"]
     consumo["OFFICE + CANTEEN"] = consumo["OFFICE"] - consumo["PMDC-OFFICE"]
-    consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75
+    consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + \
+                                consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75
     consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"])
 
     return consumo
+
 
 st.title(" Monitoramento de Consumo de Energia")
 
@@ -89,15 +92,15 @@ if dados_colados:
         medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
         if "limites_por_medidor" not in st.session_state:
-            st.session_state.limites_por_medidor = {m: [5.0]*24 for m in medidores_disponiveis}
+            st.session_state.limites_por_medidor = {m: [5.0] * 24 for m in medidores_disponiveis}
 
-        
         tabs = st.tabs([" Viso Geral", " Por Medidor", " Limites", " Dashboard", " Calendário"])
 
         # TABS 1 - VISO GERAL
         with tabs[0]:
             st.subheader(f" Consumo horário em {data_selecionada.strftime('%d/%m/%Y')}")
-            medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis, default=medidores_disponiveis)
+            medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis,
+                                                    default=medidores_disponiveis)
 
             fig = go.Figure()
             for medidor in medidores_selecionados:
@@ -117,37 +120,36 @@ if dados_colados:
             )
             st.plotly_chart(fig, use_container_width=True)
 
-            #Gráfico de consumo de cada prédio/dia para as áreas produtivas
+            # Gráfico de consumo de cada prédio/dia para as áreas produtivas
             st.subheader(" Consumo Diário por Medidor")
             consumo_diario = consumo.copy()
             consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
             consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
 
-            medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis, default=medidores_disponiveis)
+            medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis,
+                                                  default=medidores_disponiveis)
             fig = go.Figure()
-            
+
             for medidor in medidores_calendario:
                 fig.add_trace(go.Bar(
-                x=consumo_agrupado["Data"],
-                y=consumo_agrupado[medidor],
-                name=medidor
+                    x=consumo_agrupado["Data"],
+                    y=consumo_agrupado[medidor],
+                    name=medidor
                 ))
 
                 fig.update_layout(
-                barmode="stack",
-                xaxis_title="Data",
-                yaxis_title="Consumo Total (kWh)",
-                template="plotly_white",
-                  height=500,
-                legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
+                    barmode="stack",
+                    xaxis_title="Data",
+                    yaxis_title="Consumo Total (kWh)",
+                    template="plotly_white",
+                    height=500,
+                    legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                 )
             st.plotly_chart(fig, use_container_width=True)
 
             # Tabela de consumo horário dos prédios
             st.markdown("###  Consumo por hora")
             st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
-           
-            
 
         # TABS 2 - POR MEDIDOR
         with tabs[1]:
@@ -161,7 +163,7 @@ if dados_colados:
                     name="Consumo"
                 ))
 
-                limites = st.session_state.limites_por_medidor.get(medidor, [5.0]*24)
+                limites = st.session_state.limites_por_medidor.get(medidor, [5.0] * 24)
                 fig.add_trace(go.Scatter(
                     x=list(range(24)),
                     y=limites,
@@ -170,7 +172,8 @@ if dados_colados:
                     line=dict(dash="dash", color="red")
                 ))
 
-                fig.update_layout(title=medidor, xaxis_title="Hora", yaxis_title="kWh", height=300, template="plotly_white")
+                fig.update_layout(title=medidor, xaxis_title="Hora", yaxis_title="kWh", height=300,
+                                  template="plotly_white")
                 st.plotly_chart(fig, use_container_width=True)
 
         # TABS 3 - CONFIGURAR LIMITES
@@ -187,8 +190,9 @@ if dados_colados:
                     novos = []
                     for i in range(24):
                         with cols[i % 6]:
-                            novos.append(st.number_input(f"{i}h", value=st.session_state.limites_por_medidor[medidor][i],
-                                                         min_value=0.0, max_value=2000.0, step=0.5, key=f"{medidor}_{i}"))
+                            novos.append(
+                                st.number_input(f"{i}h", value=st.session_state.limites_por_medidor[medidor][i],
+                                                min_value=0.0, max_value=2000.0, step=0.5, key=f"{medidor}_{i}"))
                     st.session_state.limites_por_medidor[medidor] = novos
 
             st.download_button(" Baixar Limites", json.dumps(st.session_state.limites_por_medidor, indent=2),
@@ -226,7 +230,7 @@ if dados_colados:
                         name="Consumo",
                         line=dict(color="blue")
                     ))
-                    limites = st.session_state.limites_por_medidor.get(medidor, [5.0]*24)
+                    limites = st.session_state.limites_por_medidor.get(medidor, [5.0] * 24)
                     fig.add_trace(go.Scatter(
                         x=list(range(24)),
                         y=limites,
@@ -264,33 +268,33 @@ if dados_colados:
 
             # Calendário para seleção de data
             data_calendario = st.date_input("Selecione uma data para visualizar o consumo diário:",
-                                    value=max(consumo_agrupado["Data"]),
-                                    min_value=min(consumo_agrupado["Data"]),
-                                    max_value=max(consumo_agrupado["Data"]))
+                                            value=max(consumo_agrupado["Data"]),
+                                            min_value=min(consumo_agrupado["Data"]),
+                                            max_value=max(consumo_agrupado["Data"]))
 
             dados_data = consumo_agrupado[consumo_agrupado["Data"] == data_calendario]
 
             if not dados_data.empty:
 
-                    st.markdown(f"### Consumo em {data_calendario.strftime('%d/%m/%Y')}")
-                    fig = go.Figure()
-                    for medidor in medidores_disponiveis:
-                        fig.add_trace(go.Bar(
+                st.markdown(f"### Consumo em {data_calendario.strftime('%d/%m/%Y')}")
+                fig = go.Figure()
+                for medidor in medidores_disponiveis:
+                    fig.add_trace(go.Bar(
                         x=[medidor],
                         y=[dados_data.iloc[0][medidor]],
                         name=medidor
                     ))
 
-                        fig.update_layout(
-                        xaxis_title="Medidor",
-                        yaxis_title="Consumo (kWh)",
-                        template="plotly_white",
-                        height=500,
-                        showlegend=False
-                    )
-        st.plotly_chart(fig, use_container_width=True)
-    else:
-        st.info("Nenhum dado disponível para a data selecionada.")        
+                fig.update_layout(
+                    xaxis_title="Medidor",
+                    yaxis_title="Consumo (kWh)",
+                    template="plotly_white",
+                    height=500,
+                    showlegend=False
+                )
+                st.plotly_chart(fig, use_container_width=True)
 
+            else:
+                st.info("Nenhum dado disponível para a data selecionada.")
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
