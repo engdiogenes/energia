@@ -243,13 +243,13 @@ if dados_colados:
                 name=medidor
                 ))
 
-                    fig.update_layout(
-                    barmode="stack",
-                    xaxis_title="Data",
-                    yaxis_title="Consumo Total (kWh)",
-                    template="plotly_white",
-                    height=500,
-                    legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
+                fig.update_layout(
+                barmode="stack",
+                xaxis_title="Data",
+                yaxis_title="Consumo Total (kWh)",
+                template="plotly_white",
+                  height=500,
+                legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                 )
             st.plotly_chart(fig, use_container_width=True)
 
