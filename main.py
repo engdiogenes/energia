@@ -228,12 +228,11 @@ if dados_colados:
         # TABS 5 - CALENDÁRIO
         with tabs[4]:
             st.subheader(" Consumo Diário por Medidor")
-                consumo_diario = consumo.copy()
-                consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
-                consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
+            consumo_diario = consumo.copy()
+            consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
+            consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
 
-                medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis, default=medidores_disponiveis)
-
+            medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis, default=medidores_disponiveis)
                 fig = go.Figure()
                 for medidor in medidores_calendario:
                     fig.add_trace(go.Bar(
