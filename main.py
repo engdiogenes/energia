@@ -236,11 +236,11 @@ if dados_colados:
             medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis, default=medidores_disponiveis)
             fig = go.Figure()
             
-                for medidor in medidores_calendario:
-                    fig.add_trace(go.Bar(
-                    x=consumo_agrupado["Data"],
-                    y=consumo_agrupado[medidor],
-                    name=medidor
+            for medidor in medidores_calendario:
+                fig.add_trace(go.Bar(
+                x=consumo_agrupado["Data"],
+                y=consumo_agrupado[medidor],
+                name=medidor
                 ))
 
                     fig.update_layout(
