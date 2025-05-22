@@ -317,7 +317,7 @@ if dados_colados:
                 calendar_component = calendar(
                  events=calendar_events,
                  options=calendar_options,
-                 key="calendar"
+                 key="calendar_area_produtiva"
              )
 
             st.write("Clique em um evento para ver o consumo total do dia.")
