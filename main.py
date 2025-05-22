@@ -304,13 +304,7 @@ if dados_colados:
 
         with tabs[4]:
             st.subheader("Calendário Interativo de Consumo")
-            # st.title("Monitoramento de Consumo de Energia")
-
-            with st.sidebar:
-                st.header("Entrada de Dados")
-                dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
-                idioma = st.selectbox("Idioma / Language", ["Português", "English"])
-
+           
             if dados_colados:
                 try:
                     with st.spinner("Processando os dados..."):
