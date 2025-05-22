@@ -258,27 +258,26 @@ if dados_colados:
                     coluna = idx % 4
                     with linhas[linha][coluna]:
                         st.markdown("### Espao reservado")
-        # TABS 5 - CALENDÁRIO
-with tabs[4]:
+#TABS 5 - CALENDÁRIO
+        with tabs[4]:
+#Visualização semanal com mini-gráficos da Área Produtiva
+        st.markdown("### Visualização Semanal da Área Produtiva")
 
-# Visualização semanal com mini-gráficos da Área Produtiva
-st.markdown("### Visualização Semanal da Área Produtiva")
+        consumo["Data"] = consumo["Datetime"].dt.date
+        dias_unicos = consumo["Data"].unique()
+        dias_unicos = sorted(dias_unicos)
 
-consumo["Data"] = consumo["Datetime"].dt.date
-dias_unicos = consumo["Data"].unique()
-dias_unicos = sorted(dias_unicos)
+        target_limit = 500
+        max_consumo = consumo["Área Produtiva"].max()
+        dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
+        semanas = [dias_mes[i:i+7] for i in range(0, len(dias_mes), 7)]
 
-target_limit = 500
-max_consumo = consumo["Área Produtiva"].max()
-dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
-semanas = [dias_mes[i:i+7] for i in range(0, len(dias_mes), 7)]
-
-for semana in semanas:
-    cols = st.columns(7)
-    for i, dia in enumerate(semana):
-        with cols[i]:
-            st.caption(dia.strftime('%d/%m'))
-            dados_dia = consumo[consumo["Datetime"].dt.date == dia.date()]
+        for semana in semanas:
+            cols = st.columns(7)
+        for i, dia in enumerate(semana):
+            with cols[i]:
+                st.caption(dia.strftime('%d/%m'))
+                dados_dia = consumo[consumo["Datetime"].dt.date == dia.date()]
             if not dados_dia.empty:
                 fig = go.Figure()
                 fig.add_trace(go.Scatter(
