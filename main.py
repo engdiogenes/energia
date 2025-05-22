@@ -262,7 +262,35 @@ if dados_colados:
         with tabs[4]:
             st.subheader("Calendário Interativo de Consumo")
 
-             # Gerar eventos com base no consumo diário
+            data_selecionada_calendario = st.date_input(
+                "Selecione uma data para visualizar a curva de consumo:",
+                value=max(consumo["Datetime"].dt.date),
+                min_value=min(consumo["Datetime"].dt.date),
+                max_value=max(consumo["Datetime"].dt.date),
+                key="data_calendario_area_produtiva"
+            )
+
+            dados_dia_calendario = consumo[consumo["Datetime"].dt.date == data_selecionada_calendario]
+
+            if not dados_dia_calendario.empty:
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(
+                    x=dados_dia_calendario["Datetime"],
+                    y=dados_dia_calendario["Área Produtiva"],
+                    mode="lines",
+                    name="Área Produtiva"
+                ))
+                fig.update_layout(
+                    xaxis_title="Hora do dia",
+                    yaxis_title="Consumo (kWh)",
+                    template="plotly_white",
+                    height=500
+                )
+                st.plotly_chart(fig, use_container_width=True)
+            else:
+                st.info("Nenhum dado disponível para a data selecionada.")
+
+            # Gerar eventos com base no consumo diário
             consumo_diario = consumo.copy()
             consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
             consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
@@ -296,3 +324,4 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
+        
