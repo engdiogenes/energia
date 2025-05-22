@@ -356,8 +356,6 @@ if dados_colados:
                                     st.plotly_chart(fig, use_container_width=True)
                                 else:
                                     st.markdown("_Sem dados_")
-                except Exception as e:
-                    st.error(f"Erro ao processar os dados: {e}")
-
+            
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
