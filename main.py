@@ -257,16 +257,13 @@ if dados_colados:
         with tabs[4]:
             st.subheader(" Consumo Diário por Medidor")
             # TABS 5 - CALENDÁRIO
-with tabs[4]:
-    st.subheader(" Consumo Diário por Medidor")
+            # Agrupar dados por data
+            consumo_diario = consumo.copy()
+            consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
+            consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
 
-    # Agrupar dados por data
-    consumo_diario = consumo.copy()
-    consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
-    consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
-
-    # Calendário para seleção de data
-    data_calendario = st.date_input("Selecione uma data para visualizar o consumo diário:",
+            # Calendário para seleção de data
+            data_calendario = st.date_input("Selecione uma data para visualizar o consumo diário:",
                                     value=max(consumo_agrupado["Data"]),
                                     min_value=min(consumo_agrupado["Data"]),
                                     max_value=max(consumo_agrupado["Data"]))
