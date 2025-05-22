@@ -260,17 +260,15 @@ if dados_colados:
                         st.markdown("### Espao reservado")
 #TABS 5 - CALENDÁRIO
         with tabs[4]:
-#Visualização semanal com mini-gráficos da Área Produtiva
-        st.markdown("### Visualização Semanal da Área Produtiva")
+            st.markdown("### Visualização Semanal da Área Produtiva")
+            consumo["Data"] = consumo["Datetime"].dt.date
+            dias_unicos = consumo["Data"].unique()
+            dias_unicos = sorted(dias_unicos)
 
-        consumo["Data"] = consumo["Datetime"].dt.date
-        dias_unicos = consumo["Data"].unique()
-        dias_unicos = sorted(dias_unicos)
-
-        target_limit = 500
-        max_consumo = consumo["Área Produtiva"].max()
-        dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
-        semanas = [dias_mes[i:i+7] for i in range(0, len(dias_mes), 7)]
+            target_limit = 500
+            max_consumo = consumo["Área Produtiva"].max()
+            dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
+            semanas = [dias_mes[i:i+7] for i in range(0, len(dias_mes), 7)]
 
         for semana in semanas:
             cols = st.columns(7)
