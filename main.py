@@ -86,7 +86,7 @@ if dados_colados:
                                                      max_value=max(datas_disponiveis))
             uploaded_file = st.sidebar.file_uploader(" Carregar limites (CSV)", type="csv")
             if uploaded_file:
-                st.sidebar.session_state.limites_diarios = pd.read_csv(uploaded_file)
+                st.sidebar.session_state.limites_diarios = pd.read_csv(uploaded_file, encoding='latin1')
                 st.sidebar.success("Limites carregados com sucesso.")
             if "limites_por_medidor" not in st.session_state:
                 st.session_state.limites_por_medidor = {}
