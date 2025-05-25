@@ -1,4 +1,3 @@
-
 import streamlit as st
 import pandas as pd
 import io
@@ -75,7 +74,7 @@ st.title(" Monitoramento de Consumo de Energia")
 with st.sidebar:
     st.header(" Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
-    idioma = st.selectbox("Idioma / Language", ["Portuguêss", "English"])
+    idioma = st.selectbox("Idioma / Language", ["Português", "English"])
 
 if dados_colados:
         try:
@@ -90,6 +89,8 @@ if dados_colados:
             if uploaded_file:
                 st.sidebar.session_state.limites_diarios = pd.read_csv(uploaded_file)
                 st.sidebar.success("Limites carregados com sucesso.")
+            if "limites_por_medidor" not in st.session_state:
+                st.session_state.limites_por_medidor = {}
 
             dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
             horas = dados_dia["Datetime"].dt.hour
