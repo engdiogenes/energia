@@ -1,7 +1,7 @@
+
 import streamlit as st
 import pandas as pd
 import io
-import json
 import plotly.graph_objects as go
 import datetime
 
@@ -22,7 +22,6 @@ visibility: hidden;
 
 def limpar_valores(texto):
     return texto.replace(",", "")
-
 
 def carregar_dados(dados_colados):
     dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
@@ -204,8 +203,7 @@ if dados_colados:
                                                     min_value=0.0, max_value=2000.0, step=0.5, key=f"{medidor}_{i}"))
                         st.session_state.limites_por_medidor[medidor] = novos
 
-                st.download_button(" Baixar Limites", json.dumps(st.session_state.limites_por_medidor, indent=2),
-                                   file_name="limites.json", mime="application/json")
+
 
             # TABS 4 - DASHBOARD
             with tabs[3]:
