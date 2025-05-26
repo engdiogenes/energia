@@ -5,8 +5,10 @@ import json
 import plotly.graph_objects as go
 import datetime
 from streamlit_calendar import calendar
+import fpdf
 
 st.set_page_config(layout="wide", page_title="Monitor de Energia")
+
 import os
 
 # Caminho padrão do JSON
@@ -87,6 +89,17 @@ st.title(" Energy data analyser")
 with st.sidebar:
     st.header(" Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
+    if st.button("📄 Gerar Relatório em PDF"):
+        from gerar_relatorio_pdf import gerar_relatorio_pdf
+
+        gerar_relatorio_pdf(consumo, st.session_state.limites_por_medidor_horario, st.session_state.data_selecionada)
+        with open("relatorio_consumo_energetico.pdf", "rb") as f:
+            st.download_button(
+                label="📥 Baixar Relatório PDF",
+                data=f,
+                file_name=f"relatorio_{st.session_state.data_selecionada.strftime('%Y%m%d')}.pdf",
+                mime="application/pdf"
+            )
 
 if dados_colados:
     try:
@@ -101,6 +114,8 @@ if dados_colados:
                 min_value=min(datas_disponiveis),
                 max_value=max(datas_disponiveis)
             )
+
+            st.session_state.data_selecionada = data_selecionada
 
             dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
             horas = dados_dia["Datetime"].dt.hour
@@ -122,8 +137,8 @@ if dados_colados:
                     for medidor in medidores_disponiveis
                     if medidor in limites_dia_df.columns
                 }
+            tabs = st.tabs([" Visão Geral", " Por Medidor", " Limites", " Dashboard", " Calendário" , " Conversão "  ])
 
-            tabs = st.tabs([" Visão Geral", " Por Medidor", " Limites", " Dashboard", " Calendário"])
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
                 st.subheader(f"Resumo do Dia {data_selecionada.strftime('%d/%m/%Y')}")
@@ -162,11 +177,11 @@ if dados_colados:
                             delta=f"{delta_geral:.2f} kWh",
                             delta_color="normal" if delta_geral == 0 else ("inverse" if delta_geral < 0 else "off"))
                 col3.metric("📉 Saldo do Dia (Geral)", f"{saldo_geral:.2f} kWh", delta_color="inverse")
-                
+
                 col4.metric("📊 Target Área Produtiva", f"{limites_area:.2f} kWh")
                 col5.metric("🏭 Consumo Área Produtiva", f"{consumo_area:.2f} kWh",
                             delta=f"{delta_area:.2f} kWh",
-                            delta_color="normal" if delta_area == 0 else ("inverse" if delta_area < 0 else "off"))              
+                            delta_color="normal" if delta_area == 0 else ("inverse" if delta_area < 0 else "off"))
                 col6.metric("📉 Saldo do Dia (Área Produtiva)", f"{saldo_area:.2f} kWh", delta_color="inverse")
 
                 st.divider()
@@ -325,7 +340,7 @@ if dados_colados:
                         )
                         st.plotly_chart(fig, use_container_width=True, key=f"plot_{medidor}")
 
-            # TABS 5 - CALENDÁRIO
+            # TABS 4 - CALENDÁRIO
             with tabs[4]:
                 st.subheader("Calendário Interativo de Consumo da Área Produtiva")
                 consumo_completo["Data"] = consumo_completo["Datetime"].dt.date
@@ -385,5 +400,62 @@ if dados_colados:
                                 st.plotly_chart(fig, use_container_width=True)
                             else:
                                 st.markdown("_Sem dados_")
+
+             # TABS 5 - CALENDÁRIO
+            with tabs[5]:
+                st.title("Conversor CSV para JSON - Limites Horários por Medidor")
+                uploaded_file = st.file_uploader("Faça upload do arquivo CSV", type="csv")
+                if uploaded_file is not None:
+                    try:
+                        # Lê o CSV com codificação ISO-8859-1
+                        df = pd.read_csv(uploaded_file, encoding="ISO-8859-1")
+
+                        st.subheader("Pré-visualização do CSV")
+                        st.dataframe(df)
+
+                        # Usa as duas primeiras colunas como Data e Hora
+                        data_col, hora_col = df.columns[0], df.columns[1]
+
+                        # Cria coluna de timestamp
+                        df["Timestamp"] = pd.to_datetime(df[data_col] + " " + df[hora_col], dayfirst=True)
+                        df["Timestamp"] = df["Timestamp"].dt.strftime("%d/%m/%Y %H:%M")
+
+                        # Adiciona sufixo incremental para timestamps duplicados
+                        df["Timestamp"] = df["Timestamp"] + df.groupby("Timestamp").cumcount().apply(
+                            lambda x: f" #{x + 1}" if x > 0 else "")
+
+                        # Define o índice e remove colunas originais
+                        df.set_index("Timestamp", inplace=True)
+                        df.drop(columns=[data_col, hora_col], inplace=True)
+
+                        # Converte para JSON
+                        json_data = df.reset_index().to_dict(orient="records")
+
+                        st.subheader("JSON Gerado")
+                        st.json(json_data)
+
+                        # Permite download
+                        json_str = json.dumps(json_data, indent=2, ensure_ascii=False)
+
+                        st.download_button("Baixar JSON", json_str, file_name="limites_horarios.json", mime="application/json")
+                    except Exception as e:
+                        st.error(f"Erro ao processar os dados: {e}")
+
+        if "limites_por_medidor_horario" in st.session_state:
+            with st.sidebar:
+                if st.button("📄 Gerar Relatório em PDF"):
+                    gerar_relatorio_pdf(
+                        consumo,
+                        st.session_state.limites_por_medidor_horario,
+                        data_selecionada
+                    )
+                    with open("relatorio_consumo_energetico.pdf", "rb") as f:
+                        st.download_button(
+                            label="📥 Baixar Relatório PDF",
+                            data=f,
+                            file_name=f"relatorio_{data_selecionada.strftime('%Y%m%d')}.pdf",
+                            mime="application/pdf"
+                        )
+
     except Exception as e:
             st.error(f"Erro ao processar os dados: {e}")
