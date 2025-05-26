@@ -7,6 +7,27 @@ import datetime
 from streamlit_calendar import calendar
 
 st.set_page_config(layout="wide", page_title="Monitor de Energia")
+import os
+
+# Caminho padrão do JSON
+CAMINHO_JSON_PADRAO = "limites_padrao.json"
+
+# Carregar automaticamente os limites se o arquivo existir
+if os.path.exists(CAMINHO_JSON_PADRAO):
+    try:
+        limites_df = pd.read_json(CAMINHO_JSON_PADRAO)
+        limites_df["Timestamp"] = pd.to_datetime(limites_df["Timestamp"], dayfirst=True)
+        limites_df["Data"] = limites_df["Timestamp"].dt.date
+        limites_df["Hora"] = limites_df["Timestamp"].dt.hour
+        st.session_state.limites_df = limites_df
+        st.session_state.limites_por_medidor_horario = {
+            medidor: list(limites_df[limites_df["Data"] == limites_df["Data"].min()].sort_values("Hora")[medidor].values)
+            for medidor in limites_df.columns
+            if medidor not in ["Timestamp", "Data", "Hora"]
+        }
+    except Exception as e:
+        st.warning(f"Erro ao carregar limites padrão: {e}")
+
 
 st.markdown("""
  <style>
