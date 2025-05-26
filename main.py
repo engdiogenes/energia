@@ -123,6 +123,7 @@ if dados_colados:
                  legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                       )
             st.plotly_chart(fig, use_container_width=True)
+            st.divider()
             # Gráfico de consumo de cada prédio/dia para as áreas produtivas
             st.subheader(" Consumo Diário por Medidor")
             consumo_diario = consumo.copy()
@@ -149,6 +150,8 @@ if dados_colados:
                     legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                 )
             st.plotly_chart(fig, use_container_width=True)
+
+            st.divider()
 
             # Tabela de consumo horário dos prédios
             st.markdown("###  Consumo por hora")
@@ -178,6 +181,7 @@ if dados_colados:
                     fig.update_layout(title=medidor, xaxis_title="Hora", yaxis_title="kWh", height=300,
                                       template="plotly_white")
                     st.plotly_chart(fig, use_container_width=True)
+                    st.divider()
 
             # TABS 3 - CONFIGURAR LIMITES
             with tabs[2]:
