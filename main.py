@@ -72,6 +72,8 @@ if dados_colados:
     try:
         with st.spinner("Processando os dados..."):
             consumo = carregar_dados(dados_colados)
+            consumo_completo = consumo.copy()
+
             datas_disponiveis = consumo["Datetime"].dt.date.unique()
             data_selecionada = st.sidebar.date_input(
                 "Selecione a data",
@@ -248,57 +250,56 @@ if dados_colados:
 
             # TABS 5 - CALENDÁRIO
             with tabs[4]:
-                with tabs[4]:
-                    st.subheader("Calendário Interativo de Consumo")
-                    consumo["Data"] = consumo["Datetime"].dt.date
-                    dias_unicos = sorted(consumo["Data"].unique())
-                    dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
-                    semanas = [dias_mes[i:i + 7] for i in range(0, len(dias_mes), 7)]
-                    max_consumo = consumo["Área Produtiva"].max()
+                st.subheader("Calendário Interativo de Consumo")
+                consumo_completo["Data"] = consumo_completo["Datetime"].dt.date
+                dias_unicos = sorted(consumo_completo["Data"].unique())
+                dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
+                semanas = [dias_mes[i:i + 7] for i in range(0, len(dias_mes), 7)]
+                max_consumo = consumo_completo["Área Produtiva"].max()
 
-                    for semana in semanas:
-                        cols = st.columns(7)
-                        for i, dia in enumerate(semana):
-                            with cols[i]:
-                                st.caption(dia.strftime('%d/%m'))
-                                dados_dia = consumo[consumo["Datetime"].dt.date == dia.date()]
-                                if not dados_dia.empty:
-                                    # Recalcular limites da Área Produtiva para o dia
-                                    limites_area_dia = [
-                                        sum(
-                                            st.session_state.limites_por_medidor_horario.get(medidor, [0] * 24)[hora]
-                                            for medidor in
-                                            ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                             "TRIM&FINAL"]
-                                            if medidor in st.session_state.limites_por_medidor_horario
-                                        ) + 13.75
-                                        for hora in range(24)
-                                    ]
+                for semana in semanas:
+                    cols = st.columns(7)
+                    for i, dia in enumerate(semana):
+                        with cols[i]:
+                            st.caption(dia.strftime('%d/%m'))
+                            dados_dia = consumo_completo[consumo_completo["Datetime"].dt.date == dia.date()]
+                            if not dados_dia.empty:
+                                limites_area_dia = [
+                                    sum(
+                                        st.session_state.limites_por_medidor_horario.get(medidor, [0] * 24)[hora]
+                                        for medidor in
+                                        ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                         "TRIM&FINAL"]
+                                        if medidor in st.session_state.limites_por_medidor_horario
+                                    ) + 13.75
+                                    for hora in range(24)
+                                ]
 
-                                    fig = go.Figure()
-                                    fig.add_trace(go.Scatter(
-                                        x=dados_dia["Datetime"].dt.strftime("%H:%M"),
-                                        y=dados_dia["Área Produtiva"],
-                                        mode="lines",
-                                        line=dict(color="green"),
-                                    ))
-                                    fig.add_trace(go.Scatter(
-                                        x=dados_dia["Datetime"].dt.strftime("%H:%M"),
-                                        y=[limites_area_dia[dt.hour] for dt in dados_dia["Datetime"]],
-                                        mode="lines",
-                                        line=dict(color="red", dash="dash"),
-                                        showlegend=False
-                                    ))
-                                    fig.update_layout(
-                                        margin=dict(l=0, r=0, t=0, b=0),
-                                        height=120,
-                                        xaxis=dict(showticklabels=False),
-                                        yaxis=dict(showticklabels=False, range=[0, max_consumo]),
-                                        showlegend=False
-                                    )
-                                    st.plotly_chart(fig, use_container_width=True)
-                                else:
-                                    st.markdown("_Sem dados_")
+                                fig = go.Figure()
+                                fig.add_trace(go.Scatter(
+                                    x=dados_dia["Datetime"].dt.strftime("%H:%M"),
+                                    y=dados_dia["Área Produtiva"],
+                                    mode="lines",
+                                    line=dict(color="green"),
+                                ))
+                                fig.add_trace(go.Scatter(
+                                    x=dados_dia["Datetime"].dt.strftime("%H:%M"),
+                                    y=[limites_area_dia[dt.hour] for dt in dados_dia["Datetime"]],
+                                    mode="lines",
+                                    line=dict(color="red", dash="dash"),
+                                    showlegend=False
+                                ))
+                                fig.update_layout(
+                                    margin=dict(l=0, r=0, t=0, b=0),
+                                    height=120,
+                                    xaxis=dict(showticklabels=False),
+                                    yaxis=dict(showticklabels=False, range=[0, max_consumo]),
+                                    showlegend=False
+                                )
+                                st.plotly_chart(fig, use_container_width=True)
+                            else:
+                                st.markdown("_Sem dados_")
+
 
     except Exception as e:
             st.error(f"Erro ao processar os dados: {e}")
