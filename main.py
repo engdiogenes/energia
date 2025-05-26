@@ -61,7 +61,7 @@ def carregar_dados(dados_colados):
                                  consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75
     consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"])
     return consumo
-st.title(" Monitoramento de Consumo de Energia")
+st.title(" Energy data analyser")
 
 with st.sidebar:
     st.header(" Entrada de Dados")
@@ -250,7 +250,7 @@ if dados_colados:
 
             # TABS 5 - CALENDÁRIO
             with tabs[4]:
-                st.subheader("Calendário Interativo de Consumo")
+                st.subheader("Calendário Interativo de Consumo da Área Produtiva")
                 consumo_completo["Data"] = consumo_completo["Datetime"].dt.date
                 dias_unicos = sorted(consumo_completo["Data"].unique())
                 dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
