@@ -87,7 +87,7 @@ st.title(" Energy data analyser")
 with st.sidebar:
     st.header(" Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
-    
+
 if dados_colados:
     try:
         with st.spinner("Processando os dados..."):
@@ -161,13 +161,12 @@ if dados_colados:
                 col2.metric("⚡ Consumo Real Geral", f"{consumo_geral:.2f} kWh",
                             delta=f"{delta_geral:.2f} kWh",
                             delta_color="normal" if delta_geral == 0 else ("inverse" if delta_geral < 0 else "off"))
-
-                col3.metric("📊 Target Área Produtiva", f"{limites_area:.2f} kWh")
-                col4.metric("🏭 Consumo Área Produtiva", f"{consumo_area:.2f} kWh",
+                col3.metric("📉 Saldo do Dia (Geral)", f"{saldo_geral:.2f} kWh", delta_color="inverse")
+                
+                col4.metric("📊 Target Área Produtiva", f"{limites_area:.2f} kWh")
+                col5.metric("🏭 Consumo Área Produtiva", f"{consumo_area:.2f} kWh",
                             delta=f"{delta_area:.2f} kWh",
-                            delta_color="normal" if delta_area == 0 else ("inverse" if delta_area < 0 else "off"))
-
-                col5.metric("📉 Saldo do Dia (Geral)", f"{saldo_geral:.2f} kWh", delta_color="inverse")
+                            delta_color="normal" if delta_area == 0 else ("inverse" if delta_area < 0 else "off"))              
                 col6.metric("📉 Saldo do Dia (Área Produtiva)", f"{saldo_area:.2f} kWh", delta_color="inverse")
 
                 st.divider()
