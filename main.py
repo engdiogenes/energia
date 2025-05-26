@@ -129,6 +129,7 @@ if dados_colados:
             with tabs[0]:
                 st.subheader(f"Resumo do Dia {data_selecionada.strftime('%d/%m/%Y')}")
                 # Cálculos
+                # Cálculos
                 Consumo_gab = 300
                 consumo_area = dados_dia["Área Produtiva"].sum()
                 consumo_pccb = dados_dia["PCCB"].sum() if "PCCB" in dados_dia else 0
@@ -147,6 +148,9 @@ if dados_colados:
                 limite_maiw = sum(st.session_state.limites_por_medidor_horario.get("MAIW", [0] * 24))
                 limite_geral = limites_area + limite_pccb + limite_maiw + Consumo_gab
 
+                # Deltas e saldos
+                delta_geral = consumo_geral - limite_geral
+                delta_area = consumo_area - limites_area
                 saldo_geral = limite_geral - consumo_geral
                 saldo_area = limites_area - consumo_area
 
@@ -155,10 +159,15 @@ if dados_colados:
                 col4, col5, col6 = st.columns(3)
 
                 col1.metric("🎯 Target Diário Geral", f"{limite_geral:.2f} kWh")
-                col2.metric("⚡ Consumo Real Geral", f"{consumo_geral:.2f} kWh")
-                col3.metric("📊 Target Área Produtiva", f"{limites_area:.2f} kWh")
+                col2.metric("⚡ Consumo Real Geral", f"{consumo_geral:.2f} kWh",
+                            delta=f"{delta_geral:.2f} kWh",
+                            delta_color="normal" if delta_geral == 0 else ("inverse" if delta_geral < 0 else "off"))
 
-                col4.metric("🏭 Consumo Área Produtiva", f"{consumo_area:.2f} kWh")
+                col3.metric("📊 Target Área Produtiva", f"{limites_area:.2f} kWh")
+                col4.metric("🏭 Consumo Área Produtiva", f"{consumo_area:.2f} kWh",
+                            delta=f"{delta_area:.2f} kWh",
+                            delta_color="normal" if delta_area == 0 else ("inverse" if delta_area < 0 else "off"))
+
                 col5.metric("📉 Saldo do Dia (Geral)", f"{saldo_geral:.2f} kWh", delta_color="inverse")
                 col6.metric("📉 Saldo do Dia (Área Produtiva)", f"{saldo_area:.2f} kWh", delta_color="inverse")
 
