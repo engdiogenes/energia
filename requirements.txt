@@ -6,3 +6,4 @@ streamlit-authenticator==0.2.3
 bcrypt
 plotly>=5.20.0
 streamlit-calendar
+fpdf
