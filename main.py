@@ -89,7 +89,7 @@ st.title(" Energy data analyser")
 with st.sidebar:
     st.header(" Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
-    if st.button("📄 Gerar Relatório em PDF"):
+    if st.button("📄 Gerar Relatório em PDF", key="gerar_pdf_sidebar"):
         from gerar_relatorio_pdf import gerar_relatorio_pdf
 
         if 'consumo' in st.session_state:
@@ -447,7 +447,7 @@ if dados_colados:
 
         if "limites_por_medidor_horario" in st.session_state:
             with st.sidebar:
-                if st.button("📄 Gerar Relatório em PDF"):
+                if st.button("📄 Gerar Relatório em PDF", key="gerar_pdf_final"):
                     gerar_relatorio_pdf(
                         consumo,
                         st.session_state.limites_por_medidor_horario,
