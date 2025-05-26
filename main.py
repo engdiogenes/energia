@@ -120,7 +120,7 @@ if dados_colados:
                       )
             st.plotly_chart(fig, use_container_width=True)
 
-# TABS 2 - POR MEDIDOR
+            # TABS 2 - POR MEDIDOR
             with tabs[1]:
                 st.subheader(" Gráficos por Medidor com Curva de Limite")
                 for medidor in medidores_disponiveis:
@@ -143,35 +143,25 @@ if dados_colados:
                 fig.update_layout(title=medidor, xaxis_title="Hora", yaxis_title="kWh", height=300,template="plotly_white")
                 st.plotly_chart(fig, use_container_width=True)
 
-            # TABS 3 - CONFIGURAR LIMITES
+            # TABS 2 - CONFIGURAR LIMITES
             with tabs[2]:
-                st.subheader(" Configuração de Limites por Hora")
-                for medidor in medidores_disponiveis:
-                    with st.expander(f" {medidor}"):
-                        cols = st.columns(6)
-                        novos = []
-                        for i in range(24):
-                            with cols[i % 6]:
-                                novos.append(
-                                    st.number_input(
-                                        f"{i}h",
-                                        value=st.session_state.limites_por_medidor_horario[medidor][i],
-                                        min_value=0.0,
-                                        max_value=2000.0,
-                                        step=0.5,
-                                        key=f"{medidor}_{i}"
-                                    )
-                                )
-                        st.session_state.limites_por_medidor_horario[medidor] = novos
+                st.subheader(" Limites Horários Carregados")
+
+                # Exibir os limites horários como DataFrame
+                df_limites = pd.DataFrame.from_dict(
+                    st.session_state.limites_por_medidor_horario, orient="index",
+                    columns=[f"{h}h" for h in range(24)]
+                )
+                st.dataframe(df_limites.style.format("{:.2f}"), use_container_width=True)
 
                 st.download_button(
-                    " Baixar Limites",
+                    " Baixar Limites como JSON",
                     json.dumps(st.session_state.limites_por_medidor_horario, indent=2),
-                    file_name="limites.json",
+                    file_name="limites_horarios.json",
                     mime="application/json"
                 )
 
-            # TABS 4 - DASHBOARD
+            # TABS 3 - DASHBOARD
             with tabs[3]:
                 st.subheader(" Painel Resumo")
                 colunas = st.columns(4)
