@@ -10,7 +10,7 @@ def gerar_relatorio_pdf(consumo, limites_por_medidor_horario, data_selecionada):
     pdf.add_page()
     pdf.set_font("Arial", 'B', 24)
     pdf.set_text_color(0, 51, 102)
-    pdf.cell(200, 20, txt="Relatório de Consumo Energético", ln=True, align="C")
+    pdf.cell(200, 20, txt="Relatório diário de Consumo Energético", ln=True, align="C")
     pdf.set_font("Arial", 'I', 16)
     pdf.cell(200, 10, txt=f"Data: {data_selecionada.strftime('%d/%m/%Y')}", ln=True, align="C")
     try:
