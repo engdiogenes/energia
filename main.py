@@ -80,22 +80,26 @@ if dados_colados:
                 max_value=max(datas_disponiveis)
             )
 
-            uploaded_file = st.sidebar.file_uploader(" Carregar limites (JSON)", type="json")
-            if uploaded_file:
-                st.sidebar.session_state.limites_por_medidor = json.load(uploaded_file)
-                st.sidebar.success("Limites carregados com sucesso.")
-
             dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            # NOVO BLOCO: converter limites diários em horários
-            data_str = data_selecionada.strftime("%d/%m/%Y")
-            limites_diarios = st.session_state.get("limites_por_medidor", {}).get(data_str, {})
-            st.session_state.limites_por_medidor_horario = {
-                medidor: [limites_diarios.get(medidor, 1200) / 24.0] * 24
-                for medidor in medidores_disponiveis
-            }
+            uploaded_file = st.sidebar.file_uploader(" Carregar limites (JSON)", type="json")
+            if uploaded_file:
+                limites_df = pd.read_json(uploaded_file)
+                limites_df["Timestamp"] = pd.to_datetime(limites_df["Timestamp"], dayfirst=True)
+                limites_df["Data"] = limites_df["Timestamp"].dt.date
+                limites_df["Hora"] = limites_df["Timestamp"].dt.hour
+                st.session_state.limites_df = limites_df
+                st.sidebar.success("Limites horários carregados com sucesso.")
+
+                # Gerar limites por medidor e hora para a data selecionada
+                limites_dia_df = limites_df[limites_df["Data"] == data_selecionada]
+                st.session_state.limites_por_medidor_horario = {
+                    medidor: list(limites_dia_df.sort_values("Hora")[medidor].values)
+                    for medidor in medidores_disponiveis
+                    if medidor in limites_dia_df.columns
+                }
 
             tabs = st.tabs([" Visão Geral", " Por Medidor", " Limites", " Dashboard", " Calendário"])
 # TABS 1 - VISÃO GERAL
@@ -132,34 +136,20 @@ if dados_colados:
                     name="Consumo"
                       ))
 
-                limites = st.session_state.limites_por_medidor_horario.get(medidor, [5.0] * 24)
-                fig.add_trace(go.Scatter(
-                    x=list(range(24)),
-                    y=limites,
-                    mode="lines",
-                    name="Limite",
-                    line=dict(dash="dash", color="red")
-                   ))
-                fig.update_layout(title=medidor, xaxis_title="Hora", yaxis_title="kWh", height=300,template="plotly_white")
-                st.plotly_chart(fig, use_container_width=True)
+
 
             # TABS 2 - CONFIGURAR LIMITES
             with tabs[2]:
-                st.subheader(" Limites Horários Carregados")
-
-                # Exibir os limites horários como DataFrame
-                df_limites = pd.DataFrame.from_dict(
-                    st.session_state.limites_por_medidor_horario, orient="index",
-                    columns=[f"{h}h" for h in range(24)]
-                )
-                st.dataframe(df_limites.style.format("{:.2f}"), use_container_width=True)
-
-                st.download_button(
-                    " Baixar Limites como JSON",
-                    json.dumps(st.session_state.limites_por_medidor_horario, indent=2),
-                    file_name="limites_horarios.json",
-                    mime="application/json"
-                )
+                with tabs[2]:
+                    st.subheader(" Limites Horários Carregados")
+                    if "limites_df" in st.session_state:
+                        limites_dia_df = st.session_state.limites_df[
+                            st.session_state.limites_df["Data"] == data_selecionada
+                            ]
+                        st.dataframe(limites_dia_df.set_index("Hora")[medidores_disponiveis].round(2),
+                                     use_container_width=True)
+                    else:
+                        st.warning("Nenhum limite carregado.")
 
             # TABS 3 - DASHBOARD
             with tabs[3]:
