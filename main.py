@@ -174,7 +174,12 @@ if dados_colados:
                 st.divider()
 
                 st.subheader(f" Consumo horário em {data_selecionada.strftime('%d/%m/%Y')}")
-                medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis,default=medidores_disponiveis)
+                medidores_selecionados = st.multiselect(
+                    "Selecione os medidores:",
+                    medidores_disponiveis,
+                    default=[m for m in medidores_disponiveis if m != "Área Produtiva"]
+                )
+
                 fig = go.Figure()
                 for medidor in medidores_selecionados:
                       fig.add_trace(go.Scatter(
@@ -198,7 +203,12 @@ if dados_colados:
                 consumo_diario = consumo.copy()
                 consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
                 consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
-                medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis, default=medidores_disponiveis)
+                medidores_calendario = st.multiselect(
+                    "Selecione os medidores para o calendário:",
+                    medidores_disponiveis,
+                    default=[m for m in medidores_disponiveis if m != "Área Produtiva"]
+                )
+
                 fig = go.Figure()
 
                 for medidor in medidores_calendario:
