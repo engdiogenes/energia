@@ -12,7 +12,7 @@ def gerar_relatorio_pdf(consumo, limites_por_medidor_horario, data_selecionada):
     pdf.set_text_color(0, 51, 102)
     pdf.cell(200, 20, txt="Relatório diário de Consumo Energético", ln=True, align="C")
     pdf.set_font("Arial", 'I', 16)
-    pdf.cell(200, 10, txt=f"Data: {data_selecionada.strftime('%d/%m/%Y')}", ln=True, align="C")
+    pdf.cell(200, 10, txt=f"Data: {data_selecionada.strftime('%m/%d/%Y')}", ln=True, align="C")
     try:
         pdf.image("logo.png", x=10, y=8, w=33)
     except:
@@ -107,7 +107,7 @@ def gerar_relatorio_pdf(consumo, limites_por_medidor_horario, data_selecionada):
     # Rodapé
     pdf.set_y(-15)
     pdf.set_font("Arial", 'I', 8)
-    pdf.cell(0, 10, f"Gerado em {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}", 0, 0, 'C')
+    pdf.cell(0, 10, f"Gerado em {datetime.datetime.now().strftime('%m/%d/%Y %H:%M')}", 0, 0, 'C')
 
     # Salvar
     pdf.output("relatorio_consumo_energetico.pdf")
