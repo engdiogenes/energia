@@ -92,7 +92,10 @@ with st.sidebar:
     if st.button("📄 Gerar Relatório em PDF"):
         from gerar_relatorio_pdf import gerar_relatorio_pdf
 
-        gerar_relatorio_pdf(consumo, st.session_state.limites_por_medidor_horario, st.session_state.data_selecionada)
+        if 'consumo' in st.session_state:
+         gerar_relatorio_pdf(st.session_state.consumo, st.session_state.limites_por_medidor_horario, st.session_state.data_selecionada)
+        else:
+            st.error('Os dados de consumo ainda não foram carregados. Cole os dados e selecione a data antes de gerar o relatório.')
         with open("relatorio_consumo_energetico.pdf", "rb") as f:
             st.download_button(
                 label="📥 Baixar Relatório PDF",
@@ -105,6 +108,7 @@ if dados_colados:
     try:
         with st.spinner("Processando os dados..."):
             consumo = carregar_dados(dados_colados)
+            st.session_state.consumo = consumo
             consumo_completo = consumo.copy()
 
             datas_disponiveis = consumo["Datetime"].dt.date.unique()
