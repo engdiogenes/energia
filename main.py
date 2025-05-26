@@ -125,12 +125,51 @@ if dados_colados:
                 }
 
             tabs = st.tabs([" Visão Geral", " Por Medidor", " Limites", " Dashboard", " Calendário"])
-# TABS 1 - VISÃO GERAL
+            # TABS 1 - VISÃO GERAL
             with tabs[0]:
-                  st.subheader(f" Consumo horário em {data_selecionada.strftime('%d/%m/%Y')}")
-                  medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis,default=medidores_disponiveis)
-                  fig = go.Figure()
-                  for medidor in medidores_selecionados:
+                st.subheader(f"Resumo do Dia {data_selecionada.strftime('%d/%m/%Y')}")
+                # Cálculos
+                consumo_area = dados_dia["Área Produtiva"].sum()
+                consumo_pccb = dados_dia["PCCB"].sum() if "PCCB" in dados_dia else 0
+                consumo_maiw = dados_dia["MAIW"].sum() if "MAIW" in dados_dia else 0
+                consumo_geral = consumo_area + consumo_pccb + consumo_maiw + 300
+
+                limites_area = sum(
+                    st.session_state.limites_por_medidor_horario.get(medidor, [0] * 24)[h]
+                    for h in range(24)
+                    for medidor in
+                    ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"]
+                    if medidor in st.session_state.limites_por_medidor_horario
+                ) + 13.75 * 24
+
+                limite_pccb = sum(st.session_state.limites_por_medidor_horario.get("PCCB", [0] * 24))
+                limite_maiw = sum(st.session_state.limites_por_medidor_horario.get("MAIW", [0] * 24))
+                limite_geral = limites_area + limite_pccb + limite_maiw + 300
+
+                saldo_geral = limite_geral - consumo_geral
+                saldo_area = limites_area - consumo_area
+
+                # Layout em 3 colunas por linha
+                col1, col2, col3 = st.columns(3)
+                col4, col5, col6 = st.columns(3)
+
+                col1.metric("🎯 Target Diário Geral", f"{limite_geral:.2f} kWh")
+                col2.metric("⚡ Consumo Real Geral", f"{consumo_geral:.2f} kWh")
+                col3.metric("📊 Target Área Produtiva", f"{limites_area:.2f} kWh")
+
+                col4.metric("🏭 Consumo Área Produtiva", f"{consumo_area:.2f} kWh")
+                col5.metric("📉 Saldo do Dia (Geral)", f"{saldo_geral:.2f} kWh", delta_color="inverse")
+                col6.metric("📉 Saldo do Dia (Área Produtiva)", f"{saldo_area:.2f} kWh", delta_color="inverse")
+
+                st.divider()
+
+
+                st.subheader(f" Resumo do dia {data_selecionada.strftime('%d/%m/%Y')}")
+                st.divider()
+                st.subheader(f" Consumo horário em {data_selecionada.strftime('%d/%m/%Y')}")
+                medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis,default=medidores_disponiveis)
+                fig = go.Figure()
+                for medidor in medidores_selecionados:
                       fig.add_trace(go.Scatter(
                       x=dados_dia["Datetime"].dt.strftime("%H:%M"),
                       y=dados_dia[medidor],
@@ -138,44 +177,46 @@ if dados_colados:
                       name=medidor
                        ))
 
-                      fig.update_layout(
+                fig.update_layout(
                     xaxis_title="Hora do dia",
                     yaxis_title="Consumo (kWh)",
                     template="plotly_white",
                     height=500,
-                     legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
+                    legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                       )
-                  st.plotly_chart(fig, use_container_width=True)
-                  st.divider()
+                st.plotly_chart(fig, use_container_width=True)
+                st.divider()
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
-                  st.subheader(" Consumo Diário por Medidor")
-                  consumo_diario = consumo.copy()
-                  consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
-                  consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
-                  medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis, default=medidores_disponiveis)
-                  fig = go.Figure()
+                st.subheader(" Consumo Diário por Medidor")
+                consumo_diario = consumo.copy()
+                consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
+                consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
+                medidores_calendario = st.multiselect("Selecione os medidores para o calendário:", medidores_disponiveis, default=medidores_disponiveis)
+                fig = go.Figure()
 
-                  for medidor in medidores_calendario:
+                for medidor in medidores_calendario:
                     fig.add_trace(go.Bar(
                     x=consumo_agrupado["Data"],
                     y=consumo_agrupado[medidor],
                     name=medidor
                         ))
 
-                    fig.update_layout(
+                fig.update_layout(
                        barmode="stack",
                        xaxis_title="Data",
                        yaxis_title="Consumo Total (kWh)",
                        template="plotly_white",
                        height=500,
-                     legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
+                       legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                       )
-                  st.plotly_chart(fig, use_container_width=True)
-                  st.divider()
-                # Tabela de consumo horário dos prédios
-                  st.markdown("###  Consumo por hora")
-                  st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
+                  
+                st.plotly_chart(fig, use_container_width=True)
+                  
+                st.divider()
 
+                # Tabela de consumo horário dos prédios
+                st.markdown("###  Consumo por hora")
+                st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
             # TABS 2 - POR MEDIDOR
             with tabs[1]:
                 st.subheader(" Gráficos por Medidor com Curva de Limite")
@@ -329,8 +370,5 @@ if dados_colados:
                                 st.plotly_chart(fig, use_container_width=True)
                             else:
                                 st.markdown("_Sem dados_")
-
-
-
     except Exception as e:
             st.error(f"Erro ao processar os dados: {e}")
