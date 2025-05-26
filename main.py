@@ -445,21 +445,5 @@ if dados_colados:
                     except Exception as e:
                         st.error(f"Erro ao processar os dados: {e}")
 
-        if "limites_por_medidor_horario" in st.session_state:
-            with st.sidebar:
-                if st.button("📄 Gerar Relatório em PDF", key="gerar_pdf_final"):
-                    gerar_relatorio_pdf(
-                        consumo,
-                        st.session_state.limites_por_medidor_horario,
-                        data_selecionada
-                    )
-                    with open("relatorio_consumo_energetico.pdf", "rb") as f:
-                        st.download_button(
-                            label="📥 Baixar Relatório PDF",
-                            data=f,
-                            file_name=f"relatorio_{data_selecionada.strftime('%Y%m%d')}.pdf",
-                            mime="application/pdf"
-                        )
-
     except Exception as e:
             st.error(f"Erro ao processar os dados: {e}")
