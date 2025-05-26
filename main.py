@@ -160,11 +160,24 @@ if dados_colados:
                 for medidor in medidores_disponiveis:
                     fig = go.Figure()
                     fig.add_trace(go.Scatter(
-                    x=horas,
-                    y=dados_dia[medidor],
-                    mode="lines+markers",
-                    name="Consumo"
-                      ))
+                        x=horas,
+                        y=dados_dia[medidor],
+                        mode="lines+markers",
+                        name="Consumo"
+                    ))
+
+                    limites = st.session_state.limites_por_medidor_horario.get(medidor, [5.0] * 24)
+                    fig.add_trace(go.Scatter(
+                        x=list(range(24)),
+                        y=limites,
+                        mode="lines",
+                        name="Limite",
+                        line=dict(dash="dash", color="red")
+                    ))
+
+                    fig.update_layout(title=medidor, xaxis_title="Hora", yaxis_title="kWh", height=300,
+                                      template="plotly_white")
+                    st.plotly_chart(fig, use_container_width=True)
 
             # TABS 3 - CONFIGURAR LIMITES
             with tabs[2]:
