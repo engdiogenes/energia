@@ -401,7 +401,7 @@ if dados_colados:
                                     yaxis=dict(showticklabels=False, range=[0, max_consumo]),
                                     showlegend=False
                                 )
-                                st.plotly_chart(fig, use_container_width=True, key=f"trend_{medidor}")
+                                st.plotly_chart(fig, use_container_width=True)
                             else:
                                 st.markdown("_Sem dados_")
 
