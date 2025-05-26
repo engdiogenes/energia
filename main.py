@@ -136,20 +136,23 @@ if dados_colados:
                     name="Consumo"
                       ))
 
-
-
-            # TABS 2 - CONFIGURAR LIMITES
+            # TABS 3 - CONFIGURAR LIMITES
             with tabs[2]:
-                with tabs[2]:
-                    st.subheader(" Limites Horários Carregados")
-                    if "limites_df" in st.session_state:
-                        limites_dia_df = st.session_state.limites_df[
-                            st.session_state.limites_df["Data"] == data_selecionada
-                            ]
-                        st.dataframe(limites_dia_df.set_index("Hora")[medidores_disponiveis].round(2),
-                                     use_container_width=True)
-                    else:
-                        st.warning("Nenhum limite carregado.")
+                st.subheader(" Limites Horários Carregados")
+
+                if "limites_df" in st.session_state:
+                    st.dataframe(
+                        st.session_state.limites_df.sort_values("Timestamp").reset_index(drop=True),
+                        use_container_width=True
+                    )
+                    st.download_button(
+                        "Baixar Limites JSON",
+                        st.session_state.limites_df.to_json(orient="records", date_format="iso", indent=2),
+                        file_name="limites_horarios_completos.json",
+                        mime="application/json"
+                    )
+                else:
+                    st.warning("Nenhum limite foi carregado.")
 
             # TABS 3 - DASHBOARD
             with tabs[3]:
