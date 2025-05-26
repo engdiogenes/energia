@@ -129,10 +129,11 @@ if dados_colados:
             with tabs[0]:
                 st.subheader(f"Resumo do Dia {data_selecionada.strftime('%d/%m/%Y')}")
                 # Cálculos
+                Consumo_gab = 300
                 consumo_area = dados_dia["Área Produtiva"].sum()
                 consumo_pccb = dados_dia["PCCB"].sum() if "PCCB" in dados_dia else 0
                 consumo_maiw = dados_dia["MAIW"].sum() if "MAIW" in dados_dia else 0
-                consumo_geral = consumo_area + consumo_pccb + consumo_maiw + 300
+                consumo_geral = consumo_area + consumo_pccb + consumo_maiw + Consumo_gab
 
                 limites_area = sum(
                     st.session_state.limites_por_medidor_horario.get(medidor, [0] * 24)[h]
@@ -144,7 +145,7 @@ if dados_colados:
 
                 limite_pccb = sum(st.session_state.limites_por_medidor_horario.get("PCCB", [0] * 24))
                 limite_maiw = sum(st.session_state.limites_por_medidor_horario.get("MAIW", [0] * 24))
-                limite_geral = limites_area + limite_pccb + limite_maiw + 300
+                limite_geral = limites_area + limite_pccb + limite_maiw + Consumo_gab
 
                 saldo_geral = limite_geral - consumo_geral
                 saldo_area = limites_area - consumo_area
@@ -163,9 +164,6 @@ if dados_colados:
 
                 st.divider()
 
-
-                st.subheader(f" Resumo do dia {data_selecionada.strftime('%d/%m/%Y')}")
-                st.divider()
                 st.subheader(f" Consumo horário em {data_selecionada.strftime('%d/%m/%Y')}")
                 medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis,default=medidores_disponiveis)
                 fig = go.Figure()
@@ -209,9 +207,9 @@ if dados_colados:
                        height=500,
                        legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                       )
-                  
+
                 st.plotly_chart(fig, use_container_width=True)
-                  
+
                 st.divider()
 
                 # Tabela de consumo horário dos prédios
