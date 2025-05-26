@@ -66,6 +66,7 @@ def gerar_relatorio_pdf(consumo, limites_por_medidor_horario, data_selecionada):
     pdf.cell(200, 10, txt="Gráfico de Consumo Diário", ln=True)
     consumo_diario = consumo.copy()
     consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
+    consumo_diario = consumo_diario.drop(columns=["Datetime"])  # <- esta linha é essencial
     consumo_agrupado = consumo_diario.groupby("Data").sum().reset_index()
     plt.figure(figsize=(10, 5))
     for medidor in consumo_agrupado.columns:
