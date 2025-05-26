@@ -103,20 +103,21 @@ if dados_colados:
                   st.subheader(f" Consumo horário em {data_selecionada.strftime('%d/%m/%Y')}")
                   medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis,default=medidores_disponiveis)
                   fig = go.Figure()
-                            for medidor in medidores_selecionados:
-                                fig.add_trace(go.Scatter(
-                                x=dados_dia["Datetime"].dt.strftime("%H:%M"),
-                                y=dados_dia[medidor],
-                                mode="lines+markers",
-                                name=medidor
-                            ))
-                                fig.update_layout(
+                  for medidor in medidores_selecionados:
+                      fig.add_trace(go.Scatter(
+                      x=dados_dia["Datetime"].dt.strftime("%H:%M"),
+                      y=dados_dia[medidor],
+                      mode="lines+markers",
+                      name=medidor
+                       ))
+
+                      fig.update_layout(
                  xaxis_title="Hora do dia",
                  yaxis_title="Consumo (kWh)",
                  template="plotly_white",
                  height=500,
                  legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
-      )
+                      )
             st.plotly_chart(fig, use_container_width=True)
 
 # TABS 2 - POR MEDIDOR
@@ -263,5 +264,5 @@ if dados_colados:
                                 st.plotly_chart(fig, use_container_width=True)
                             else:
                                 st.markdown("_Sem dados_")
-        except Exception as e:
+    except Exception as e:
             st.error(f"Erro ao processar os dados: {e}")
