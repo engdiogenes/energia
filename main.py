@@ -103,7 +103,7 @@ if dados_colados:
                   st.subheader(f" Consumo horário em {data_selecionada.strftime('%d/%m/%Y')}")
                   medidores_selecionados = st.multiselect("Selecione os medidores:", medidores_disponiveis,default=medidores_disponiveis)
                   fig = go.Figure()
-                     for medidor in medidores_selecionados:
+                            for medidor in medidores_selecionados:
                                 fig.add_trace(go.Scatter(
                                 x=dados_dia["Datetime"].dt.strftime("%H:%M"),
                                 y=dados_dia[medidor],
