@@ -264,16 +264,25 @@ if dados_colados:
                             st.caption(dia.strftime('%d/%m'))
                             dados_dia = consumo_completo[consumo_completo["Datetime"].dt.date == dia.date()]
                             if not dados_dia.empty:
-                                limites_area_dia = [
-                                    sum(
-                                        st.session_state.limites_por_medidor_horario.get(medidor, [0] * 24)[hora]
-                                        for medidor in
-                                        ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                         "TRIM&FINAL"]
-                                        if medidor in st.session_state.limites_por_medidor_horario
-                                    ) + 13.75
-                                    for hora in range(24)
-                                ]
+                                # Obter limites do JSON para o dia específico
+                                if "limites_df" in st.session_state:
+                                    limites_dia_df = st.session_state.limites_df[
+                                        st.session_state.limites_df["Data"] == dia.date()
+                                        ]
+                                    limites_area_dia = [
+                                        sum(
+                                            limites_dia_df[limites_dia_df["Hora"] == h][medidor].values[0]
+                                            if medidor in limites_dia_df.columns and not
+                                            limites_dia_df[limites_dia_df["Hora"] == h][medidor].empty
+                                            else 0
+                                            for medidor in
+                                            ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                             "TRIM&FINAL"]
+                                        ) + 13.75
+                                        for h in range(24)
+                                    ]
+                                else:
+                                    limites_area_dia = [0] * 24
 
                                 fig = go.Figure()
                                 fig.add_trace(go.Scatter(
@@ -299,6 +308,7 @@ if dados_colados:
                                 st.plotly_chart(fig, use_container_width=True)
                             else:
                                 st.markdown("_Sem dados_")
+
 
 
     except Exception as e:
