@@ -213,7 +213,7 @@ if dados_colados:
                     height=500,
                     legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                       )
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, key=f"plot_{1}")
                 st.divider()
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
                 st.subheader(" Consumo Diário por Medidor")
@@ -244,7 +244,7 @@ if dados_colados:
                        legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                       )
 
-                st.plotly_chart(fig, use_container_width=True)
+                st.plotly_chart(fig, use_container_width=True, key=f"plot_{2}")
 
                 st.divider()
 
@@ -274,7 +274,7 @@ if dados_colados:
 
                     fig.update_layout(title=medidor, xaxis_title="Hora", yaxis_title="kWh", height=300,
                                       template="plotly_white")
-                    st.plotly_chart(fig, use_container_width=True)
+                    st.plotly_chart(fig, use_container_width=True, key=f"plot_{3}")
                     st.divider()
 
             # TABS 3 - CONFIGURAR LIMITES
@@ -342,7 +342,7 @@ if dados_colados:
                             template="plotly_white",
                             legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
                         )
-                        st.plotly_chart(fig, use_container_width=True, key=f"plot_{medidor}")
+                        st.plotly_chart(fig, use_container_width=True, key=f"plot_{4}")
 
             # TABS 4 - CALENDÁRIO
             with tabs[4]:
@@ -401,7 +401,7 @@ if dados_colados:
                                     yaxis=dict(showticklabels=False, range=[0, max_consumo]),
                                     showlegend=False
                                 )
-                                st.plotly_chart(fig, use_container_width=True)
+                                st.plotly_chart(fig, use_container_width=True, key=f"plot_{5}")
                             else:
                                 st.markdown("_Sem dados_")
 
