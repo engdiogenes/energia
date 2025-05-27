@@ -7,6 +7,7 @@ import datetime
 from streamlit_calendar import calendar
 import fpdf
 import os
+
 st.set_page_config(layout="wide", page_title="Monitor de Energia")
 
 # Caminho padrão do JSON
@@ -21,13 +22,13 @@ if os.path.exists(CAMINHO_JSON_PADRAO):
         limites_df["Hora"] = limites_df["Timestamp"].dt.hour
         st.session_state.limites_df = limites_df
         st.session_state.limites_por_medidor_horario = {
-            medidor: list(limites_df[limites_df["Data"] == limites_df["Data"].min()].sort_values("Hora")[medidor].values)
+            medidor: list(
+                limites_df[limites_df["Data"] == limites_df["Data"].min()].sort_values("Hora")[medidor].values)
             for medidor in limites_df.columns
             if medidor not in ["Timestamp", "Data", "Hora"]
         }
     except Exception as e:
         st.warning(f"Erro ao carregar limites padrão: {e}")
-
 
 st.markdown("""
     <style>
@@ -48,8 +49,10 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+
 def limpar_valores(texto):
     return texto.replace(",", "")
+
 
 def carregar_dados(dados_colados):
     dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
@@ -86,14 +89,16 @@ def carregar_dados(dados_colados):
     consumo["TRIM&FINAL"] = consumo["QGBT1-MPTF"] + consumo["QGBT2-MPTF"]
     consumo["OFFICE + CANTEEN"] = consumo["OFFICE"] - consumo["PMDC-OFFICE"]
     consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + \
-                                 consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75
+                                consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75
     consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"])
     return consumo
-#st.title(" Energy data analyser")
+
+
+# st.title(" Energy data analyser")
 
 with st.sidebar:
     st.sidebar.image("logo.png", width=360)
-    #st.logo("logo.png", size="Large", link=None, icon_image=None)
+    # st.logo("logo.png", size="Large", link=None, icon_image=None)
     st.header(" Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
     # Créditos no final da sidebar
@@ -102,18 +107,22 @@ with st.sidebar:
         <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
         <div style='font-size: 0.8rem; color: gray; text-align: center;'>
             Desenvolvido por <strong>Diógenes Oliveira</strong><br>
-            
+
+        </div>
+        <div <br>
         </div>
         """,
         unsafe_allow_html=True
     )
-    if st.button("📄 Gerar Relatório", key="gerar_pdf_sidebar"):
+    if st.button("📄 Gerar Relatório", key="gerar_pdf_sidebar", use_container_width= True):
         from gerar_relatorio_pdf import gerar_relatorio_pdf
 
         if 'consumo' in st.session_state:
-         gerar_relatorio_pdf(st.session_state.consumo, st.session_state.limites_por_medidor_horario, st.session_state.data_selecionada)
+            gerar_relatorio_pdf(st.session_state.consumo, st.session_state.limites_por_medidor_horario,
+                                st.session_state.data_selecionada)
         else:
-            st.error('Os dados de consumo ainda não foram carregados. Cole os dados e selecione a data antes de gerar o relatório.')
+            st.error(
+                'Os dados de consumo ainda não foram carregados. Cole os dados e selecione a data antes de gerar o relatório.')
         with open("relatorio_consumo_energetico.pdf", "rb") as f:
             st.download_button(
                 label="📥 Baixar Relatório PDF",
@@ -121,7 +130,6 @@ with st.sidebar:
                 file_name=f"relatorio_{st.session_state.data_selecionada.strftime('%Y%m%d')}.pdf",
                 mime="application/pdf"
             )
-
 
 if dados_colados:
     try:
@@ -171,7 +179,7 @@ if dados_colados:
                     for medidor in medidores_disponiveis
                     if medidor in limites_dia_df.columns
                 }
-            tabs = st.tabs([" Visão Geral", " Por Medidor", " Limites", " Dashboard", " Calendário" , " Conversão "  ])
+            tabs = st.tabs([" Visão Geral", " Por Medidor", " Limites", " Dashboard", " Calendário", " Conversão "])
 
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
@@ -229,12 +237,12 @@ if dados_colados:
 
                 fig = go.Figure()
                 for medidor in medidores_selecionados:
-                      fig.add_trace(go.Scatter(
-                      x=dados_dia["Datetime"].dt.strftime("%H:%M"),
-                      y=dados_dia[medidor],
-                      mode="lines+markers",
-                      name=medidor
-                       ))
+                    fig.add_trace(go.Scatter(
+                        x=dados_dia["Datetime"].dt.strftime("%H:%M"),
+                        y=dados_dia[medidor],
+                        mode="lines+markers",
+                        name=medidor
+                    ))
 
                 fig.update_layout(
                     xaxis_title="Hora do dia",
@@ -242,7 +250,7 @@ if dados_colados:
                     template="plotly_white",
                     height=500,
                     legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
-                      )
+                )
                 st.plotly_chart(fig, use_container_width=True, key=f"grafico_{medidor}")
                 st.divider()
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
@@ -260,19 +268,19 @@ if dados_colados:
 
                 for medidor in medidores_calendario:
                     fig.add_trace(go.Bar(
-                    x=consumo_agrupado["Data"],
-                    y=consumo_agrupado[medidor],
-                    name=medidor
-                        ))
+                        x=consumo_agrupado["Data"],
+                        y=consumo_agrupado[medidor],
+                        name=medidor
+                    ))
 
                 fig.update_layout(
-                       barmode="stack",
-                       xaxis_title="Data",
-                       yaxis_title="Consumo Total (kWh)",
-                       template="plotly_white",
-                       height=500,
-                       legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
-                      )
+                    barmode="stack",
+                    xaxis_title="Data",
+                    yaxis_title="Consumo Total (kWh)",
+                    template="plotly_white",
+                    height=500,
+                    legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
+                )
 
                 st.plotly_chart(fig, use_container_width=True, key=f"graf_{medidor}")
 
@@ -435,7 +443,7 @@ if dados_colados:
                             else:
                                 st.markdown("_Sem dados_")
 
-             # TABS 5 - CALENDÁRIO
+            # TABS 5 - CALENDÁRIO
             with tabs[5]:
                 st.title("Conversor CSV para JSON - Limites Horários por Medidor")
                 uploaded_file = st.file_uploader("Faça upload do arquivo CSV", type="csv")
@@ -471,9 +479,10 @@ if dados_colados:
                         # Permite download
                         json_str = json.dumps(json_data, indent=2, ensure_ascii=False)
 
-                        st.download_button("Baixar JSON", json_str, file_name="limites_horarios.json", mime="application/json")
+                        st.download_button("Baixar JSON", json_str, file_name="limites_horarios.json",
+                                           mime="application/json")
                     except Exception as e:
                         st.error(f"Erro ao processar os dados: {e}")
 
     except Exception as e:
-            st.error(f"Erro ao processar os dados: {e}")
+        st.error(f"Erro ao processar os dados: {e}")
