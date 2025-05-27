@@ -118,10 +118,12 @@ if dados_colados:
                 min_value=min(datas_disponiveis),
                 max_value=max(datas_disponiveis)
             )
-            # Atualizar limites por medidor e hora com base na nova data selecionada
+            st.session_state.data_selecionada = data_selecionada
+
+            # 🔄 Atualizar os limites por medidor e hora com base na nova data selecionada
             if "limites_df" in st.session_state:
                 limites_df = st.session_state.limites_df
-                limites_dia_df = limites_df[limites_df["Data"] == st.session_state.data_selecionada]
+                limites_dia_df = limites_df[limites_df["Data"] == data_selecionada]
                 st.session_state.limites_por_medidor_horario = {
                     medidor: list(limites_dia_df.sort_values("Hora")[medidor].values)
                     for medidor in limites_dia_df.columns
