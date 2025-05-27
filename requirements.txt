@@ -7,3 +7,4 @@ bcrypt
 plotly>=5.20.0
 streamlit-calendar
 fpdf
+smtplib
