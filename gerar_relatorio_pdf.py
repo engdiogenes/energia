@@ -1,113 +1,88 @@
-import matplotlib.pyplot as plt
-import pandas as pd
 from fpdf import FPDF
+import pandas as pd
+import matplotlib.pyplot as plt
 import datetime
 
-def gerar_relatorio_pdf(consumo, limites_por_medidor_horario, data_selecionada):
-    pdf = FPDF()
+# Simulated data
+data_selecionada = datetime.date.today()
+consumo_area = [100 + i * 50 for i in range(24)]
+limite_area = [120 + i * 50 for i in range(24)]
+medidores = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"]
+consumo_medidores = [100, 150, 200, 250, 300, 350, 400, 450]
+limite_medidores = [120, 160, 210, 260, 310, 360, 410, 460]
+dias_semana = ["Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado", "Domingo"]
+consumo_dias = [700, 800, 900, 1000, 1100, 1200, 1300]
 
-    # Capa
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 24)
-    pdf.set_text_color(0, 51, 102)
-    pdf.cell(200, 20, txt="Relatório de Consumo Energético", ln=True, align="C")
-    pdf.set_font("Arial", 'I', 16)
-    pdf.cell(200, 10, txt=f"Data: {data_selecionada.strftime('%d/%m/%Y')}", ln=True, align="C")
-    try:
-        pdf.image("logo.png", x=10, y=8, w=33)
-    except:
-        pass
+# Create PDF
+pdf = FPDF()
 
-    # Página de métricas
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.set_fill_color(230, 230, 250)
-    pdf.cell(200, 10, txt="Métricas da Visão Geral", ln=True, align="L", fill=True)
-    pdf.set_font("Arial", size=12)
-    pdf.set_text_color(0, 0, 0)
+# Página 1 - Capa
+pdf.add_page()
+pdf.set_font("Arial", size=24)
+pdf.cell(200, 10, txt="Relatório de Consumo Energético", ln=True, align="C")
+pdf.set_font("Arial", size=18)
+pdf.cell(200, 10, txt=f"Data: {data_selecionada.strftime('%d/%m/%Y')}", ln=True, align="C")
+pdf.set_font("Arial", size=12)
+pdf.set_y(-15)
+pdf.cell(0, 10, "Desenvolvido por Diógenes Oliveira - Eng. Eletricista - Jaguar Land Rover Brasil", 0, 0, "C")
 
-    consumo_area = consumo["Área Produtiva"].sum()
-    consumo_pccb = consumo["PCCB"].sum() if "PCCB" in consumo else 0
-    consumo_maiw = consumo["MAIW"].sum() if "MAIW" in consumo else 0
-    consumo_geral = consumo_area + consumo_pccb + consumo_maiw + 300
+# Página 2 - Resumo Diário
+pdf.add_page()
+pdf.set_font("Arial", size=18)
+pdf.cell(200, 10, txt="Resumo Diário", ln=True, align="C")
+pdf.set_font("Arial", size=12)
+pdf.cell(200, 10, txt=f"Consumo Total: {sum(consumo_area)} kWh", ln=True)
+pdf.cell(200, 10, txt=f"Limite Total: {sum(limite_area)} kWh", ln=True)
 
-    limites_area = sum(
-        limites_por_medidor_horario.get(medidor, [0] * 24)[h]
-        for h in range(24)
-        for medidor in ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"]
-    ) + 13.75 * 24
+plt.figure(figsize=(10, 5))
+plt.plot(consumo_area, label="Consumo")
+plt.plot(limite_area, label="Limite", linestyle="--")
+plt.xlabel("Hora do Dia")
+plt.ylabel("kWh")
+plt.title("Consumo vs Limite - Área Produtiva")
+plt.legend()
+plt.grid(True)
+plt.savefig("consumo_vs_limite.png")
+plt.close()
+pdf.image("consumo_vs_limite.png", x=10, y=60, w=190)
 
-    limite_pccb = sum(limites_por_medidor_horario.get("PCCB", [0] * 24))
-    limite_maiw = sum(limites_por_medidor_horario.get("MAIW", [0] * 24))
-    limite_geral = limites_area + limite_pccb + limite_maiw + 300
+# Página 3 - Dashboard
+pdf.add_page()
+pdf.set_font("Arial", size=18)
+pdf.cell(200, 10, txt="Dashboard", ln=True, align="C")
+pdf.set_font("Arial", size=12)
+for medidor, consumo, limite in zip(medidores, consumo_medidores, limite_medidores):
+    pdf.cell(200, 10, txt=f"{medidor}: Consumo = {consumo} kWh, Limite = {limite} kWh", ln=True)
 
-    delta_geral = consumo_geral - limite_geral
-    delta_area = consumo_area - limites_area
-    saldo_geral = limite_geral - consumo_geral
-    saldo_area = limites_area - consumo_area
-
-    for label, valor in [
-        ("Consumo Geral", consumo_geral),
-        ("Limite Geral", limite_geral),
-        ("Delta Geral", delta_geral),
-        ("Saldo Geral", saldo_geral),
-        ("Consumo Área Produtiva", consumo_area),
-        ("Limite Área Produtiva", limites_area),
-        ("Delta Área Produtiva", delta_area),
-        ("Saldo Área Produtiva", saldo_area)
-    ]:
-        pdf.cell(200, 10, txt=f"{label}: {valor:.2f} kWh", ln=True)
-
-    # Gráfico de consumo horário
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt="Gráfico de Consumo Horário", ln=True, align="C")
+for medidor, consumo, limite in zip(medidores, consumo_medidores, limite_medidores):
     plt.figure(figsize=(10, 5))
-    for medidor in consumo.columns:
-        if medidor != "Datetime":
-            plt.plot(consumo["Datetime"], consumo[medidor], label=medidor)
+    plt.plot([consumo] * 24, label="Consumo")
+    plt.plot([limite] * 24, label="Limite", linestyle="--")
     plt.xlabel("Hora do Dia")
-    plt.ylabel("Consumo (kWh)")
+    plt.ylabel("kWh")
+    plt.title(f"Consumo vs Limite - {medidor}")
     plt.legend()
-    plt.title("Consumo Horário")
-    plt.savefig("consumo_horario.png", bbox_inches="tight", facecolor="white")
+    plt.grid(True)
+    filename = f"grafico_{medidor}.png"
+    plt.savefig(filename)
     plt.close()
-    pdf.image("consumo_horario.png", x=10, y=30, w=190)
-
-    # Gráfico de consumo diário
     pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt="Gráfico de Consumo Diário", ln=True, align="C")
-    consumo_diario = consumo.copy()
-    consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
-    consumo_diario = consumo_diario.drop(columns=["Datetime"])
-    consumo_agrupado = consumo_diario.groupby("Data").sum().reset_index()
-    plt.figure(figsize=(10, 5))
-    for medidor in consumo_agrupado.columns:
-        if medidor != "Data":
-            plt.bar(consumo_agrupado["Data"], consumo_agrupado[medidor], label=medidor)
-    plt.xlabel("Data")
-    plt.ylabel("Consumo Total (kWh)")
-    plt.legend()
-    plt.title("Consumo Diário")
-    plt.savefig("consumo_diario.png", bbox_inches="tight", facecolor="white")
-    plt.close()
-    pdf.image("consumo_diario.png", x=10, y=30, w=190)
+    pdf.image(filename, x=10, y=20, w=190)
 
-    # Tabela de consumo por hora
-    pdf.add_page()
-    pdf.set_font("Arial", 'B', 16)
-    pdf.cell(200, 10, txt="Tabela de Consumo por Hora", ln=True, align="C")
-    pdf.set_font("Arial", size=8)
-    for i in range(len(consumo)):
-        row = consumo.iloc[i]
-        texto = f"{row['Datetime']} | " + " | ".join(f"{col}: {row[col]:.2f}" for col in consumo.columns if col != "Datetime")
-        pdf.multi_cell(0, 5, txt=texto)
+# Página 4 - Calendário
+pdf.add_page()
+pdf.set_font("Arial", size=18)
+pdf.cell(200, 10, txt="Calendário de Consumo", ln=True, align="C")
+plt.figure(figsize=(10, 5))
+plt.bar(dias_semana, consumo_dias)
+plt.xlabel("Dia da Semana")
+plt.ylabel("kWh")
+plt.title("Consumo da Área Produtiva por Dia da Semana")
+plt.grid(True)
+plt.savefig("consumo_por_dia.png")
+plt.close()
+pdf.image("consumo_por_dia.png", x=10, y=60, w=190)
 
-    # Rodapé
-    pdf.set_y(-15)
-    pdf.set_font("Arial", 'I', 8)
-    pdf.cell(0, 10, f"Gerado em {datetime.datetime.now().strftime('%d/%m/%Y %H:%M')}", 0, 0, 'C')
-
-    # Salvar
-    pdf.output("relatorio_consumo_energetico.pdf")
+# Salvar PDF
+pdf.output("relatorio_consumo_energetico.pdf")
+print("Relatório gerado com sucesso.")
