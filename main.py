@@ -137,7 +137,7 @@ with st.sidebar:
                 mime="application/pdf"
             )
     # Campo para inserir e-mail
-    to_email = st.text_input("ihsvdiogenes@gmail.com")
+    to_email = st.text_input("Destinatário do e-mail")
 
     # Botão para enviar o relatório por e-mail
     if st.button("✉️ Enviar por E-mail", key="enviar_email_sidebar", use_container_width=True):
@@ -152,16 +152,9 @@ with st.sidebar:
                 msg["From"] = EMAIL
                 msg["To"] = to_email
                 msg["Subject"] = "Relatório de Consumo Energético"
-                body = "Segue em anexo o relatório de consumo energético."
+                body = "Consumo de energia elétrica JLR"
                 msg.attach(MIMEText(body, "plain"))
 
-                filename = "relatorio_consumo_energetico.pdf"
-                with open(filename, "rb") as attachment:
-                    part = MIMEBase("application", "octet-stream")
-                    part.set_payload(attachment.read())
-                    encoders.encode_base64(part)
-                    part.add_header("Content-Disposition", f"attachment; filename= {filename}")
-                    msg.attach(part)
 
                 with smtplib.SMTP("smtp.gmail.com", 587) as server:
                     server.starttls()
