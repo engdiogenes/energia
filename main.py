@@ -95,6 +95,7 @@ with st.sidebar:
     st.sidebar.image("logo.png", width=360)
     #st.logo("logo.png", size="Large", link=None, icon_image=None)
     st.header(" Entrada de Dados")
+    dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
     # Créditos no final da sidebar
     st.markdown(
         """
@@ -106,7 +107,6 @@ with st.sidebar:
         """,
         unsafe_allow_html=True
     )
-    dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
     if st.button("📄 Gerar Relatório", key="gerar_pdf_sidebar"):
         from gerar_relatorio_pdf import gerar_relatorio_pdf
 
