@@ -114,8 +114,6 @@ with st.sidebar:
         """,
         unsafe_allow_html=True
     )
-    
-if dados_colados:
     if st.button("📄 Gerar Relatório", key="gerar_pdf_sidebar", use_container_width= True):
         from gerar_relatorio_pdf import gerar_relatorio_pdf
 
@@ -133,6 +131,7 @@ if dados_colados:
                 mime="application/pdf"
             )
 
+if dados_colados:
     try:
         with st.spinner("Processando os dados..."):
             consumo = carregar_dados(dados_colados)
@@ -221,7 +220,7 @@ if dados_colados:
                             delta_color="normal" if delta_geral == 0 else ("inverse" if delta_geral < 0 else "off"))
                 col3.metric("📉 Saldo do Dia (Geral)", f"{saldo_geral:.2f} kWh", delta_color="inverse")
 
-                col4.metric("📊 Target Área Produtiva", f"{limites_area:.2f} kWh")
+                col4.metric("🎯 Target Área Produtiva", f"{limites_area:.2f} kWh")
                 col5.metric("🏭 Consumo Área Produtiva", f"{consumo_area:.2f} kWh",
                             delta=f"{delta_area:.2f} kWh",
                             delta_color="normal" if delta_area == 0 else ("inverse" if delta_area < 0 else "off"))
