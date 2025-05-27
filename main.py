@@ -89,7 +89,7 @@ st.title(" Energy data analyser")
 with st.sidebar:
     st.header(" Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
-    if st.button("📄 Gerar Relatório em PDF", key="gerar_pdf_sidebar"):
+    if st.button("📄 Gerar Relatório", key="gerar_pdf_sidebar"):
         from gerar_relatorio_pdf import gerar_relatorio_pdf
 
         if 'consumo' in st.session_state:
@@ -118,6 +118,15 @@ if dados_colados:
                 min_value=min(datas_disponiveis),
                 max_value=max(datas_disponiveis)
             )
+            # Atualizar limites por medidor e hora com base na nova data selecionada
+            if "limites_df" in st.session_state:
+                limites_df = st.session_state.limites_df
+                limites_dia_df = limites_df[limites_df["Data"] == st.session_state.data_selecionada]
+                st.session_state.limites_por_medidor_horario = {
+                    medidor: list(limites_dia_df.sort_values("Hora")[medidor].values)
+                    for medidor in limites_dia_df.columns
+                    if medidor not in ["Timestamp", "Data", "Hora"]
+                }
 
             st.session_state.data_selecionada = data_selecionada
 
