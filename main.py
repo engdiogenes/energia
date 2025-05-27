@@ -98,7 +98,8 @@ def carregar_dados(dados_colados):
 st.title(" Energy data analyser")
 
 with st.sidebar:
-    st.logo("logo.png", size="Large", link=None, icon_image=None)
+    st.sidebar.image("logo.png", width=180)
+    #st.logo("logo.png", size="Large", link=None, icon_image=None)
     st.header(" Entrada de Dados")
     # Créditos no final da sidebar
 
