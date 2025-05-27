@@ -32,16 +32,29 @@ if os.path.exists(CAMINHO_JSON_PADRAO):
 
 
 st.markdown("""
- <style>
- .block-container {
- padding-top: 0rem;
- padding-bottom: 1rem;
- }
- header, footer {
- visibility: hidden;
- }
- </style>
+    <style>
+    .block-container {
+        padding-top: 1rem;
+        padding-bottom: 1rem;
+    }
+    header, footer {
+        visibility: hidden;
+    }
+    [data-testid="stSidebar"] {
+        background-color: #f0f2f6;
+        padding: 1.5rem 1rem;
+    }
+    footer:after {
+        content: "Desenvolvido por Diógenes Oliveira - Engenheiro Eletricista - Jaguar Land Rover Brasil";
+        display: block;
+        text-align: center;
+        padding: 10px;
+        font-size: 0.85rem;
+        color: gray;
+    }
+    </style>
 """, unsafe_allow_html=True)
+
 
 def limpar_valores(texto):
     return texto.replace(",", "")
