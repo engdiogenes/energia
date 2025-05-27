@@ -102,7 +102,7 @@ with st.sidebar:
         <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
         <div style='font-size: 0.8rem; color: gray; text-align: center;'>
             Desenvolvido por <strong>Diógenes Oliveira</strong><br>
-            Engenheiro Eletricista - Jaguar Land Rover Brasil
+            
         </div>
         """,
         unsafe_allow_html=True
