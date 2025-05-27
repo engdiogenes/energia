@@ -114,6 +114,8 @@ with st.sidebar:
         """,
         unsafe_allow_html=True
     )
+    
+if dados_colados:
     if st.button("📄 Gerar Relatório", key="gerar_pdf_sidebar", use_container_width= True):
         from gerar_relatorio_pdf import gerar_relatorio_pdf
 
@@ -131,7 +133,6 @@ with st.sidebar:
                 mime="application/pdf"
             )
 
-if dados_colados:
     try:
         with st.spinner("Processando os dados..."):
             consumo = carregar_dados(dados_colados)
