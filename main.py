@@ -6,10 +6,8 @@ import plotly.graph_objects as go
 import datetime
 from streamlit_calendar import calendar
 import fpdf
-
-st.set_page_config(layout="wide", page_title="Monitor de Energia")
-
 import os
+st.set_page_config(layout="wide", page_title="Monitor de Energia")
 
 # Caminho padrão do JSON
 CAMINHO_JSON_PADRAO = "limites_padrao.json"
@@ -100,10 +98,10 @@ def carregar_dados(dados_colados):
 st.title(" Energy data analyser")
 
 with st.sidebar:
-    st.sidebar.image("logo.png", width=100)
+    st.logo("logo.png")
     st.header(" Entrada de Dados")
     # Créditos no final da sidebar
-    
+
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
     if st.button("📄 Gerar Relatório", key="gerar_pdf_sidebar"):
         from gerar_relatorio_pdf import gerar_relatorio_pdf
