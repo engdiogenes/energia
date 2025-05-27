@@ -136,7 +136,43 @@ with st.sidebar:
                 file_name=f"relatorio_{st.session_state.data_selecionada.strftime('%Y%m%d')}.pdf",
                 mime="application/pdf"
             )
+    # Campo para inserir e-mail
+    to_email = st.text_input("Destinatário do e-mail")
+    # Botão para enviar o relatório por e-mail
+    if st.button("✉️ Enviar por E-mail", key="enviar_email_sidebar", use_container_width=True):
+        if not to_email:
+            st.warning("Por favor, insira o e-mail do destinatário.")
+        else:
+            try:
+                EMAIL = st.secrets["email"]["address"]
+                PASSWORD = st.secrets["email"]["password"]
 
+                msg = MIMEMultipart()
+                msg["From"] = EMAIL
+                msg["To"] = to_email
+                msg["Subject"] = "Relatório de Consumo Energético"
+                body = f"""
+                Resumo do Dia {st.session_state.data_selecionada.strftime('%d/%m/%Y')}:
+
+                Consumo Geral: {st.session_state.consumo_geral:.2f} kWh
+                Limite Geral: {st.session_state.limite_geral:.2f} kWh
+                Saldo do Dia (Geral): {st.session_state.saldo_geral:.2f} kWh
+
+                Consumo da Área Produtiva: {st.session_state.consumo_area:.2f} kWh
+                Limite da Área Produtiva: {st.session_state.limites_area:.2f} kWh
+                Saldo do Dia (Área Produtiva): {st.session_state.saldo_area:.2f} kWh
+                """
+
+                msg.attach(MIMEText(body, "plain"))
+
+                with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                    server.starttls()
+                    server.login(EMAIL, PASSWORD)
+                    server.send_message(msg)
+
+                st.success("E-mail enviado com sucesso!")
+            except Exception as e:
+                st.error(f"Erro ao enviar e-mail: {e}")
 if dados_colados:
     try:
         with st.spinner("Processando os dados..."):
@@ -496,42 +532,6 @@ if dados_colados:
                                            mime="application/json")
                     except Exception as e:
                         st.error(f"Erro ao processar os dados: {e}")
-        # Campo para inserir e-mail
-        to_email = st.text_input("Destinatário do e-mail")
-        # Botão para enviar o relatório por e-mail
-        if st.button("✉️ Enviar por E-mail", key="enviar_email_sidebar", use_container_width=True):
-            if not to_email:
-                st.warning("Por favor, insira o e-mail do destinatário.")
-            else:
-                try:
-                    EMAIL = st.secrets["email"]["address"]
-                    PASSWORD = st.secrets["email"]["password"]
 
-                    msg = MIMEMultipart()
-                    msg["From"] = EMAIL
-                    msg["To"] = to_email
-                    msg["Subject"] = "Relatório de Consumo Energético"
-                    body = f"""
-                        Resumo do Dia {st.session_state.data_selecionada.strftime('%d/%m/%Y')}:
-
-                        Consumo Geral: {consumo_geral:.2f} kWh
-                        Limite Geral: {limite_geral:.2f} kWh
-                        Saldo do Dia (Geral): {saldo_geral:.2f} kWh
-
-                        Consumo da Área Produtiva: {consumo_area:.2f} kWh
-                        Limite da Área Produtiva: {limites_area:.2f} kWh
-                        Saldo do Dia (Área Produtiva): {saldo_area:.2f} kWh
-                        """
-
-                    msg.attach(MIMEText(body, "plain"))
-
-                    with smtplib.SMTP("smtp.gmail.com", 587) as server:
-                        server.starttls()
-                        server.login(EMAIL, PASSWORD)
-                        server.send_message(msg)
-
-                    st.success("E-mail enviado com sucesso!")
-                except Exception as e:
-                    st.error(f"Erro ao enviar e-mail: {e}")
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
