@@ -7,6 +7,12 @@ import datetime
 from streamlit_calendar import calendar
 import fpdf
 import os
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+from email.mime.base import MIMEBase
+from email import encoders
+
 
 st.set_page_config(layout="wide", page_title="Monitor de Energia")
 
@@ -130,6 +136,42 @@ with st.sidebar:
                 file_name=f"relatorio_{st.session_state.data_selecionada.strftime('%Y%m%d')}.pdf",
                 mime="application/pdf"
             )
+    # Campo para inserir e-mail
+    to_email = st.text_input("Destinatário do E-mail")
+
+    # Botão para enviar o relatório por e-mail
+    if st.button("✉️ Enviar por E-mail", key="enviar_email_sidebar", use_container_width=True):
+        if not to_email:
+            st.warning("Por favor, insira o e-mail do destinatário.")
+        else:
+            try:
+                EMAIL = st.secrets["email"]["address"]
+                PASSWORD = st.secrets["email"]["password"]
+
+                msg = MIMEMultipart()
+                msg["From"] = EMAIL
+                msg["To"] = to_email
+                msg["Subject"] = "Relatório de Consumo Energético"
+                body = "Segue em anexo o relatório de consumo energético."
+                msg.attach(MIMEText(body, "plain"))
+
+                filename = "relatorio_consumo_energetico.pdf"
+                with open(filename, "rb") as attachment:
+                    part = MIMEBase("application", "octet-stream")
+                    part.set_payload(attachment.read())
+                    encoders.encode_base64(part)
+                    part.add_header("Content-Disposition", f"attachment; filename= {filename}")
+                    msg.attach(part)
+
+                with smtplib.SMTP("smtp.gmail.com", 587) as server:
+                    server.starttls()
+                    server.login(EMAIL, PASSWORD)
+                    server.send_message(msg)
+
+                st.success("E-mail enviado com sucesso!")
+            except Exception as e:
+                st.error(f"Erro ao enviar e-mail: {e}")
+
 
 if dados_colados:
     try:
