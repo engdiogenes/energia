@@ -98,7 +98,7 @@ def carregar_dados(dados_colados):
 st.title(" Energy data analyser")
 
 with st.sidebar:
-    st.sidebar.image("logo.png", width=360)
+    st.sidebar.image("logo.png", width=180)
     #st.logo("logo.png", size="Large", link=None, icon_image=None)
     st.header(" Entrada de Dados")
     # Créditos no final da sidebar
@@ -119,7 +119,7 @@ with st.sidebar:
                 mime="application/pdf"
             )
 
-    st.markdown(
+st.markdown(
         """
         <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
         <div style='font-size: 0.8rem; color: gray; text-align: center;'>
