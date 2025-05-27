@@ -3,17 +3,38 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import datetime
 
-def gerar_relatorio_pdf(consumo, limites_por_medidor_horario, data_selecionada):
-    consumo_area = consumo["Área Produtiva"].tolist()
-    limite_area = [limites_por_medidor_horario.get("Área Produtiva", [0] * 24)[h] for h in range(24)]
+def gerar_relatorio_pdf(consumo, limites_df, data_selecionada):
+    # Filtrar dados de consumo e limites pela data selecionada
+    consumo_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
+    limites_dia = limites_df[limites_df["Data"] == data_selecionada]
+
+    # Preparar dados para gráficos
+    consumo_area = consumo_dia["Área Produtiva"].tolist()
+    limite_area = [
+        limites_dia[limites_dia["Hora"] == h]["Área Produtiva"].values[0]
+        if not limites_dia[limites_dia["Hora"] == h].empty else 0
+        for h in range(24)
+    ]
+
     medidores = consumo.columns.tolist()
     medidores.remove("Datetime")
     medidores.remove("Área Produtiva")
-    consumo_medidores = [consumo[medidor].sum() for medidor in medidores]
-    limite_medidores = [sum(limites_por_medidor_horario.get(medidor, [0] * 24)) for medidor in medidores]
-    dias_semana = consumo["Datetime"].dt.day_name().unique().tolist()
-    consumo_dias = [consumo[consumo["Datetime"].dt.day_name() == dia]["Área Produtiva"].sum() for dia in dias_semana]
 
+    consumo_medidores = [consumo_dia[medidor].sum() for medidor in medidores]
+    limite_medidores = [
+        sum(limites_dia[limites_dia["Hora"] == h][medidor].values)
+        if medidor in limites_dia.columns else 0
+        for medidor in medidores
+        for h in range(24)
+    ]
+
+    dias_semana = consumo["Datetime"].dt.day_name().unique().tolist()
+    consumo_dias = [
+        consumo[consumo["Datetime"].dt.day_name() == dia]["Área Produtiva"].sum()
+        for dia in dias_semana
+    ]
+
+    # Criar PDF
     pdf = FPDF()
 
     # Página 1 - Capa
@@ -83,5 +104,6 @@ def gerar_relatorio_pdf(consumo, limites_por_medidor_horario, data_selecionada):
     plt.close()
     pdf.image("consumo_por_dia.png", x=10, y=60, w=190)
 
+    # Salvar PDF
     pdf.output("relatorio_consumo_energetico.pdf")
     print("Relatório gerado com sucesso.")
