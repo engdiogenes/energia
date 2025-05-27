@@ -137,7 +137,7 @@ with st.sidebar:
                 mime="application/pdf"
             )
     # Campo para inserir e-mail
-    to_email = st.text_input("Destinatário do E-mail")
+    to_email = st.text_input("ihsvdiogenes@gmail.com")
 
     # Botão para enviar o relatório por e-mail
     if st.button("✉️ Enviar por E-mail", key="enviar_email_sidebar", use_container_width=True):
