@@ -42,17 +42,11 @@ st.markdown("""
         background-color: #f0f2f6;
         padding: 1.5rem 1rem;
     }
-    footer:after {
-        content: "Desenvolvido por Diógenes Oliveira - Engenheiro Eletricista - Jaguar Land Rover Brasil";
-        display: block;
-        text-align: center;
-        padding: 10px;
-        font-size: 0.85rem;
-        color: gray;
+    [data-testid="stSidebar"] > div:first-child {
+        padding-top: 0rem;
     }
     </style>
 """, unsafe_allow_html=True)
-
 
 def limpar_valores(texto):
     return texto.replace(",", "")
@@ -102,7 +96,16 @@ with st.sidebar:
     #st.logo("logo.png", size="Large", link=None, icon_image=None)
     st.header(" Entrada de Dados")
     # Créditos no final da sidebar
-
+    st.markdown(
+        """
+        <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
+        <div style='font-size: 0.8rem; color: gray; text-align: center;'>
+            Desenvolvido por <strong>Diógenes Oliveira</strong><br>
+            Engenheiro Eletricista - Jaguar Land Rover Brasil
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
     if st.button("📄 Gerar Relatório", key="gerar_pdf_sidebar"):
         from gerar_relatorio_pdf import gerar_relatorio_pdf
@@ -119,16 +122,7 @@ with st.sidebar:
                 mime="application/pdf"
             )
 
-st.markdown(
-        """
-        <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
-        <div style='font-size: 0.8rem; color: gray; text-align: center;'>
-            Desenvolvido por <strong>Diógenes Oliveira</strong><br>
-            Engenheiro Eletricista - Jaguar Land Rover Brasil
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
+
 if dados_colados:
     try:
         with st.spinner("Processando os dados..."):
