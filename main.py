@@ -100,7 +100,7 @@ def carregar_dados(dados_colados):
 st.title(" Energy data analyser")
 
 with st.sidebar:
-    st.sidebar.image("logo.png", use_column_width=True)
+    st.sidebar.image("logo.png", use_container_width=True)
     st.header(" Entrada de Dados")
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
     if st.button("📄 Gerar Relatório", key="gerar_pdf_sidebar"):
