@@ -136,7 +136,7 @@ with st.sidebar:
                 file_name=f"relatorio_{st.session_state.data_selecionada.strftime('%Y%m%d')}.pdf",
                 mime="application/pdf"
             )
-    
+
 if dados_colados:
     try:
         with st.spinner("Processando os dados..."):
