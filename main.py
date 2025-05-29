@@ -106,7 +106,31 @@ with st.sidebar:
     st.sidebar.image("logo.png", width=360)
     # st.logo("logo.png", size="Large", link=None, icon_image=None)
     st.header(" Entrada de Dados")
-    dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
+    import gspread
+    from oauth2client.service_account import ServiceAccountCredentials
+
+
+    def obter_dados_do_google_sheets():
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        creds = ServiceAccountCredentials.from_json_keyfile_name("credenciais.json", scope)
+        client = gspread.authorize(creds)
+
+        sheet = client.open("dados_energia_bms").sheet1
+        dados = sheet.get_all_values()
+
+        # Converte para texto tabulado (como se fosse colado manualmente)
+        linhas = ["\t".join(linha) for linha in dados]
+        texto_tabulado = "\n".join(linhas)
+        return texto_tabulado
+
+
+    origem_dados = st.radio("Escolha a origem dos dados:", ["Google Sheets", "Colar manualmente"])
+
+    if origem_dados == "Google Sheets":
+        dados_colados = obter_dados_do_google_sheets()
+    else:
+        dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
+
     # Créditos no final da sidebar
     st.markdown(
         """
