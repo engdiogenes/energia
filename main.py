@@ -315,7 +315,7 @@ if dados_colados:
                 col1, col2, col3 = st.columns(3)
                 col4, col5, col6 = st.columns(3)
 
-                col1.metric("🎯 Target Diário Geral", f"{limite_geral:.2f} kWh")
+                col1.metric("🎯 Target Geral", f"{limite_geral:.2f} kWh")
                 col2.metric("⚡ Consumo Real Geral", f"{consumo_geral:.2f} kWh",
                             delta=f"{delta_geral:.2f} kWh",
                             delta_color="normal" if delta_geral == 0 else ("inverse" if delta_geral < 0 else "off"))
