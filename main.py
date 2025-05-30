@@ -133,7 +133,7 @@ with st.sidebar:
     else:
         dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
 
-    
+
     # Campo para inserir e-mail
     to_email = st.text_input("Destinatário do e-mail")
     # Botão para enviar o relatório por e-mail
@@ -191,6 +191,20 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"Erro ao enviar e-mail: {e}")
 
+# Créditos no final da sidebar
+    st.markdown(
+        """
+        <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
+        <div style='font-size: 0.8rem; color: gray; text-align: center;'>
+            Desenvolvido por <strong>Diógenes Oliveira</strong><br>
+
+        </div>
+        <div <br>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
 
 if dados_colados:
     try:
@@ -206,19 +220,18 @@ if dados_colados:
                 min_value=min(datas_disponiveis),
                 max_value=max(datas_disponiveis)
             )
-            # Créditos no final da sidebar
-            st.markdown(
-                """
+            # Créditos e data no rodapé da sidebar (logo após o campo de data)
+            st.sidebar.markdown(
+                f"""
                 <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
                 <div style='font-size: 0.8rem; color: gray; text-align: center;'>
-                    Desenvolvido por <strong>Diógenes Oliveira</strong><br>
-
-                </div>
-                <div <br>
+                    Data selecionada: <strong>{data_selecionada.strftime('%d/%m/%Y')}</strong><br>
+                    Desenvolvido por <strong>Diógenes Oliveira</strong>
                 </div>
                 """,
                 unsafe_allow_html=True
             )
+
             st.session_state.data_selecionada = data_selecionada
 
             # 🔄 Atualizar os limites por medidor e hora com base na nova data selecionada
