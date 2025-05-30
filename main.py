@@ -278,16 +278,23 @@ if dados_colados:
                 consumo_maiw = dados_dia["MAIW"].sum() if "MAIW" in dados_dia else 0
                 consumo_geral = consumo_area + consumo_pccb + consumo_maiw + Consumo_gab
 
+                # Determina até que hora há dados disponíveis
+                ultima_hora_disponivel = dados_dia["Datetime"].dt.hour.max()
+
+                # Calcula limites apenas até a última hora com dados
                 limites_area = sum(
                     st.session_state.limites_por_medidor_horario.get(medidor, [0] * 24)[h]
-                    for h in range(24)
-                    for medidor in
-                    ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"]
+                    for h in range(ultima_hora_disponivel + 1)
+                    for medidor in [
+                        "MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"
+                    ]
                     if medidor in st.session_state.limites_por_medidor_horario
-                ) + 13.75 * 24
+                ) + 13.75 * (ultima_hora_disponivel + 1)
 
-                limite_pccb = sum(st.session_state.limites_por_medidor_horario.get("PCCB", [0] * 24))
-                limite_maiw = sum(st.session_state.limites_por_medidor_horario.get("MAIW", [0] * 24))
+                limite_pccb = sum(
+                    st.session_state.limites_por_medidor_horario.get("PCCB", [0] * 24)[:ultima_hora_disponivel + 1])
+                limite_maiw = sum(
+                    st.session_state.limites_por_medidor_horario.get("MAIW", [0] * 24)[:ultima_hora_disponivel + 1])
                 limite_geral = limites_area + limite_pccb + limite_maiw + Consumo_gab
 
                 # Deltas e saldos
