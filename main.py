@@ -232,7 +232,6 @@ if dados_colados:
                 min_value=0,
                 max_value=len(datas_disponiveis) - 1,
                 value=len(datas_disponiveis) - 1,
-                format="%d/%m"
             )
 
             # Data selecionada com base no slider
