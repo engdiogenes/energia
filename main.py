@@ -177,6 +177,20 @@ with st.sidebar:
                 msg["From"] = EMAIL
                 msg["To"] = to_email
                 msg["Subject"] = "Relatório de Consumo Energético"
+
+                # Verifica se algum medidor ultrapassou o limite diário
+                medidores_excedidos = []
+                dados_dia = st.session_state.consumo[
+                    st.session_state.consumo["Datetime"].dt.date == st.session_state.data_selecionada]
+                for medidor in st.session_state.limites_por_medidor_horario:
+                    if medidor in dados_dia.columns:
+                        consumo_total = dados_dia[medidor].sum()
+                        limite_total = sum(st.session_state.limites_por_medidor_horario[medidor])
+                        if consumo_total > limite_total:
+                            medidores_excedidos.append(
+                                f"- {medidor}: {consumo_total:.2f} kWh (limite: {limite_total:.2f} kWh)")
+
+                # Corpo do e-mail
                 body = f"""
                 Resumo do Dia {st.session_state.data_selecionada.strftime('%d/%m/%Y')}:
 
@@ -188,6 +202,11 @@ with st.sidebar:
                 Limite da Área Produtiva: {st.session_state.limites_area:.2f} kWh
                 Saldo do Dia (Área Produtiva): {st.session_state.saldo_area:.2f} kWh
                 """
+
+                # Adiciona alerta se houver medidores excedidos
+                if medidores_excedidos:
+                    body += "\n⚠️ Alerta: Os seguintes medidores ultrapassaram seus limites diários:\n"
+                    body += "\n".join(medidores_excedidos)
 
                 msg.attach(MIMEText(body, "plain"))
 
