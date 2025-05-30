@@ -226,22 +226,12 @@ if dados_colados:
             consumo_completo = consumo.copy()
 
             datas_disponiveis = consumo["Datetime"].dt.date.unique()
-            # Slider para selecionar índice da data
-            indice_data = st.sidebar.slider(
-                "Navegar por datas disponíveis:",
-                min_value=0,
-                max_value=len(datas_disponiveis) - 1,
-                value=len(datas_disponiveis) - 1,
-            )
-
-            # Data selecionada com base no slider
             data_selecionada = st.sidebar.date_input(
                 "Selecione a data",
-                value=datas_disponiveis[indice_data],
+                value=max(datas_disponiveis),
                 min_value=min(datas_disponiveis),
                 max_value=max(datas_disponiveis)
             )
-
             st.session_state.data_selecionada = data_selecionada
 
             # 🔄 Atualizar os limites por medidor e hora com base na nova data selecionada
@@ -260,22 +250,6 @@ if dados_colados:
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            uploaded_file = st.sidebar.file_uploader(" Carregar limites (JSON)", type="json")
-            if uploaded_file:
-                limites_df = pd.read_json(uploaded_file)
-                limites_df["Timestamp"] = pd.to_datetime(limites_df["Timestamp"], dayfirst=True)
-                limites_df["Data"] = limites_df["Timestamp"].dt.date
-                limites_df["Hora"] = limites_df["Timestamp"].dt.hour
-                st.session_state.limites_df = limites_df
-                st.sidebar.success("Limites horários carregados com sucesso.")
-
-                # Gerar limites por medidor e hora para a data selecionada
-                limites_dia_df = limites_df[limites_df["Data"] == data_selecionada]
-                st.session_state.limites_por_medidor_horario = {
-                    medidor: list(limites_dia_df.sort_values("Hora")[medidor].values)
-                    for medidor in medidores_disponiveis
-                    if medidor in limites_dia_df.columns
-                }
             tabs = st.tabs([" Visão Geral", " Por Medidor", " Limites", " Dashboard", " Calendário", " Conversão "])
 
             # TABS 1 - VISÃO GERAL
