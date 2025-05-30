@@ -146,22 +146,7 @@ with st.sidebar:
         """,
         unsafe_allow_html=True
     )
-    if st.button("📄 Gerar Relatório", key="gerar_pdf_sidebar", use_container_width= True):
-        from gerar_relatorio_pdf import gerar_relatorio_pdf
 
-        if 'consumo' in st.session_state:
-            gerar_relatorio_pdf(st.session_state.consumo, st.session_state.limites_por_medidor_horario,
-                                st.session_state.data_selecionada)
-        else:
-            st.error(
-                'Os dados de consumo ainda não foram carregados. Cole os dados e selecione a data antes de gerar o relatório.')
-        with open("relatorio_consumo_energetico.pdf", "rb") as f:
-            st.download_button(
-                label="📥 Baixar Relatório PDF",
-                data=f,
-                file_name=f"relatorio_{st.session_state.data_selecionada.strftime('%Y%m%d')}.pdf",
-                mime="application/pdf"
-            )
     # Campo para inserir e-mail
     to_email = st.text_input("Destinatário do e-mail")
     # Botão para enviar o relatório por e-mail
