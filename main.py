@@ -226,12 +226,23 @@ if dados_colados:
             consumo_completo = consumo.copy()
 
             datas_disponiveis = consumo["Datetime"].dt.date.unique()
+            # Slider para selecionar índice da data
+            indice_data = st.sidebar.slider(
+                "Navegar por datas disponíveis:",
+                min_value=0,
+                max_value=len(datas_disponiveis) - 1,
+                value=len(datas_disponiveis) - 1,
+                format="%d/%m"
+            )
+
+            # Data selecionada com base no slider
             data_selecionada = st.sidebar.date_input(
                 "Selecione a data",
-                value=max(datas_disponiveis),
+                value=datas_disponiveis[indice_data],
                 min_value=min(datas_disponiveis),
                 max_value=max(datas_disponiveis)
             )
+
             st.session_state.data_selecionada = data_selecionada
 
             # 🔄 Atualizar os limites por medidor e hora com base na nova data selecionada
@@ -315,7 +326,7 @@ if dados_colados:
                 col1, col2, col3 = st.columns(3)
                 col4, col5, col6 = st.columns(3)
 
-                col1.metric("🎯 Target Geral", f"{limite_geral:.2f} kWh")
+                col1.metric("🎯 Target Diário Geral", f"{limite_geral:.2f} kWh")
                 col2.metric("⚡ Consumo Real Geral", f"{consumo_geral:.2f} kWh",
                             delta=f"{delta_geral:.2f} kWh",
                             delta_color="normal" if delta_geral == 0 else ("inverse" if delta_geral < 0 else "off"))
