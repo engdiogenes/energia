@@ -191,20 +191,6 @@ with st.sidebar:
             except Exception as e:
                 st.error(f"Erro ao enviar e-mail: {e}")
 
-# Créditos no final da sidebar
-    st.markdown(
-        """
-        <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
-        <div style='font-size: 0.8rem; color: gray; text-align: center;'>
-            Desenvolvido por <strong>Diógenes Oliveira</strong><br>
-
-        </div>
-        <div <br>
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
 
 if dados_colados:
     try:
@@ -219,6 +205,19 @@ if dados_colados:
                 value=max(datas_disponiveis),
                 min_value=min(datas_disponiveis),
                 max_value=max(datas_disponiveis)
+            )
+            # Créditos no final da sidebar
+            st.markdown(
+                """
+                <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
+                <div style='font-size: 0.8rem; color: gray; text-align: center;'>
+                    Desenvolvido por <strong>Diógenes Oliveira</strong><br>
+
+                </div>
+                <div <br>
+                </div>
+                """,
+                unsafe_allow_html=True
             )
             st.session_state.data_selecionada = data_selecionada
 
