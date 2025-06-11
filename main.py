@@ -207,19 +207,17 @@ if dados_colados:
             consumo_completo = consumo.copy()
 
             datas_disponiveis = consumo["Datetime"].dt.date.unique()
-
-# Inicializar data_selecionada na sessão, se ainda não estiver definida
-if "data_selecionada" not in st.session_state:
-    st.session_state.data_selecionada = datas_disponiveis[-1]
-
-# Interface de seleção de data na barra lateral
-data_input = st.sidebar.date_input("Selecione a data", value=st.session_state.data_selecionada, min_value=min(datas_disponiveis), max_value=max(datas_disponiveis), key="data_input")
-
-# Atualizar data_selecionada apenas se o usuário interagir com o date_input
-if data_input != st.session_state.data_selecionada:
-    st.session_state.data_selecionada = data_input
-
-data_selecionada = st.session_state.data_selecionada
+            if "data_selecionada" not in st.session_state:
+                st.session_state.data_selecionada = datas_disponiveis[-1]
+            data_selecionada = st.sidebar.date_input(
+                "Selecione a data",
+                value=st.session_state.data_selecionada,
+                min_value=min(datas_disponiveis),
+                max_value=max(datas_disponiveis),
+            )
+            if data_selecionada != st.session_state.data_selecionada:
+                st.session_state.data_selecionada = data_selecionada
+            data_selecionada = st.session_state.data_selecionada
             data_selecionada = st.sidebar.date_input(
                 "Selecione a data",
                 value=max(datas_disponiveis),
@@ -260,19 +258,6 @@ data_selecionada = st.session_state.data_selecionada
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
                 st.subheader(f"Resumo do Dia {data_selecionada.strftime('%d/%m/%Y')}")
-
-    # Navegação entre datas
-    indice_atual = list(datas_disponiveis).index(data_selecionada)
-
-    col_nav1, col_nav2, col_nav3 = st.columns([1, 2, 1])
-    with col_nav1:
-        if indice_atual > 0 and st.button("⬅️ Anterior", key="anterior"):
-            st.session_state.data_selecionada = datas_disponiveis[indice_atual - 1]
-            st.rerun()
-    with col_nav3:
-        if indice_atual < len(datas_disponiveis) - 1 and st.button("Próximo ➡️", key="proximo"):
-            st.session_state.data_selecionada = datas_disponiveis[indice_atual + 1]
-            st.rerun()
                 # Cálculos
                 Consumo_gab = 300
                 consumo_area = dados_dia["Área Produtiva"].sum()
