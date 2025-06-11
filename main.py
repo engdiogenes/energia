@@ -207,17 +207,6 @@ if dados_colados:
             consumo_completo = consumo.copy()
 
             datas_disponiveis = consumo["Datetime"].dt.date.unique()
-            if "data_selecionada" not in st.session_state:
-                st.session_state.data_selecionada = datas_disponiveis[-1]
-            data_selecionada = st.sidebar.date_input(
-                "Selecione a data",
-                value=st.session_state.data_selecionada,
-                min_value=min(datas_disponiveis),
-                max_value=max(datas_disponiveis),
-            )
-            if data_selecionada != st.session_state.data_selecionada:
-                st.session_state.data_selecionada = data_selecionada
-            data_selecionada = st.session_state.data_selecionada
             data_selecionada = st.sidebar.date_input(
                 "Selecione a data",
                 value=max(datas_disponiveis),
