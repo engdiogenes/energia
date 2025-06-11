@@ -246,20 +246,19 @@ if dados_colados:
 
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
-
-        # Navegação entre datas
-        indice_atual = list(datas_disponiveis).index(data_selecionada)
-
-        col_nav1, col_nav2, col_nav3 = st.columns([1, 2, 1])
-        with col_nav1:
-            if indice_atual > 0 and st.button("⬅️ Anterior", key="anterior"):
-                st.session_state.data_selecionada = datas_disponiveis[indice_atual - 1]
-                st.experimental_rerun()
-        with col_nav3:
-            if indice_atual < len(datas_disponiveis) - 1 and st.button("Próximo ➡️", key="proximo"):
-                st.session_state.data_selecionada = datas_disponiveis[indice_atual + 1]
-                st.experimental_rerun()
                 st.subheader(f"Resumo do Dia {data_selecionada.strftime('%d/%m/%Y')}")
+                # Navegação entre datas
+                indice_atual = list(datas_disponiveis).index(data_selecionada)
+
+                col_nav1, col_nav2, col_nav3 = st.columns([1, 2, 1])
+                with col_nav1:
+                    if indice_atual > 0 and st.button("⬅️ Anterior", key="anterior"):
+                        st.session_state.data_selecionada = datas_disponiveis[indice_atual - 1]
+                        st.experimental_rerun()
+                with col_nav3:
+                    if indice_atual < len(datas_disponiveis) - 1 and st.button("Próximo ➡️", key="proximo"):
+                        st.session_state.data_selecionada = datas_disponiveis[indice_atual + 1]
+                        st.experimental_rerun()
                 # Cálculos
                 Consumo_gab = 300
                 consumo_area = dados_dia["Área Produtiva"].sum()
