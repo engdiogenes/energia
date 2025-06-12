@@ -242,11 +242,11 @@ if dados_colados:
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            tabs = st.tabs([" Visão Geral", " Por Medidor", " Limites", " Dashboard", " Calendário", " Conversão "])
+            tabs = st.tabs([" Overview", " Per meter", " Daily targets", " Dashboard", " Calender", " Conversion "])
 
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
-                st.subheader(f"Resumo do Dia {data_selecionada.strftime('%d/%m/%Y')}")
+                st.subheader(f"Report of the day:  {data_selecionada.strftime('%d/%m/%Y')}")
                 # Cálculos
                 Consumo_gab = 300
                 consumo_area = dados_dia["Área Produtiva"].sum()
@@ -291,17 +291,17 @@ if dados_colados:
                 col1, col2, col3 = st.columns(3)
                 col4, col5, col6 = st.columns(3)
 
-                col1.metric("🎯 Target Diário Geral", f"{limite_geral:.2f} kWh")
-                col2.metric("⚡ Consumo Real Geral", f"{consumo_geral:.2f} kWh",
+                col1.metric("🎯 Daily Target -  Full Plant", f"{limite_geral:.2f} kWh")
+                col2.metric("⚡ Daily Consumption - Full Plant", f"{consumo_geral:.2f} kWh",
                             delta=f"{delta_geral:.2f} kWh",
                             delta_color="normal" if delta_geral == 0 else ("inverse" if delta_geral < 0 else "off"))
-                col3.metric("📉 Saldo do Dia (Geral)", f"{saldo_geral:.2f} kWh", delta_color="inverse")
+                col3.metric("📉 Balance of the Day (Ful Plant)", f"{saldo_geral:.2f} kWh", delta_color="inverse")
 
-                col4.metric("🎯 Target Área Produtiva", f"{limites_area:.2f} kWh")
-                col5.metric("🏭 Consumo Área Produtiva", f"{consumo_area:.2f} kWh",
+                col4.metric("🎯 Daily Target -  Productive areas", f"{limites_area:.2f} kWh")
+                col5.metric("🏭 Daily Consumption - Productive areas", f"{consumo_area:.2f} kWh",
                             delta=f"{delta_area:.2f} kWh",
                             delta_color="normal" if delta_area == 0 else ("inverse" if delta_area < 0 else "off"))
-                col6.metric("📉 Saldo do Dia (Área Produtiva)", f"{saldo_area:.2f} kWh", delta_color="inverse")
+                col6.metric("📉 Balance of the Day (Productive area)", f"{saldo_area:.2f} kWh", delta_color="inverse")
 
                 st.divider()
 
