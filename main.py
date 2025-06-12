@@ -522,7 +522,7 @@ if dados_colados:
 
             # TABS 5 - CALENDÁRIO
             with tabs[5]:
-                st.title("Conversor CSV para JSON - Limites Horários por Medidor")
+                st.title("or CSV para JSON - Limites Horários por Medidor")
                 uploaded_file = st.file_uploader("Faça upload do arquivo CSV", type="csv")
                 if uploaded_file is not None:
                     try:
