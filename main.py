@@ -13,6 +13,11 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
 from datetime import datetime
+import numpy as np
+import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+from datetime import datetime
 
 
 
@@ -632,6 +637,8 @@ if dados_colados:
                     # Simulação de Monte Carlo
                     st.subheader("📈 Simulação de Monte Carlo para o Consumo da Área Produtiva")
 
+                    
+
                     df_consumo = st.session_state["consumo"].copy()
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
 
@@ -672,15 +679,6 @@ if dados_colados:
                         st.pyplot(fig)
                     else:
                         st.info("Dados históricos insuficientes para simulação de Monte Carlo.")
-
-                else:
-                    st.error("Dados insuficientes para gerar a previsão mensal.")
-
-
-
-
-
-
 
 
     except Exception as e:
