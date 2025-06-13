@@ -627,6 +627,47 @@ if dados_colados:
 
                     df_tabela = pd.DataFrame(dados_tabela)
                     st.dataframe(df_tabela, use_container_width=True)
+                    # Simulação de Monte Carlo
+                    st.subheader("📈 Simulação de Monte Carlo para o Consumo da Área Produtiva")
+
+                    # Preparar dados históricos diários
+                    df_consumo["Data"] = df_consumo["Datetime"].dt.date
+                    historico_diario = df_consumo[
+                        (df_consumo["Datetime"].dt.month == data_ref.month) &
+                        (df_consumo["Datetime"].dt.year == data_ref.year)
+                        ].groupby("Data")["Área Produtiva"].sum()
+
+                    if len(historico_diario) >= 5:
+                        media = historico_diario.mean()
+                        desvio = historico_diario.std()
+                        dias_futuros = [datetime.strptime(d, "%Y-%m-%d").date() for d in df_tabela["Data"] if
+                                        datetime.strptime(d, "%Y-%m-%d").date() > data_ref]
+                        n_simulacoes = 100
+
+                        simulacoes = []
+                        for _ in range(n_simulacoes):
+                            simulacao = list(np.random.normal(loc=media, scale=desvio, size=len(dias_futuros)))
+                            simulacoes.append(simulacao)
+
+                        # Plotar
+                        fig, ax = plt.subplots(figsize=(10, 5))
+                        for sim in simulacoes:
+                            ax.plot(dias_futuros, sim, color="gray", alpha=0.2)
+
+                        media_simulada = np.mean(simulacoes, axis=0)
+                        ax.plot(dias_futuros, media_simulada, color="blue", label="Média das Simulações", linewidth=2)
+
+                        ax.axvline(data_ref, color="red", linestyle="--", label="Hoje")
+                        ax.set_title("Simulação de Monte Carlo - Consumo Diário Futuro")
+                        ax.set_ylabel("kWh")
+                        ax.set_xlabel("Data")
+                        ax.legend()
+                        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
+                        fig.autofmt_xdate()
+                        st.pyplot(fig)
+                    else:
+                        st.info("Dados históricos insuficientes para simulação de Monte Carlo.")
+
                 else:
                     st.error("Dados insuficientes para gerar a previsão mensal.")
 
