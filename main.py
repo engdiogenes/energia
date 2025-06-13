@@ -577,20 +577,19 @@ if dados_colados:
                     limites_mes = limites_df[
                         (limites_df["Data"].dt.month == mes_ref) & (limites_df["Data"].dt.year == ano_ref)]
 
-                    # Selecionar apenas colunas da área produtiva
+                    # Colunas da área produtiva
                     colunas_area_produtiva = [
                         "MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"
                     ]
                     limites_mes_area = limites_mes[colunas_area_produtiva]
                     consumo_max_mes = limites_mes_area.sum().sum()
 
-                    # Adicional fixo de 13.75 kWh por hora * número de dias * 24h
+                    # Adicional fixo
                     dias_mes = limites_mes["Data"].dt.date.nunique()
                     adicional_fixo_mes = dias_mes * 24 * 13.75
                     consumo_max_mes += adicional_fixo_mes
 
-                    st.metric("🔋 Consumo máximo previsto para o mês (área produtiva)", f"{consumo_max_mes:.2f} kWh")
-
+                    # Previsão diária
                     if "consumo" in st.session_state:
                         df = st.session_state.consumo
                         df_dia = df[df["Datetime"].dt.date == data_ref]
@@ -608,13 +607,36 @@ if dados_colados:
                             adicional_fixo = horas_restantes * 13.75
 
                             previsao_total = consumo_ate_agora + limites_restantes + adicional_fixo
-                            st.metric("🔮 Previsão de consumo da área produtiva para o dia", f"{previsao_total:.2f} kWh")
                         else:
-                            st.warning("Não há dados de consumo para o dia selecionado.")
+                            previsao_total = 0
                     else:
-                        st.warning("Dados de consumo não encontrados.")
+                        previsao_total = 0
+
+                    # Exibir métricas
+                    col1, col2 = st.columns(2)
+                    col1.metric("🔋 Consumo máximo previsto para o mês (área produtiva)", f"{consumo_max_mes:.2f} kWh")
+                    col2.metric("🔮 Previsão de consumo da área produtiva para o dia", f"{previsao_total:.2f} kWh")
+
+                    # Gráfico comparativo
+                    st.subheader("📊 Comparativo: Consumo Previsto vs Máximo Permitido")
+                    fig = go.Figure()
+                    fig.add_trace(go.Bar(
+                        x=["Previsão diária", "Máximo mensal"],
+                        y=[previsao_total, consumo_max_mes],
+                        marker_color=["orange", "green"],
+                        text=[f"{previsao_total:.0f} kWh", f"{consumo_max_mes:.0f} kWh"],
+                        textposition="outside"
+                    ))
+                    fig.update_layout(
+                        yaxis_title="kWh",
+                        title="Consumo da Área Produtiva",
+                        template="plotly_white",
+                        height=400
+                    )
+                    st.plotly_chart(fig, use_container_width=True)
                 else:
                     st.error("Limites ou data selecionada não disponíveis.")
+
 
 
 
