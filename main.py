@@ -141,8 +141,8 @@ if pd.notna(ultima_data):
 else:
     st.sidebar.warning("Não foi possível determinar a última data de atualização.")
 
-    else:
-        dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
+else:
+    dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
 
 
     # Campo para inserir e-mail
