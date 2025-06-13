@@ -661,14 +661,9 @@ if dados_colados:
                     st.dataframe(df_tabela, use_container_width=True)
 
                     # Simulação de Monte Carlo - Gráfico Interativo com Plotly
-
                     st.subheader("📈 Simulação de Monte Carlo - Consumo Diário Futuro")
 
-                    # Preparar dados
-                    df_consumo = st.session_state["consumo"].copy()
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
-
-                    # Agrupar consumo diário da área produtiva
                     historico_diario = df_consumo[
                         (pd.to_datetime(df_consumo["Datetime"]).dt.month == data_ref.month) &
                         (pd.to_datetime(df_consumo["Datetime"]).dt.year == data_ref.year)
@@ -688,7 +683,6 @@ if dados_colados:
 
                         fig = go.Figure()
 
-                        # Curvas simuladas
                         for sim in simulacoes:
                             fig.add_trace(go.Scatter(
                                 x=dias_futuros,
@@ -699,7 +693,6 @@ if dados_colados:
                                 showlegend=False
                             ))
 
-                        # Retas coloridas no final de cada curva
                         for sim in simulacoes:
                             fig.add_trace(go.Scatter(
                                 x=[dias_futuros[-2], dias_futuros[-1]],
@@ -709,7 +702,6 @@ if dados_colados:
                                 showlegend=False
                             ))
 
-                        # Linha média
                         fig.add_trace(go.Scatter(
                             x=dias_futuros,
                             y=media_simulada,
@@ -718,39 +710,51 @@ if dados_colados:
                             line=dict(color='blue', width=3)
                         ))
 
-                        # Linha vertical do dia atual
-                        fig.add_shape(
-                            type="line",
-                            x0=data_ref,
-                            x1=data_ref,
-                            y0=0,
-                            y1=max([max(sim) for sim in simulacoes]) * 1.1,
-                            line=dict(color="red", width=2, dash="dash"),
-                        )
-                        fig.add_annotation(
-                            x=data_ref,
-                            y=max([max(sim) for sim in simulacoes]) * 1.1,
-                            text="Hoje",
-                            showarrow=True,
-                            arrowhead=1,
-                            ax=0,
-                            ay=-40,
-                            font=dict(color="red")
-                        )
-
-                        fig.update_layout(
-                            title="Simulação de Monte Carlo - Consumo Diário Futuro da Área Produtiva",
-                            xaxis_title="Data",
-                            yaxis_title="Consumo (kWh)",
-                            template="plotly_white",
-                            height=500
-                        )
-
                         st.plotly_chart(fig, use_container_width=True)
-                        
 
-                    else:
-                        st.info("Dados históricos insuficientes para simulação de Monte Carlo.")
+                        # Análise interpretativa baseada nas simulações
+                        targets_futuros = df_tabela[
+                            df_tabela["Data"].apply(lambda d: datetime.strptime(d, "%Y-%m-%d").date() > data_ref)][
+                            "Consumo Previsto (kWh)"].values
+
+                        em_alta = 0
+                        em_baixa = 0
+                        estaveis = 0
+
+                        for sim in simulacoes:
+                            total_simulado = np.sum(sim)
+                            total_target = np.sum(targets_futuros)
+                            diferenca = total_simulado - total_target
+
+                            if diferenca > 0.05 * total_target:
+                                em_alta += 1
+                            elif diferenca < -0.05 * total_target:
+                                em_baixa += 1
+                            else:
+                                estaveis += 1
+
+                        if em_alta > em_baixa and em_alta > estaveis:
+                            tendencia = "alta"
+                            risco = "há risco de ultrapassar os limites mensais de consumo"
+                        elif em_baixa > em_alta and em_baixa > estaveis:
+                            tendencia = "baixa"
+                            risco = "há folga no consumo em relação ao limite"
+                        else:
+                            tendencia = "estável"
+                            risco = "o consumo está dentro da faixa esperada"
+
+                        st.markdown(f"""
+                        ### 🔍 **Análise da Previsão de Consumo da Área Produtiva**
+
+                        Com base nas simulações de Monte Carlo realizadas:
+
+                        - **{em_alta}** simulações indicam tendência de alta no consumo  
+                        - **{em_baixa}** simulações indicam tendência de queda  
+                        - **{estaveis}** simulações indicam estabilidade  
+
+                        📉 A tendência geral é **{tendencia}**, o que sugere que **{risco}**.
+                        """)
+
 
 
 
