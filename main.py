@@ -778,64 +778,61 @@ if dados_colados:
                         📉 A tendência geral é **{tendencia}**, o que sugere que **{risco}**.
                         """)
 
-                        # Estilo visual
-                        plt.style.use('ggplot')
+                        import plotly.graph_objects as go
+                        from datetime import timedelta
 
-                        st.subheader("📊 Comparativo de Previsão: ARIMA vs Monte Carlo")
+                        # Verifica se os dados estão disponíveis
+                        if 'consumo' in st.session_state:
+                            df = st.session_state.consumo.copy()
+                            df['Data'] = df['Datetime'].dt.date
+                            df_diario = df.groupby('Data')['Área Produtiva'].sum().reset_index()
+                            df_diario['Data'] = pd.to_datetime(df_diario['Data'])
+                            serie_historica = pd.Series(df_diario['Área Produtiva'].values, index=df_diario['Data'])
 
-                        # Usar dados reais do app
-                        df = st.session_state.consumo.copy()
-                        df['Data'] = df['Datetime'].dt.date
-                        df_diario = df.groupby('Data')['Área Produtiva'].sum().reset_index()
-                        df_diario['Data'] = pd.to_datetime(df_diario['Data'])
-                        serie_historica = pd.Series(df_diario['Área Produtiva'].values, index=df_diario['Data'])
+                            # ARIMA
+                            modelo_arima = ARIMA(serie_historica, order=(1, 1, 1)).fit()
+                            previsao_arima = modelo_arima.forecast(steps=30)
+                            datas_futuras = pd.date_range(start=serie_historica.index[-1] + timedelta(days=1),
+                                                          periods=30)
 
-                        # Previsão com ARIMA
-                        modelo_arima = ARIMA(serie_historica, order=(1, 1, 1))
-                        modelo_ajustado = modelo_arima.fit()
-                        previsao_arima = modelo_ajustado.forecast(steps=30)
-                        datas_futuras = pd.date_range(start=serie_historica.index[-1] + timedelta(days=1), periods=30)
+                            # Monte Carlo
+                            simulacoes = 1000
+                            simulacoes_mc = np.random.normal(loc=serie_historica.mean(), scale=serie_historica.std(),
+                                                             size=(simulacoes, 30))
+                            media_mc = simulacoes_mc.mean(axis=0)
+                            p5 = np.percentile(simulacoes_mc, 5, axis=0)
+                            p95 = np.percentile(simulacoes_mc, 95, axis=0)
 
-                        # Previsão com Monte Carlo
-                        simulacoes = 1000
-                        simulacoes_mc = np.random.normal(loc=serie_historica.mean(), scale=serie_historica.std(),
-                                                         size=(simulacoes, 30))
-                        media_mc = simulacoes_mc.mean(axis=0)
-                        p5 = np.percentile(simulacoes_mc, 5, axis=0)
-                        p95 = np.percentile(simulacoes_mc, 95, axis=0)
+                            # Meta
+                            meta_diaria = 1250
 
-                        # Meta diária
-                        meta_diaria = 1250
+                            # Gráfico Plotly
+                            fig = go.Figure()
+                            fig.add_trace(
+                                go.Scatter(x=serie_historica.index, y=serie_historica.values, name='Consumo Real',
+                                           line=dict(color='blue')))
+                            fig.add_trace(go.Scatter(x=datas_futuras, y=previsao_arima, name='Previsão ARIMA',
+                                                     line=dict(color='orange', dash='dash')))
+                            fig.add_trace(go.Scatter(x=datas_futuras, y=media_mc, name='Monte Carlo (média)',
+                                                     line=dict(color='green', dash='dot')))
+                            fig.add_trace(go.Scatter(x=np.concatenate([datas_futuras, datas_futuras[::-1]]),
+                                                     y=np.concatenate([p95, p5[::-1]]),
+                                                     fill='toself', fillcolor='rgba(0,255,0,0.1)',
+                                                     line=dict(color='rgba(255,255,255,0)'),
+                                                     name='Monte Carlo (90% intervalo)'))
+                            fig.add_trace(go.Scatter(x=[serie_historica.index.min(), datas_futuras[-1]],
+                                                     y=[meta_diaria, meta_diaria], name='Meta Diária',
+                                                     line=dict(color='crimson', dash='dot')))
 
-                        # Gráfico
-                        fig, ax = plt.subplots(figsize=(12, 6))
-                        ax.plot(serie_historica.index, serie_historica.values, label='Consumo Real', color='#1f77b4',
-                                linewidth=2)
-                        ax.plot(datas_futuras, previsao_arima, label='Previsão ARIMA', linestyle='--', color='#ff7f0e',
-                                linewidth=2)
-                        ax.plot(datas_futuras, media_mc, label='Monte Carlo (média)', linestyle='--', color='#2ca02c',
-                                linewidth=2)
-                        ax.fill_between(datas_futuras, p5, p95, color='#2ca02c', alpha=0.2,
-                                        label='Monte Carlo (90% intervalo)')
-                        ax.axhline(meta_diaria, color='crimson', linestyle=':', linewidth=2, label='Meta Diária')
+                            fig.update_layout(title='🔍 Previsão de Consumo de Energia: ARIMA vs Monte Carlo',
+                                              xaxis_title='Data', yaxis_title='Consumo (kWh)',
+                                              legend=dict(orientation='h', y=1.02, x=1, xanchor='right'),
+                                              template='plotly_white')
 
-                        # Anotação
-                        ax.annotate('Início da previsão', xy=(datas_futuras[0], previsao_arima.iloc[0]),
-                                    xytext=(datas_futuras[0], previsao_arima.iloc[0] + 100),
-                                    arrowprops=dict(facecolor='gray', arrowstyle='->'),
-                                    fontsize=10, color='gray')
+                            st.plotly_chart(fig, use_container_width=True)
+                        else:
+                            st.warning("Dados de consumo não encontrados em st.session_state.")
 
-                        # Estética
-                        ax.set_title('🔍 Previsão de Consumo de Energia: ARIMA vs Monte Carlo', fontsize=16,
-                                     weight='bold')
-                        ax.set_xlabel('Data', fontsize=12)
-                        ax.set_ylabel('Consumo (kWh)', fontsize=12)
-                        ax.tick_params(axis='x', rotation=45)
-                        ax.legend(loc='upper left', frameon=True, framealpha=0.9, facecolor='white')
-                        ax.grid(True, linestyle='--', alpha=0.5)
-
-                        # Exibir no Streamlit
-                        st.pyplot(fig)
 
 
 
