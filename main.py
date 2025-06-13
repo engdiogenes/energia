@@ -578,9 +578,11 @@ if dados_colados:
                         (limites_df["Data"].dt.month == mes_ref) & (limites_df["Data"].dt.year == ano_ref)]
 
                     # Selecionar apenas colunas da área produtiva
-                    colunas_area_produtiva = [col for col in limites_mes.columns if
-                                              col not in ["Data", "Hora", "Timestamp", "OFFICE", "CANTEEN"]]
-                    consumo_max_mes = limites_mes[colunas_area_produtiva].sum().sum()
+                    colunas_area_produtiva = [
+                        "MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"
+                    ]
+                    limites_mes_area = limites_mes[colunas_area_produtiva]
+                    consumo_max_mes = limites_mes_area.sum().sum()
 
                     # Adicional fixo de 13.75 kWh por hora * número de dias * 24h
                     dias_mes = limites_mes["Data"].dt.date.nunique()
@@ -613,6 +615,7 @@ if dados_colados:
                         st.warning("Dados de consumo não encontrados.")
                 else:
                     st.error("Limites ou data selecionada não disponíveis.")
+
 
 
     except Exception as e:
