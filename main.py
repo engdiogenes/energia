@@ -241,7 +241,7 @@ if dados_colados:
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            tabs = st.tabs([" Overview", " Per meter", " Daily targets", " Dashboard", " Calender", " Conversion "])
+            tabs = st.tabs([" Overview", " Per meter", " Daily targets", " Dashboard", " Calender", " Conversion ", " Month prediction "])
 
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
@@ -559,6 +559,50 @@ if dados_colados:
                                            mime="application/json")
                     except Exception as e:
                         st.error(f"Erro ao processar os dados: {e}")
+
+            # TABS 6 - PREVISÃO MENSAL
+            with tabs[6]:
+                st.title("📅 Month Prediction")
+
+                if "limites_df" in st.session_state and "data_selecionada" in st.session_state:
+                    limites_df = st.session_state.limites_df
+                    data_ref = st.session_state.data_selecionada
+                    mes_ref = data_ref.month
+                    ano_ref = data_ref.year
+
+                    limites_df["Data"] = pd.to_datetime(limites_df["Data"])
+                    limites_mes = limites_df[
+                        (limites_df["Data"].dt.month == mes_ref) & (limites_df["Data"].dt.year == ano_ref)]
+
+                    consumo_max_mes = limites_mes.drop(columns=["Data", "Hora", "Timestamp"],
+                                                       errors="ignore").sum().sum()
+                    st.metric("🔋 Consumo máximo previsto para o mês", f"{consumo_max_mes:.2f} kWh")
+
+                    if "consumo" in st.session_state:
+                        df = st.session_state.consumo
+                        df_dia = df[df["Datetime"].dt.date == data_ref]
+                        if not df_dia.empty:
+                            ultima_hora = df_dia["Datetime"].dt.hour.max()
+                            consumo_ate_agora = df_dia["Área Produtiva"].sum()
+
+                            limites_dia = limites_df[limites_df["Data"].dt.date == data_ref]
+                            limites_restantes = 0
+                            if not limites_dia.empty:
+                                limites_restantes = limites_dia[limites_dia["Hora"] > ultima_hora].drop(
+                                    columns=["Data", "Hora", "Timestamp"], errors="ignore").sum().sum()
+
+                            horas_restantes = max(0, 23 - ultima_hora)
+                            adicional_fixo = horas_restantes * 13.75
+
+                            previsao_total = consumo_ate_agora + limites_restantes + adicional_fixo
+                            st.metric("🔮 Previsão de consumo da área produtiva para o dia", f"{previsao_total:.2f} kWh")
+                        else:
+                            st.warning("Não há dados de consumo para o dia selecionado.")
+                    else:
+                        st.warning("Dados de consumo não encontrados.")
+                else:
+                    st.error("Limites ou data selecionada não disponíveis.")
+
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
