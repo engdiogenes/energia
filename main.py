@@ -105,7 +105,7 @@ def carregar_dados(dados_colados):
 with st.sidebar:
     #st.sidebar.image("logo.png", width=360)
     # st.logo("logo.png", size="Large", link=None, icon_image=None)
-    st.header(" Entrada de Dados")
+    st.header(" Data Input")
     import gspread
     from oauth2client.service_account import ServiceAccountCredentials
 
@@ -136,7 +136,7 @@ with st.sidebar:
         ultima_data = df_temp["Datetime"].max()
 
         # Exibir no Streamlit
-        st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
+        st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%m/%d/%Y %H:%M')}")
 
     else:
         dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
