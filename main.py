@@ -572,24 +572,23 @@ if dados_colados:
                     data_ref = st.session_state.data_selecionada
                     df_consumo = st.session_state.consumo.copy()
 
-                    # Colunas da área produtiva
                     colunas_area_produtiva = [
                         "MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"
                     ]
 
-                    # Filtrar limites do mês
                     limites_df["Data"] = pd.to_datetime(limites_df["Data"])
                     limites_mes = limites_df[
-                        (limites_df["Data"].dt.month == data_ref.month) & (limites_df["Data"].dt.year == data_ref.year)]
+                        (limites_df["Data"].dt.month == data_ref.month) &
+                        (limites_df["Data"].dt.year == data_ref.year)
+                        ]
 
-                    # Consumo máximo previsto = soma dos targets da área produtiva + adicional fixo
-                    limites_mes_area = limites_mes[colunas_area_produtiva]
-                    consumo_max_mes = limites_mes_area.sum().sum()
+                    # Consumo máximo previsto
+                    consumo_max_mes = limites_mes[colunas_area_produtiva].sum().sum()
                     dias_mes = limites_mes["Data"].dt.date.nunique()
                     adicional_fixo_mes = dias_mes * 24 * 13.75
                     consumo_max_mes += adicional_fixo_mes
 
-                    # Consumo previsto = consumo real até agora + targets restantes do mês
+                    # Consumo previsto
                     df_consumo["Datetime"] = pd.to_datetime(df_consumo["Datetime"])
                     consumo_ate_agora = df_consumo[
                         (df_consumo["Datetime"].dt.month == data_ref.month) &
@@ -597,19 +596,40 @@ if dados_colados:
                         (df_consumo["Datetime"].dt.date <= data_ref)
                         ]["Área Produtiva"].sum()
 
-                    # Targets restantes do mês (após a data selecionada)
                     limites_restantes = limites_mes[limites_mes["Data"].dt.date > data_ref]
                     targets_restantes = limites_restantes[colunas_area_produtiva].sum().sum()
                     adicional_restante = limites_restantes["Data"].dt.date.nunique() * 24 * 13.75
                     consumo_previsto_mes = consumo_ate_agora + targets_restantes + adicional_restante
 
-                    # Exibir métricas
+                    # Métricas
                     col1, col2 = st.columns(2)
                     col1.metric("🔋 Consumo máximo previsto para o mês (área produtiva)", f"{consumo_max_mes:.2f} kWh")
                     col2.metric("🔮 Consumo previsto para o mês (baseado no consumo atual + targets restantes)",
                                 f"{consumo_previsto_mes:.2f} kWh")
+
+                    # Tabela de previsão diária
+                    st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
+                    datas_unicas = sorted(limites_mes["Data"].dt.date.unique())
+                    dados_tabela = []
+
+                    for dia in datas_unicas:
+                        limites_dia = limites_mes[limites_mes["Data"].dt.date == dia]
+                        target_dia = limites_dia[colunas_area_produtiva].sum().sum() + 24 * 13.75
+                        consumo_dia = df_consumo[df_consumo["Datetime"].dt.date == dia]["Área Produtiva"].sum()
+                        saldo = target_dia - consumo_dia
+
+                        dados_tabela.append({
+                            "Data": dia.strftime("%Y-%m-%d"),
+                            "Consumo Previsto (kWh)": round(target_dia, 2),
+                            "Consumo Real (kWh)": round(consumo_dia, 2),
+                            "Saldo do Dia (kWh)": round(saldo, 2)
+                        })
+
+                    df_tabela = pd.DataFrame(dados_tabela)
+                    st.dataframe(df_tabela, use_container_width=True)
                 else:
                     st.error("Dados insuficientes para gerar a previsão mensal.")
+
 
 
 
