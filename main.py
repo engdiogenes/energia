@@ -634,34 +634,8 @@ if dados_colados:
 
                     df_tabela = pd.DataFrame(dados_tabela)
 
-
-                    # Legenda regenerativa baseada nos dados da tabela
-                    def gerar_legenda_inteligente(df_tabela):
-                        consumo_real_total = df_tabela["Consumo Real (kWh)"].sum()
-                        consumo_previsto_total = df_tabela["Consumo Previsto (kWh)"].sum()
-                        saldo_total = consumo_previsto_total - consumo_real_total
-                        variabilidade = df_tabela["Saldo do Dia (kWh)"].std()
-
-                        if saldo_total < 0:
-                            diagnostico = "A previsão indica que o consumo total da área produtiva deve ultrapassar a meta mensal de energia elétrica."
-                        else:
-                            diagnostico = "A previsão sugere que o consumo total da área produtiva deve permanecer dentro da meta mensal de energia elétrica."
-
-                        legenda = (
-                            f"O consumo real apresenta variações em torno da meta diária, com desvio padrão de aproximadamente {variabilidade:.1f} kWh. "
-                            f"O saldo acumulado até o momento é de {saldo_total:.1f} kWh. {diagnostico}"
-                        )
-                        return legenda
-
-
-                    # Exibir legenda regenerativa
-                    legenda = gerar_legenda_inteligente(df_tabela)
-                    st.markdown(f"**📌 Diagnóstico Inteligente:** {legenda}")
-
-                    st.dataframe(df_tabela, use_container_width=True)
-
-                    # Simulação de Monte Carlo - Gráfico Interativo com Plotly
-                    st.subheader("📈 Simulação de Monte Carlo - Consumo Diário Futuro")
+                    # Simulação de Monte Carlo - Gráfico Interativo com Plotly (com faixa de confiança)
+                    st.subheader("📈 Simulação de Monte Carlo - Consumo Diário Futuro com Faixa de Confiança")
 
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
                     historico_diario = df_consumo[
@@ -672,45 +646,91 @@ if dados_colados:
                     if len(historico_diario) >= 5:
                         media = historico_diario.mean()
                         desvio = historico_diario.std()
-
                         dias_futuros = [datetime.strptime(d, "%Y-%m-%d").date() for d in df_tabela["Data"] if
                                         datetime.strptime(d, "%Y-%m-%d").date() > data_ref]
-                        n_simulacoes = 50
-
+                        n_simulacoes = 1000
                         simulacoes = [np.random.normal(loc=media, scale=desvio, size=len(dias_futuros)) for _ in
                                       range(n_simulacoes)]
-                        media_simulada = np.mean(simulacoes, axis=0)
+                        simulacoes = np.array(simulacoes)
+                        media_simulada = simulacoes.mean(axis=0)
+                        p5 = np.percentile(simulacoes, 5, axis=0)
+                        p95 = np.percentile(simulacoes, 95, axis=0)
 
                         fig = go.Figure()
 
-                        for sim in simulacoes:
-                            fig.add_trace(go.Scatter(
-                                x=dias_futuros,
-                                y=sim,
-                                mode='lines',
-                                line=dict(color='gray', width=1),
-                                opacity=0.3,
-                                showlegend=False
-                            ))
+                        # Consumo real
+                        fig.add_trace(go.Scatter(
+                            x=historico_diario.index,
+                            y=historico_diario.values,
+                            mode='lines+markers',
+                            name='Consumo Real',
+                            line=dict(color='blue')
+                        ))
 
-                        for sim in simulacoes:
-                            fig.add_trace(go.Scatter(
-                                x=[dias_futuros[-2], dias_futuros[-1]],
-                                y=[sim[-2], sim[-1]],
-                                mode='lines',
-                                line=dict(color='orange', width=2),
-                                showlegend=False
-                            ))
+                        # Faixa de confiança
+                        fig.add_trace(go.Scatter(
+                            x=dias_futuros,
+                            y=p95,
+                            mode='lines',
+                            name='Percentil 95%',
+                            line=dict(width=0),
+                            showlegend=False
+                        ))
+                        fig.add_trace(go.Scatter(
+                            x=dias_futuros,
+                            y=p5,
+                            mode='lines',
+                            name='Faixa de Confiança 90%',
+                            fill='tonexty',
+                            fillcolor='rgba(255,165,0,0.2)',
+                            line=dict(width=0)
+                        ))
 
+                        # Média das simulações
                         fig.add_trace(go.Scatter(
                             x=dias_futuros,
                             y=media_simulada,
-                            mode='lines',
-                            name='Média das Simulações',
-                            line=dict(color='blue', width=3)
+                            mode='lines+markers',
+                            name='Previsão Média',
+                            line=dict(color='orange', dash='dash')
                         ))
 
+                        # Meta diária
+                        fig.add_trace(go.Scatter(
+                            x=list(historico_diario.index) + dias_futuros,
+                            y=[1250] * (len(historico_diario) + len(dias_futuros)),
+                            mode='lines',
+                            name='Meta Diária',
+                            line=dict(color='green', dash='dot')
+                        ))
+
+                        fig.update_layout(
+                            title='Previsão de Consumo com Monte Carlo - Área Produtiva',
+                            xaxis_title='Data',
+                            yaxis_title='Consumo Diário (kWh)',
+                            legend_title='Legenda',
+                            template='plotly_white'
+                        )
+
                         st.plotly_chart(fig, use_container_width=True)
+
+                        # Diagnóstico inteligente
+                        saldo_total = historico_diario.sum() + media_simulada.sum() - 1250 * (
+                                    len(historico_diario) + len(dias_futuros))
+                        variabilidade = np.std(simulacoes)
+
+                        if saldo_total > 0:
+                            diagnostico = "A previsão indica que o consumo total da área produtiva deve ultrapassar a meta mensal de energia elétrica."
+                        else:
+                            diagnostico = "A previsão sugere que o consumo total da área produtiva deve permanecer dentro da meta mensal de energia elétrica."
+
+                        legenda = (
+                            f"O consumo real apresenta variações em torno da meta diária. "
+                            f"A simulação de Monte Carlo mostra uma variabilidade de aproximadamente {variabilidade:.1f} kWh "
+                            f"entre as trajetórias simuladas. {diagnostico}"
+                        )
+
+                        st.markdown(f"**📌 Diagnóstico Inteligente:** {legenda}")
 
                         # Análise interpretativa baseada nas simulações
                         targets_futuros = df_tabela[
