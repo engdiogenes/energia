@@ -615,7 +615,7 @@ if dados_colados:
                                 f"{consumo_previsto_mes:.2f} kWh")
 
                     # Tabela de previsão diária
-                    st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
+                    #st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
                     datas_unicas = sorted(limites_mes["Data"].dt.date.unique())
                     dados_tabela = []
 
