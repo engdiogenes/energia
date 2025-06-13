@@ -129,18 +129,15 @@ with st.sidebar:
     origem_dados = st.radio("Escolha a origem dos dados:", ["Google Sheets", "Colar manualmente"])
 
     if origem_dados == "Google Sheets":
-        dados_colados = obter_dados_do_google_sheets()
-        # Converter os dados colados em DataFrame temporário para extrair a última data
-        df_temp = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
-        df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
-        ultima_data = df_temp["Datetime"].max()
+    dados_colados = obter_dados_do_google_sheets()
+    df_temp = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
+    df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
+    ultima_data = df_temp["Datetime"].max()
 
-        # Exibir no Streamlit
-if pd.notna(ultima_data):
-    st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
-else:
-    st.sidebar.warning("Não foi possível determinar a última data de atualização.")
-
+    if pd.notna(ultima_data):
+        st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
+    else:
+        st.sidebar.warning("Não foi possível determinar a última data de atualização.")
 else:
     dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
 
