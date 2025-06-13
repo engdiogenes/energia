@@ -722,7 +722,7 @@ if dados_colados:
                                     len(historico_diario) + len(dias_futuros))
                         variabilidade = np.std(simulacoes)
 
-                        if saldo_total > 0:
+                        if saldo_total < 0:
                             diagnostico = "A previsão indica que o consumo total da área produtiva deve ultrapassar a meta mensal de energia elétrica."
                         else:
                             diagnostico = "A previsão sugere que o consumo total da área produtiva deve permanecer dentro da meta mensal de energia elétrica."
