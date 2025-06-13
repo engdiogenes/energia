@@ -140,7 +140,7 @@ with st.sidebar:
           st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
         else:
             st.sidebar.warning("Não foi possível determinar a última data de atualização.")
-    
+
     else:
         dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
 
@@ -245,7 +245,7 @@ if dados_colados:
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            tabs = st.tabs([" Overview", " Per meter", " Daily targets", " Dashboard", " Calender", " Conversion "])
+            tabs = st.tabs([" Overview", " Per meter", " Daily targets", " Dashboard", " Calender", " Conversion ", " Month prediction "])
 
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
