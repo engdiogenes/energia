@@ -12,6 +12,8 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
+from datetime import datetime
+
 
 
 st.set_page_config(layout="wide", page_title="Monitor de Energia")
