@@ -18,6 +18,9 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
+from statsmodels.tsa.arima.model import ARIMA
+from datetime import timedelta
+
 
 
 
@@ -775,23 +778,17 @@ if dados_colados:
                         📉 A tendência geral é **{tendencia}**, o que sugere que **{risco}**.
                         """)
 
-                        import streamlit as st
-                        import numpy as np
-                        import pandas as pd
-                        import matplotlib.pyplot as plt
-                        from statsmodels.tsa.arima.model import ARIMA
-                        from datetime import timedelta
+                        # Estilo visual
+                        plt.style.use('ggplot')
 
-                        st.subheader("🔍 Comparativo de Previsão: ARIMA vs Monte Carlo")
+                        st.subheader("📊 Comparativo de Previsão: ARIMA vs Monte Carlo")
 
-                        # Simular dados históricos (substitua por seus dados reais)
-                        np.random.seed(42)
-                        dias_passados = 60
-                        consumo_medio = 1200
-                        desvio_padrao = 100
-                        datas_passadas = pd.date_range(end=pd.Timestamp.today(), periods=dias_passados)
-                        consumo_real = np.random.normal(loc=consumo_medio, scale=desvio_padrao, size=dias_passados)
-                        serie_historica = pd.Series(consumo_real, index=datas_passadas)
+                        # Usar dados reais do app
+                        df = st.session_state.consumo.copy()
+                        df['Data'] = df['Datetime'].dt.date
+                        df_diario = df.groupby('Data')['Área Produtiva'].sum().reset_index()
+                        df_diario['Data'] = pd.to_datetime(df_diario['Data'])
+                        serie_historica = pd.Series(df_diario['Área Produtiva'].values, index=df_diario['Data'])
 
                         # Previsão com ARIMA
                         modelo_arima = ARIMA(serie_historica, order=(1, 1, 1))
@@ -810,23 +807,36 @@ if dados_colados:
                         # Meta diária
                         meta_diaria = 1250
 
-                        # Plot
+                        # Gráfico
                         fig, ax = plt.subplots(figsize=(12, 6))
-                        ax.plot(serie_historica.index, serie_historica.values, label='Consumo Real', color='blue')
-                        ax.plot(datas_futuras, previsao_arima, label='Previsão ARIMA', linestyle='--', color='orange')
-                        ax.plot(datas_futuras, media_mc, label='Previsão Monte Carlo (média)', linestyle='--',
-                                color='green')
-                        ax.fill_between(datas_futuras, p5, p95, color='green', alpha=0.2,
-                                        label='Monte Carlo (intervalo 90%)')
-                        ax.axhline(meta_diaria, color='red', linestyle=':', label='Meta Diária')
+                        ax.plot(serie_historica.index, serie_historica.values, label='Consumo Real', color='#1f77b4',
+                                linewidth=2)
+                        ax.plot(datas_futuras, previsao_arima, label='Previsão ARIMA', linestyle='--', color='#ff7f0e',
+                                linewidth=2)
+                        ax.plot(datas_futuras, media_mc, label='Monte Carlo (média)', linestyle='--', color='#2ca02c',
+                                linewidth=2)
+                        ax.fill_between(datas_futuras, p5, p95, color='#2ca02c', alpha=0.2,
+                                        label='Monte Carlo (90% intervalo)')
+                        ax.axhline(meta_diaria, color='crimson', linestyle=':', linewidth=2, label='Meta Diária')
 
-                        ax.set_title('Comparativo de Previsão de Consumo de Energia - ARIMA vs Monte Carlo')
-                        ax.set_xlabel('Data')
-                        ax.set_ylabel('Consumo (kWh)')
-                        ax.legend()
-                        ax.grid(True)
+                        # Anotação
+                        ax.annotate('Início da previsão', xy=(datas_futuras[0], previsao_arima.iloc[0]),
+                                    xytext=(datas_futuras[0], previsao_arima.iloc[0] + 100),
+                                    arrowprops=dict(facecolor='gray', arrowstyle='->'),
+                                    fontsize=10, color='gray')
 
+                        # Estética
+                        ax.set_title('🔍 Previsão de Consumo de Energia: ARIMA vs Monte Carlo', fontsize=16,
+                                     weight='bold')
+                        ax.set_xlabel('Data', fontsize=12)
+                        ax.set_ylabel('Consumo (kWh)', fontsize=12)
+                        ax.tick_params(axis='x', rotation=45)
+                        ax.legend(loc='upper left', frameon=True, framealpha=0.9, facecolor='white')
+                        ax.grid(True, linestyle='--', alpha=0.5)
+
+                        # Exibir no Streamlit
                         st.pyplot(fig)
+
 
 
 
