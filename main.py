@@ -615,7 +615,7 @@ if dados_colados:
                                 f"{consumo_previsto_mes:.2f} kWh")
 
                     # Tabela de previsão diária
-                    #st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
+                    st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
                     datas_unicas = sorted(limites_mes["Data"].dt.date.unique())
                     dados_tabela = []
 
@@ -774,6 +774,60 @@ if dados_colados:
 
                         📉 A tendência geral é **{tendencia}**, o que sugere que **{risco}**.
                         """)
+
+                        import streamlit as st
+                        import numpy as np
+                        import pandas as pd
+                        import matplotlib.pyplot as plt
+                        from statsmodels.tsa.arima.model import ARIMA
+                        from datetime import timedelta
+
+                        st.subheader("🔍 Comparativo de Previsão: ARIMA vs Monte Carlo")
+
+                        # Simular dados históricos (substitua por seus dados reais)
+                        np.random.seed(42)
+                        dias_passados = 60
+                        consumo_medio = 1200
+                        desvio_padrao = 100
+                        datas_passadas = pd.date_range(end=pd.Timestamp.today(), periods=dias_passados)
+                        consumo_real = np.random.normal(loc=consumo_medio, scale=desvio_padrao, size=dias_passados)
+                        serie_historica = pd.Series(consumo_real, index=datas_passadas)
+
+                        # Previsão com ARIMA
+                        modelo_arima = ARIMA(serie_historica, order=(1, 1, 1))
+                        modelo_ajustado = modelo_arima.fit()
+                        previsao_arima = modelo_ajustado.forecast(steps=30)
+                        datas_futuras = pd.date_range(start=serie_historica.index[-1] + timedelta(days=1), periods=30)
+
+                        # Previsão com Monte Carlo
+                        simulacoes = 1000
+                        simulacoes_mc = np.random.normal(loc=serie_historica.mean(), scale=serie_historica.std(),
+                                                         size=(simulacoes, 30))
+                        media_mc = simulacoes_mc.mean(axis=0)
+                        p5 = np.percentile(simulacoes_mc, 5, axis=0)
+                        p95 = np.percentile(simulacoes_mc, 95, axis=0)
+
+                        # Meta diária
+                        meta_diaria = 1250
+
+                        # Plot
+                        fig, ax = plt.subplots(figsize=(12, 6))
+                        ax.plot(serie_historica.index, serie_historica.values, label='Consumo Real', color='blue')
+                        ax.plot(datas_futuras, previsao_arima, label='Previsão ARIMA', linestyle='--', color='orange')
+                        ax.plot(datas_futuras, media_mc, label='Previsão Monte Carlo (média)', linestyle='--',
+                                color='green')
+                        ax.fill_between(datas_futuras, p5, p95, color='green', alpha=0.2,
+                                        label='Monte Carlo (intervalo 90%)')
+                        ax.axhline(meta_diaria, color='red', linestyle=':', label='Meta Diária')
+
+                        ax.set_title('Comparativo de Previsão de Consumo de Energia - ARIMA vs Monte Carlo')
+                        ax.set_xlabel('Data')
+                        ax.set_ylabel('Consumo (kWh)')
+                        ax.legend()
+                        ax.grid(True)
+
+                        st.pyplot(fig)
+
 
 
 
