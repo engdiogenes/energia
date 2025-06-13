@@ -567,75 +567,50 @@ if dados_colados:
             with tabs[6]:
                 st.title("📅 Month Prediction")
 
-                if "limites_df" in st.session_state and "data_selecionada" in st.session_state:
-                    limites_df = st.session_state.limites_df
+                if "limites_df" in st.session_state and "data_selecionada" in st.session_state and "consumo" in st.session_state:
+                    limites_df = st.session_state.limites_df.copy()
                     data_ref = st.session_state.data_selecionada
-                    mes_ref = data_ref.month
-                    ano_ref = data_ref.year
-
-                    limites_df["Data"] = pd.to_datetime(limites_df["Data"])
-                    limites_mes = limites_df[
-                        (limites_df["Data"].dt.month == mes_ref) & (limites_df["Data"].dt.year == ano_ref)]
+                    df_consumo = st.session_state.consumo.copy()
 
                     # Colunas da área produtiva
                     colunas_area_produtiva = [
                         "MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"
                     ]
+
+                    # Filtrar limites do mês
+                    limites_df["Data"] = pd.to_datetime(limites_df["Data"])
+                    limites_mes = limites_df[
+                        (limites_df["Data"].dt.month == data_ref.month) & (limites_df["Data"].dt.year == data_ref.year)]
+
+                    # Consumo máximo previsto = soma dos targets da área produtiva + adicional fixo
                     limites_mes_area = limites_mes[colunas_area_produtiva]
                     consumo_max_mes = limites_mes_area.sum().sum()
-
-                    # Adicional fixo
                     dias_mes = limites_mes["Data"].dt.date.nunique()
                     adicional_fixo_mes = dias_mes * 24 * 13.75
                     consumo_max_mes += adicional_fixo_mes
 
-                    # Previsão diária
-                    if "consumo" in st.session_state:
-                        df = st.session_state.consumo
-                        df_dia = df[df["Datetime"].dt.date == data_ref]
-                        if not df_dia.empty:
-                            ultima_hora = df_dia["Datetime"].dt.hour.max()
-                            consumo_ate_agora = df_dia["Área Produtiva"].sum()
+                    # Consumo previsto = consumo real até agora + targets restantes do mês
+                    df_consumo["Datetime"] = pd.to_datetime(df_consumo["Datetime"])
+                    consumo_ate_agora = df_consumo[
+                        (df_consumo["Datetime"].dt.month == data_ref.month) &
+                        (df_consumo["Datetime"].dt.year == data_ref.year) &
+                        (df_consumo["Datetime"].dt.date <= data_ref)
+                        ]["Área Produtiva"].sum()
 
-                            limites_dia = limites_df[limites_df["Data"].dt.date == data_ref]
-                            limites_restantes = 0
-                            if not limites_dia.empty:
-                                limites_restantes = limites_dia[limites_dia["Hora"] > ultima_hora][
-                                    colunas_area_produtiva].sum().sum()
-
-                            horas_restantes = max(0, 23 - ultima_hora)
-                            adicional_fixo = horas_restantes * 13.75
-
-                            previsao_total = consumo_ate_agora + limites_restantes + adicional_fixo
-                        else:
-                            previsao_total = 0
-                    else:
-                        previsao_total = 0
+                    # Targets restantes do mês (após a data selecionada)
+                    limites_restantes = limites_mes[limites_mes["Data"].dt.date > data_ref]
+                    targets_restantes = limites_restantes[colunas_area_produtiva].sum().sum()
+                    adicional_restante = limites_restantes["Data"].dt.date.nunique() * 24 * 13.75
+                    consumo_previsto_mes = consumo_ate_agora + targets_restantes + adicional_restante
 
                     # Exibir métricas
                     col1, col2 = st.columns(2)
                     col1.metric("🔋 Consumo máximo previsto para o mês (área produtiva)", f"{consumo_max_mes:.2f} kWh")
-                    col2.metric("🔮 Previsão de consumo da área produtiva para o dia", f"{previsao_total:.2f} kWh")
-
-                    # Gráfico comparativo
-                    st.subheader("📊 Comparativo: Consumo Previsto vs Máximo Permitido")
-                    fig = go.Figure()
-                    fig.add_trace(go.Bar(
-                        x=["Previsão diária", "Máximo mensal"],
-                        y=[previsao_total, consumo_max_mes],
-                        marker_color=["orange", "green"],
-                        text=[f"{previsao_total:.0f} kWh", f"{consumo_max_mes:.0f} kWh"],
-                        textposition="outside"
-                    ))
-                    fig.update_layout(
-                        yaxis_title="kWh",
-                        title="Consumo da Área Produtiva",
-                        template="plotly_white",
-                        height=400
-                    )
-                    st.plotly_chart(fig, use_container_width=True)
+                    col2.metric("🔮 Consumo previsto para o mês (baseado no consumo atual + targets restantes)",
+                                f"{consumo_previsto_mes:.2f} kWh")
                 else:
-                    st.error("Limites ou data selecionada não disponíveis.")
+                    st.error("Dados insuficientes para gerar a previsão mensal.")
+
 
 
 
