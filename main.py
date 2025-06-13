@@ -633,10 +633,35 @@ if dados_colados:
                         })
 
                     df_tabela = pd.DataFrame(dados_tabela)
+
+
+                    # Legenda regenerativa baseada nos dados da tabela
+                    def gerar_legenda_inteligente(df_tabela):
+                        consumo_real_total = df_tabela["Consumo Real (kWh)"].sum()
+                        consumo_previsto_total = df_tabela["Consumo Previsto (kWh)"].sum()
+                        saldo_total = consumo_previsto_total - consumo_real_total
+                        variabilidade = df_tabela["Saldo do Dia (kWh)"].std()
+
+                        if saldo_total < 0:
+                            diagnostico = "A previsão indica que o consumo total da área produtiva deve ultrapassar a meta mensal de energia elétrica."
+                        else:
+                            diagnostico = "A previsão sugere que o consumo total da área produtiva deve permanecer dentro da meta mensal de energia elétrica."
+
+                        legenda = (
+                            f"O consumo real apresenta variações em torno da meta diária, com desvio padrão de aproximadamente {variabilidade:.1f} kWh. "
+                            f"O saldo acumulado até o momento é de {saldo_total:.1f} kWh. {diagnostico}"
+                        )
+                        return legenda
+
+
+                    # Exibir legenda regenerativa
+                    legenda = gerar_legenda_inteligente(df_tabela)
+                    st.markdown(f"**📌 Diagnóstico Inteligente:** {legenda}")
+
                     st.dataframe(df_tabela, use_container_width=True)
 
                     # Simulação de Monte Carlo - Gráfico Interativo com Plotly
-                    
+
                     st.subheader("📈 Simulação de Monte Carlo - Consumo Diário Futuro")
 
                     # Preparar dados
@@ -722,6 +747,8 @@ if dados_colados:
                         )
 
                         st.plotly_chart(fig, use_container_width=True)
+                        
+
                     else:
                         st.info("Dados históricos insuficientes para simulação de Monte Carlo.")
 
