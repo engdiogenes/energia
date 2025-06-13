@@ -634,11 +634,12 @@ if dados_colados:
 
                     df_tabela = pd.DataFrame(dados_tabela)
                     st.dataframe(df_tabela, use_container_width=True)
-                    # Simulação de Monte Carlo
-                    st.subheader("📈 Simulação de Monte Carlo para o Consumo da Área Produtiva")
 
+                    # Simulação de Monte Carlo - Gráfico Interativo com Plotly
                     
+                    st.subheader("📈 Simulação de Monte Carlo - Consumo Diário Futuro")
 
+                    # Preparar dados
                     df_consumo = st.session_state["consumo"].copy()
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
 
@@ -654,31 +655,76 @@ if dados_colados:
 
                         dias_futuros = [datetime.strptime(d, "%Y-%m-%d").date() for d in df_tabela["Data"] if
                                         datetime.strptime(d, "%Y-%m-%d").date() > data_ref]
-                        n_simulacoes = 100
+                        n_simulacoes = 50
 
-                        simulacoes = []
-                        for _ in range(n_simulacoes):
-                            simulacao = list(np.random.normal(loc=media, scale=desvio, size=len(dias_futuros)))
-                            simulacoes.append(simulacao)
-
-                        # Plotar gráfico
-                        fig, ax = plt.subplots(figsize=(10, 5))
-                        for sim in simulacoes:
-                            ax.plot(dias_futuros, sim, color="gray", alpha=0.2)
-
+                        simulacoes = [np.random.normal(loc=media, scale=desvio, size=len(dias_futuros)) for _ in
+                                      range(n_simulacoes)]
                         media_simulada = np.mean(simulacoes, axis=0)
-                        ax.plot(dias_futuros, media_simulada, color="blue", label="Média das Simulações", linewidth=2)
 
-                        ax.axvline(data_ref, color="red", linestyle="--", label="Hoje")
-                        ax.set_title("Simulação de Monte Carlo - Consumo Diário Futuro")
-                        ax.set_ylabel("kWh")
-                        ax.set_xlabel("Data")
-                        ax.legend()
-                        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
-                        fig.autofmt_xdate()
-                        st.pyplot(fig)
+                        fig = go.Figure()
+
+                        # Curvas simuladas
+                        for sim in simulacoes:
+                            fig.add_trace(go.Scatter(
+                                x=dias_futuros,
+                                y=sim,
+                                mode='lines',
+                                line=dict(color='gray', width=1),
+                                opacity=0.3,
+                                showlegend=False
+                            ))
+
+                        # Retas coloridas no final de cada curva
+                        for sim in simulacoes:
+                            fig.add_trace(go.Scatter(
+                                x=[dias_futuros[-2], dias_futuros[-1]],
+                                y=[sim[-2], sim[-1]],
+                                mode='lines',
+                                line=dict(color='orange', width=2),
+                                showlegend=False
+                            ))
+
+                        # Linha média
+                        fig.add_trace(go.Scatter(
+                            x=dias_futuros,
+                            y=media_simulada,
+                            mode='lines',
+                            name='Média das Simulações',
+                            line=dict(color='blue', width=3)
+                        ))
+
+                        # Linha vertical do dia atual
+                        fig.add_shape(
+                            type="line",
+                            x0=data_ref,
+                            x1=data_ref,
+                            y0=0,
+                            y1=max([max(sim) for sim in simulacoes]) * 1.1,
+                            line=dict(color="red", width=2, dash="dash"),
+                        )
+                        fig.add_annotation(
+                            x=data_ref,
+                            y=max([max(sim) for sim in simulacoes]) * 1.1,
+                            text="Hoje",
+                            showarrow=True,
+                            arrowhead=1,
+                            ax=0,
+                            ay=-40,
+                            font=dict(color="red")
+                        )
+
+                        fig.update_layout(
+                            title="Simulação de Monte Carlo - Consumo Diário Futuro da Área Produtiva",
+                            xaxis_title="Data",
+                            yaxis_title="Consumo (kWh)",
+                            template="plotly_white",
+                            height=500
+                        )
+
+                        st.plotly_chart(fig, use_container_width=True)
                     else:
                         st.info("Dados históricos insuficientes para simulação de Monte Carlo.")
+
 
 
     except Exception as e:
