@@ -565,113 +565,49 @@ if dados_colados:
                                            mime="application/json")
                     except Exception as e:
                         st.error(f"Erro ao processar os dados: {e}")
-            # TABS 6 - PREVISÃO MENSAL
-            with tabs[6]:
-                st.title("📅 Month Prediction")
+            # Simulação de Monte Carlo
+            st.subheader("📈 Simulação de Monte Carlo para o Consumo da Área Produtiva")
 
-                if "limites_df" in st.session_state and "data_selecionada" in st.session_state and "consumo" in st.session_state:
-                    limites_df = st.session_state.limites_df.copy()
-                    data_ref = st.session_state.data_selecionada
-                    df_consumo = st.session_state.consumo.copy()
+            # Preparar dados históricos diários
+            df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
+            historico_diario = df_consumo[
+                (pd.to_datetime(df_consumo["Datetime"]).dt.month == data_ref.month) &
+                (pd.to_datetime(df_consumo["Datetime"]).dt.year == data_ref.year)
+                ].groupby("Data")["Área Produtiva"].sum()
 
-                    colunas_area_produtiva = [
-                        "MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"
-                    ]
+            if len(historico_diario) >= 5:
+                media = historico_diario.mean()
+                desvio = historico_diario.std()
 
-                    limites_df["Data"] = pd.to_datetime(limites_df["Data"])
-                    limites_mes = limites_df[
-                        (limites_df["Data"].dt.month == data_ref.month) &
-                        (limites_df["Data"].dt.year == data_ref.year)
-                        ]
+                # Corrigir conversão de datas
+                dias_futuros = [datetime.strptime(d, "%Y-%m-%d").date() for d in df_tabela["Data"] if
+                                datetime.strptime(d, "%Y-%m-%d").date() > data_ref]
+                n_simulacoes = 100
 
-                    # Consumo máximo previsto
-                    consumo_max_mes = limites_mes[colunas_area_produtiva].sum().sum()
-                    dias_mes = limites_mes["Data"].dt.date.nunique()
-                    adicional_fixo_mes = dias_mes * 24 * 13.75
-                    consumo_max_mes += adicional_fixo_mes
+                simulacoes = []
+                for _ in range(n_simulacoes):
+                    simulacao = list(np.random.normal(loc=media, scale=desvio, size=len(dias_futuros)))
+                    simulacoes.append(simulacao)
 
-                    # Consumo previsto
-                    df_consumo["Datetime"] = pd.to_datetime(df_consumo["Datetime"])
-                    consumo_ate_agora = df_consumo[
-                        (df_consumo["Datetime"].dt.month == data_ref.month) &
-                        (df_consumo["Datetime"].dt.year == data_ref.year) &
-                        (df_consumo["Datetime"].dt.date <= data_ref)
-                        ]["Área Produtiva"].sum()
+                # Plotar
+                fig, ax = plt.subplots(figsize=(10, 5))
+                for sim in simulacoes:
+                    ax.plot(dias_futuros, sim, color="gray", alpha=0.2)
 
-                    limites_restantes = limites_mes[limites_mes["Data"].dt.date > data_ref]
-                    targets_restantes = limites_restantes[colunas_area_produtiva].sum().sum()
-                    adicional_restante = limites_restantes["Data"].dt.date.nunique() * 24 * 13.75
-                    consumo_previsto_mes = consumo_ate_agora + targets_restantes + adicional_restante
+                media_simulada = np.mean(simulacoes, axis=0)
+                ax.plot(dias_futuros, media_simulada, color="blue", label="Média das Simulações", linewidth=2)
 
-                    # Métricas
-                    col1, col2 = st.columns(2)
-                    col1.metric("🔋 Consumo máximo previsto para o mês (área produtiva)", f"{consumo_max_mes:.2f} kWh")
-                    col2.metric("🔮 Consumo previsto para o mês (baseado no consumo atual + targets restantes)",
-                                f"{consumo_previsto_mes:.2f} kWh")
+                ax.axvline(data_ref, color="red", linestyle="--", label="Hoje")
+                ax.set_title("Simulação de Monte Carlo - Consumo Diário Futuro")
+                ax.set_ylabel("kWh")
+                ax.set_xlabel("Data")
+                ax.legend()
+                ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
+                fig.autofmt_xdate()
+                st.pyplot(fig)
+            else:
+                st.info("Dados históricos insuficientes para simulação de Monte Carlo.")
 
-                    # Tabela de previsão diária
-                    st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
-                    datas_unicas = sorted(limites_mes["Data"].dt.date.unique())
-                    dados_tabela = []
-
-                    for dia in datas_unicas:
-                        limites_dia = limites_mes[limites_mes["Data"].dt.date == dia]
-                        target_dia = limites_dia[colunas_area_produtiva].sum().sum() + 24 * 13.75
-                        consumo_dia = df_consumo[df_consumo["Datetime"].dt.date == dia]["Área Produtiva"].sum()
-                        saldo = target_dia - consumo_dia
-
-                        dados_tabela.append({
-                            "Data": dia.strftime("%Y-%m-%d"),
-                            "Consumo Previsto (kWh)": round(target_dia, 2),
-                            "Consumo Real (kWh)": round(consumo_dia, 2),
-                            "Saldo do Dia (kWh)": round(saldo, 2)
-                        })
-
-                    df_tabela = pd.DataFrame(dados_tabela)
-                    st.dataframe(df_tabela, use_container_width=True)
-                    # Simulação de Monte Carlo
-                    st.subheader("📈 Simulação de Monte Carlo para o Consumo da Área Produtiva")
-
-                    # Preparar dados históricos diários
-                    df_consumo["Data"] = df_consumo["Datetime"].dt.date
-                    historico_diario = df_consumo[
-                        (df_consumo["Datetime"].dt.month == data_ref.month) &
-                        (df_consumo["Datetime"].dt.year == data_ref.year)
-                        ].groupby("Data")["Área Produtiva"].sum()
-
-                    if len(historico_diario) >= 5:
-                        media = historico_diario.mean()
-                        desvio = historico_diario.std()
-                        dias_futuros = [datetime.strptime(d, "%Y-%m-%d").date() for d in df_tabela["Data"] if
-                                        datetime.strptime(d, "%Y-%m-%d").date() > data_ref]
-                        n_simulacoes = 100
-
-                        simulacoes = []
-                        for _ in range(n_simulacoes):
-                            simulacao = list(np.random.normal(loc=media, scale=desvio, size=len(dias_futuros)))
-                            simulacoes.append(simulacao)
-
-                        # Plotar
-                        fig, ax = plt.subplots(figsize=(10, 5))
-                        for sim in simulacoes:
-                            ax.plot(dias_futuros, sim, color="gray", alpha=0.2)
-
-                        media_simulada = np.mean(simulacoes, axis=0)
-                        ax.plot(dias_futuros, media_simulada, color="blue", label="Média das Simulações", linewidth=2)
-
-                        ax.axvline(data_ref, color="red", linestyle="--", label="Hoje")
-                        ax.set_title("Simulação de Monte Carlo - Consumo Diário Futuro")
-                        ax.set_ylabel("kWh")
-                        ax.set_xlabel("Data")
-                        ax.legend()
-                        ax.xaxis.set_major_formatter(mdates.DateFormatter('%d/%m'))
-                        fig.autofmt_xdate()
-                        st.pyplot(fig)
-                    else:
-                        st.info("Dados históricos insuficientes para simulação de Monte Carlo.")
-
-                else:
-                    st.error("Dados insuficientes para gerar a previsão mensal.")
 
 
 
