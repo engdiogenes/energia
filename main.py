@@ -833,11 +833,14 @@ if dados_colados:
                         else:
                             st.warning("Dados de consumo não encontrados em st.session_state.")
 
-
-
-
-
-
+                            st.markdown(
+                                '''
+                                <a href="relatorio_month_prediction.html" target="_blank">
+                                    <button style="padding:10px 20px; font-size:16px;">📘 Ver Relatório Técnico</button>
+                                </a>
+                                ''',
+                                unsafe_allow_html=True
+                            )
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
