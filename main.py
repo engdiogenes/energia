@@ -847,7 +847,7 @@ if dados_colados:
                             df_limites = st.session_state.limites_df.copy()
                             df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
-                            # Filtrar apenas o mês e ano selecionado
+                            # Filtrar mês e ano selecionado
                             mes = st.session_state.data_selecionada.month
                             ano = st.session_state.data_selecionada.year
                             df_limites = df_limites[
@@ -859,7 +859,7 @@ if dados_colados:
                                 (pd.to_datetime(consumo_diario["Data"]).dt.year == ano)
                                 ]
 
-                            # Calcular meta diária somando os limites horários por dia
+                            # Calcular meta diária
                             colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
                                             "TRIM&FINAL"]
                             df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1)
@@ -878,15 +878,15 @@ if dados_colados:
                             mask_futuro = df_plot["Data"] > hoje
 
                             meta_total = df_plot["Meta Original"].sum()
-                            meta_passado = df_plot.loc[mask_passado, "Meta Original"].sum()
                             consumo_real = df_plot.loc[mask_passado, "Consumo Real"].sum()
-                            saldo = meta_passado - consumo_real
+                            saldo = meta_total - consumo_real
                             dias_restantes = mask_futuro.sum()
 
                             if dias_restantes > 0:
-                                ajuste_por_dia = saldo / dias_restantes
-                                df_plot.loc[mask_futuro, "Nova Meta Ajustada"] = df_plot.loc[
-                                                                                     mask_futuro, "Meta Original"] + ajuste_por_dia
+                                nova_meta_valor = saldo / dias_restantes
+                                df_plot.loc[mask_passado, "Nova Meta Ajustada"] = df_plot.loc[
+                                    mask_passado, "Consumo Real"]
+                                df_plot.loc[mask_futuro, "Nova Meta Ajustada"] = nova_meta_valor
 
                                 # Ajuste final para garantir igualdade exata
                                 diferenca_final = meta_total - df_plot["Nova Meta Ajustada"].sum()
@@ -894,7 +894,7 @@ if dados_colados:
                                     idx_ultimo = df_plot[mask_futuro].index[-1]
                                     df_plot.loc[idx_ultimo, "Nova Meta Ajustada"] += diferenca_final
 
-                            # Criar gráfico interativo
+                            # Gráfico interativo
                             fig = go.Figure()
                             fig.add_trace(go.Scatter(
                                 x=df_plot["Data"], y=df_plot["Consumo Real"],
@@ -917,6 +917,12 @@ if dados_colados:
                                 template='plotly_white'
                             )
                             st.plotly_chart(fig, use_container_width=True)
+
+                            # Métricas
+                            st.markdown("### 📈 Resumo das Metas Mensais")
+                            col1, col2 = st.columns(2)
+                            col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
+                            col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
                             # Exibir métricas
                             st.markdown("### 📈 Resumo das Metas Mensais")
