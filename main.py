@@ -741,8 +741,23 @@ if dados_colados:
                         st.plotly_chart(fig, use_container_width=True)
 
                         # Diagnóstico inteligente
-                        saldo_total = historico_diario.sum() + media_simulada.sum() - 1250 * (
-                                    len(historico_diario) + len(dias_futuros))
+                        # Calcular metas reais do JSON para os dias do histórico e futuros
+                        df_limites = st.session_state.limites_df.copy()
+                        df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
+
+                        colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                        "TRIM&FINAL"]
+                        df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                        meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
+                        meta_diaria_df["Data"] = pd.to_datetime(meta_diaria_df["Data"], errors='coerce')
+
+                        # Filtrar metas para os dias do histórico e futuros
+                        datas_relevantes = list(historico_diario.index) + dias_futuros
+                        meta_total = meta_diaria_df[meta_diaria_df["Data"].isin(datas_relevantes)]["Meta Horária"].sum()
+
+                        # Novo saldo total com base nas metas reais
+                        saldo_total = historico_diario.sum() + media_simulada.sum() - meta_total
+
                         variabilidade = np.std(simulacoes)
 
                         if saldo_total < 0:
