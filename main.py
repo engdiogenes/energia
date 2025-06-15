@@ -700,11 +700,32 @@ if dados_colados:
                         ))
 
                         # Meta diária
+                        # Meta diária real a partir do JSON
+                        df_limites = st.session_state.limites_df.copy()
+                        df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
+
+                        colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                        "TRIM&FINAL"]
+                        df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                        meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
+
+                        # Estender até o fim do mês da data selecionada
+                        data_base = st.session_state.data_selecionada
+                        ultimo_dia_mes = datetime(data_base.year, data_base.month + 1, 1) - timedelta(
+                            days=1) if data_base.month < 12 else datetime(data_base.year, 12, 31)
+
+                        datas_completas = pd.date_range(start=meta_diaria_df["Data"].min(), end=ultimo_dia_mes.date(),
+                                                        freq='D')
+                        meta_diaria_df = meta_diaria_df.set_index("Data").reindex(datas_completas).fillna(
+                            method='ffill').reset_index()
+                        meta_diaria_df.columns = ["Data", "Meta Horária"]
+
+                        # Adicionar linha de metas reais ao gráfico
                         fig.add_trace(go.Scatter(
-                            x=list(historico_diario.index) + dias_futuros,
-                            y=[1250] * (len(historico_diario) + len(dias_futuros)),
+                            x=meta_diaria_df["Data"],
+                            y=meta_diaria_df["Meta Horária"],
                             mode='lines',
-                            name='Meta Diária',
+                            name='Meta Diária Real',
                             line=dict(color='green', dash='dot')
                         ))
 
