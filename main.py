@@ -421,6 +421,26 @@ if dados_colados:
                         file_name="limites_horarios_completos.json",
                         mime="application/json"
                     )
+                    # Exibir metas mensais de consumo da área produtiva
+                    st.subheader("📊 Metas Mensais de Consumo da Área Produtiva")
+
+                    df_limites = st.session_state.limites_df.copy()
+                    df_limites["Data"] = pd.to_datetime(df_limites["Data"])
+
+                    colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                    "TRIM&FINAL"]
+                    df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                    df_limites["Meta Diária"] = df_limites[
+                        "Meta Horária"]  # já é por hora, pois o JSON tem 24 linhas por dia
+
+                    df_limites["Ano"] = df_limites["Data"].dt.year
+                    df_limites["Mês"] = df_limites["Data"].dt.month
+
+                    meta_mensal_df = df_limites.groupby(["Ano", "Mês"])["Meta Diária"].sum().reset_index()
+                    meta_mensal_df.rename(columns={"Meta Diária": "Meta Mensal (kWh)"}, inplace=True)
+
+                    st.dataframe(meta_mensal_df, use_container_width=True)
+
                 else:
                     st.warning("Nenhum limite foi carregado.")
 
