@@ -943,8 +943,8 @@ if dados_colados:
                                 df.set_index('Datetime', inplace=True)
 
                                 data_base = pd.to_datetime(st.session_state.data_selecionada)
-                                past_hours = 48
-                                future_hours = 24
+                                past_hours = 96
+                                future_hours = 48
 
                                 start_time = data_base - timedelta(hours=past_hours)
                                 df_past = df.loc[start_time:data_base]
@@ -954,7 +954,7 @@ if dados_colados:
                                     time_hist = df_past.tail(past_hours).index
 
                                     # Simular 100 trajetórias futuras
-                                    n_simulations = 100
+                                    n_simulations = 500
                                     future_simulations = [
                                         y_hist[-1] + np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=future_hours))
                                         for _ in range(n_simulations)
