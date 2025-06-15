@@ -926,17 +926,21 @@ if dados_colados:
                             col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
                             #--------------------------
-                            # Verifica se os dados estão disponíveis
+                            # Forecast Interativo com Monte Carlo
+                            import matplotlib.pyplot as plt
+                            from matplotlib import cm
+
+                            st.subheader("📈 Forecast Interativo com Monte Carlo")
+
                             if 'consumo' in st.session_state and 'data_selecionada' in st.session_state:
                                 df = st.session_state.consumo.copy()
                                 df['Datetime'] = pd.to_datetime(df['Datetime'])
                                 df.set_index('Datetime', inplace=True)
 
                                 data_base = pd.to_datetime(st.session_state.data_selecionada)
-                                past_hours = 96
+                                past_hours = 48
                                 future_hours = 24
 
-                                # Seleciona as últimas 48 horas antes da data base
                                 start_time = data_base - timedelta(hours=past_hours)
                                 df_past = df.loc[start_time:data_base]
 
@@ -945,13 +949,18 @@ if dados_colados:
                                     time_hist = df_past.tail(past_hours).index
 
                                     # Simular 100 trajetórias futuras
-                                    n_simulations = 1000
+                                    n_simulations = 100
                                     future_simulations = [
                                         y_hist[-1] + np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=future_hours))
                                         for _ in range(n_simulations)
                                     ]
                                     time_future = pd.date_range(start=data_base + timedelta(hours=1),
                                                                 periods=future_hours, freq='H')
+
+                                    # Paleta de cores variadas
+                                    cmap = cm.get_cmap('tab20', n_simulations)
+                                    colors = [f'rgba({int(r * 255)},{int(g * 255)},{int(b * 255)},0.4)' for r, g, b, _
+                                              in cmap(np.linspace(0, 1, n_simulations))]
 
                                     # Gráfico principal
                                     fig = go.Figure()
@@ -966,12 +975,12 @@ if dados_colados:
                                     ))
 
                                     # Linhas coloridas das simulações futuras
-                                    for sim in future_simulations:
+                                    for sim, color in zip(future_simulations, colors):
                                         fig.add_trace(go.Scatter(
                                             x=time_future,
                                             y=sim,
                                             mode='lines',
-                                            line=dict(color='rgba(0,100,255,0.2)'),
+                                            line=dict(color=color),
                                             showlegend=False
                                         ))
 
@@ -990,7 +999,6 @@ if dados_colados:
                                         name='Distribuição final'
                                     ))
 
-                                    # Layout
                                     fig.update_layout(
                                         title="Forecasts com Monte Carlo Sampling",
                                         xaxis_title="Tempo",
@@ -1003,11 +1011,6 @@ if dados_colados:
                                     st.warning("Não há dados suficientes ou a coluna 'Área Produtiva' está ausente.")
                             else:
                                 st.warning("Dados de consumo ou data selecionada não encontrados.")
-
-
-
-
-
                         else:
                             st.warning("Dados de consumo não encontrados em st.session_state.")
 
