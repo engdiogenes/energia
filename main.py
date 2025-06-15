@@ -846,6 +846,17 @@ if dados_colados:
                             df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
                             meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
 
+                            # Garantir que a linha da meta vá até o fim do mês da data selecionada
+                            data_base = st.session_state.data_selecionada
+                            ultimo_dia_mes = datetime(data_base.year, data_base.month + 1, 1) - timedelta(
+                                days=1) if data_base.month < 12 else datetime(data_base.year, 12, 31)
+
+                            datas_completas = pd.date_range(start=meta_diaria_df["Data"].min(),
+                                                            end=ultimo_dia_mes.date(), freq='D')
+                            meta_diaria_df = meta_diaria_df.set_index("Data").reindex(datas_completas).fillna(
+                                method='ffill').reset_index()
+                            meta_diaria_df.columns = ["Data", "Meta Horária"]
+
                             # Adicionar linha de metas reais ao gráfico
                             fig.add_trace(go.Scatter(
                                 x=meta_diaria_df["Data"],
