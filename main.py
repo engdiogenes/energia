@@ -20,6 +20,7 @@ import matplotlib.dates as mdates
 from datetime import datetime
 from statsmodels.tsa.arima.model import ARIMA
 from datetime import timedelta
+import streamlit.components.v1 as components
 
 
 
@@ -833,14 +834,13 @@ if dados_colados:
                         else:
                             st.warning("Dados de consumo não encontrados em st.session_state.")
 
-                st.markdown(
-                    '''
-                    <a href="relatorio_month_prediction.html" target="_blank">
-                        <button style="padding:10px 20px; font-size:16px;">📘 Ver Relatório Técnico</button>
-                    </a>
-                    ''',
-                    unsafe_allow_html=True
-                )
+
+                with open("relatorio_month_prediction.html", "r", encoding="utf-8") as f:
+                    html_content = f.read()
+
+                st.markdown("### 📘 Relatório Técnico Detalhado")
+                components.html(html_content, height=1000, scrolling=True)
+
 
 
 
