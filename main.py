@@ -836,7 +836,6 @@ if dados_colados:
 
                             import plotly.graph_objects as go
                             import pandas as pd
-                            import numpy as np
 
                             st.subheader("📊 Comparativo Diário: Consumo Real vs Metas Originais e Ajustadas")
 
@@ -875,10 +874,10 @@ if dados_colados:
                             hoje = st.session_state.data_selecionada
                             df_plot["Nova Meta Ajustada"] = df_plot["Meta Original"]
 
-                            # Saldo acumulado até hoje
                             mask_passado = df_plot["Data"] <= hoje
                             mask_futuro = df_plot["Data"] > hoje
 
+                            meta_total = df_plot["Meta Original"].sum()
                             meta_passado = df_plot.loc[mask_passado, "Meta Original"].sum()
                             consumo_real = df_plot.loc[mask_passado, "Consumo Real"].sum()
                             saldo = meta_passado - consumo_real
@@ -888,6 +887,12 @@ if dados_colados:
                                 ajuste_por_dia = saldo / dias_restantes
                                 df_plot.loc[mask_futuro, "Nova Meta Ajustada"] = df_plot.loc[
                                                                                      mask_futuro, "Meta Original"] + ajuste_por_dia
+
+                                # Ajuste final para garantir igualdade exata
+                                diferenca_final = meta_total - df_plot["Nova Meta Ajustada"].sum()
+                                if abs(diferenca_final) > 0.01:
+                                    idx_ultimo = df_plot[mask_futuro].index[-1]
+                                    df_plot.loc[idx_ultimo, "Nova Meta Ajustada"] += diferenca_final
 
                             # Criar gráfico interativo
                             fig = go.Figure()
@@ -911,88 +916,86 @@ if dados_colados:
                                 hovermode='x unified',
                                 template='plotly_white'
                             )
-
                             st.plotly_chart(fig, use_container_width=True)
-                            
-                            # Exibir métricas de metas mensais
-                            st.markdown("### 📊 Resumo das Metas Mensais")
+
+                            # Exibir métricas
+                            st.markdown("### 📈 Resumo das Metas Mensais")
                             col1, col2 = st.columns(2)
                             col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
                             col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
-
-                            #gráfico 2 de previsão
                             import numpy as np
                             import pandas as pd
                             import plotly.graph_objects as go
                             from datetime import timedelta
                             import streamlit as st
 
-                            # Selecionar data base na barra lateral
-                            data_selecionada = st.sidebar.date_input("Selecione a data base para previsão")
+                            # Verifica se os dados estão disponíveis
+                            if 'consumo' in st.session_state and 'data_selecionada' in st.session_state:
+                                df = st.session_state.consumo.copy()
+                                df['Datetime'] = pd.to_datetime(df['Datetime'])
+                                df.set_index('Datetime', inplace=True)
 
-                            # Parâmetros
-                            past_hours = 48
-                            future_hours = 24
-                            start_datetime = pd.to_datetime(data_selecionada)
-                            time_index = pd.date_range(start=start_datetime - timedelta(hours=past_hours),
-                                                       periods=past_hours + future_hours, freq="H")
+                                data_base = pd.to_datetime(st.session_state.data_selecionada)
+                                past_hours = 48
+                                future_hours = 24
 
-                            # Simular dados históricos
-                            np.random.seed(42)
-                            historical_data = np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=past_hours)) + 50
+                                # Seleciona as últimas 48 horas antes da data base
+                                start_time = data_base - timedelta(hours=past_hours)
+                                df_past = df.loc[start_time:data_base]
 
-                            # Simular 100 trajetórias futuras
-                            n_simulations = 100
-                            future_simulations = [
-                                historical_data[-1] + np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=future_hours))
-                                for _ in range(n_simulations)
-                            ]
+                                if 'Área Produtiva' in df_past.columns and len(df_past) >= past_hours:
+                                    y_hist = df_past['Área Produtiva'].tail(past_hours).values
+                                    time_hist = df_past.tail(past_hours).index
 
-                            # Criar gráfico
-                            fig = go.Figure()
+                                    # Simular 100 trajetórias futuras
+                                    n_simulations = 100
+                                    future_simulations = [
+                                        y_hist[-1] + np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=future_hours))
+                                        for _ in range(n_simulations)
+                                    ]
+                                    time_future = pd.date_range(start=data_base + timedelta(hours=1),
+                                                                periods=future_hours, freq='H')
 
-                            # Histórico
-                            fig.add_trace(go.Scatter(
-                                x=time_index[:past_hours],
-                                y=historical_data,
-                                mode='lines',
-                                name='Histórico',
-                                line=dict(color='black')
-                            ))
+                                    # Gráfico principal
+                                    fig = go.Figure()
+                                    fig.add_trace(go.Scatter(x=time_hist, y=y_hist, mode='lines', name='Histórico',
+                                                             line=dict(color='black')))
+                                    for sim in future_simulations:
+                                        fig.add_trace(go.Scatter(x=time_future, y=sim, mode='lines',
+                                                                 line=dict(color='rgba(0,100,255,0.1)'),
+                                                                 showlegend=False))
+                                    fig.update_layout(
+                                        title="Forecasts com Monte Carlo Sampling",
+                                        xaxis_title="Tempo",
+                                        yaxis_title="Consumo de Energia - Área Produtiva",
+                                        template="plotly_white"
+                                    )
 
-                            # Simulações futuras
-                            for sim in future_simulations:
-                                fig.add_trace(go.Scatter(
-                                    x=time_index[past_hours:],
-                                    y=sim,
-                                    mode='lines',
-                                    line=dict(color='rgba(0,100,255,0.1)'),
-                                    showlegend=False
-                                ))
+                                    # Histograma dos valores finais
+                                    final_values = [sim[-1] for sim in future_simulations]
+                                    fig_hist = go.Figure()
+                                    fig_hist.add_trace(go.Histogram(
+                                        x=final_values,
+                                        name='Distribuição final',
+                                        marker_color='goldenrod',
+                                        opacity=0.75
+                                    ))
+                                    fig_hist.update_layout(
+                                        title="Distribuição dos valores finais simulados",
+                                        xaxis_title="Valor final simulado",
+                                        yaxis_title="Frequência",
+                                        template="plotly_white"
+                                    )
 
-                            # Histograma final
-                            final_values = [sim[-1] for sim in future_simulations]
-                            fig.add_trace(go.Histogram(
-                                x=final_values,
-                                name='Distribuição final',
-                                marker_color='goldenrod',
-                                opacity=0.6,
-                                yaxis='y2'
-                            ))
+                                    # Exibir gráficos
+                                    st.plotly_chart(fig, use_container_width=True)
+                                    st.plotly_chart(fig_hist, use_container_width=True)
+                                else:
+                                    st.warning("Não há dados suficientes ou a coluna 'Área Produtiva' está ausente.")
+                            else:
+                                st.warning("Dados de consumo ou data selecionada não encontrados.")
 
-                            # Layout
-                            fig.update_layout(
-                                title="Forecasts with Monte Carlo Sampling",
-                                xaxis_title="Tempo",
-                                yaxis=dict(title="Consumo de Energia"),
-                                yaxis2=dict(overlaying='y', side='right', showgrid=False),
-                                bargap=0.1,
-                                template="plotly_white"
-                            )
-
-                            # Exibir no Streamlit
-                            st.plotly_chart(fig)
 
 
 
