@@ -831,8 +831,116 @@ if dados_colados:
                                               template='plotly_white')
 
                             st.plotly_chart(fig, use_container_width=True)
+
+                            import matplotlib.pyplot as plt
+                            import numpy as np
+                            import pandas as pd
+                            from datetime import datetime
+
+                            st.subheader("📊 Comparativo Diário: Consumo Real vs Metas Originais e Ajustadas")
+
+                            # Preparar dados
+                            df_consumo = st.session_state.consumo.copy()
+                            df_consumo["Data"] = df_consumo["Datetime"].dt.date
+                            consumo_diario = df_consumo.groupby("Data")["Área Produtiva"].sum().reset_index()
+
+                            df_limites = st.session_state.limites_df.copy()
+                            df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
+
+                            # Calcular meta diária original da área produtiva
+                            colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                            "TRIM&FINAL"]
+                            df_limites["Meta Original"] = df_limites[colunas_area].sum(axis=1) + 13.75 * 24
+
+                            # Mesclar consumo real
+                            df_plot = df_limites[["Data", "Meta Original"]].merge(consumo_diario, on="Data", how="left")
+                            df_plot.rename(columns={"Área Produtiva": "Consumo Real"}, inplace=True)
+
+                            # Calcular nova meta ajustada
+                            hoje = st.session_state.data_selecionada
+                            dias_passados = df_plot["Consumo Real"].notna().sum()
+                            dias_restantes = df_plot["Consumo Real"].isna().sum()
+                            meta_total = df_plot["Meta Original"].sum()
+                            consumo_real_total = df_plot["Consumo Real"].sum()
+                            diferenca = meta_total - consumo_real_total
+
+                            df_plot["Nova Meta Ajustada"] = df_plot["Meta Original"]
+                            if dias_restantes > 0:
+                                nova_meta_valor = diferenca / dias_restantes
+                                df_plot.loc[df_plot["Consumo Real"].isna(), "Nova Meta Ajustada"] = nova_meta_valor
+
+                            # Plotar gráfico
+                            fig, ax = plt.subplots(figsize=(12, 6))
+                            ax.plot(df_plot["Data"], df_plot["Meta Original"], label="Meta Original Diária",
+                                    linestyle="--", color="black")
+                            ax.plot(df_plot["Data"], df_plot["Nova Meta Ajustada"], label="Nova Meta Ajustada",
+                                    linestyle="-.", color="orange")
+                            ax.plot(df_plot["Data"], df_plot["Consumo Real"], label="Consumo Real Diário", marker="o",
+                                    color="blue")
+                            ax.set_title("Consumo Diário da Área Produtiva vs Metas")
+                            ax.set_xlabel("Data")
+                            ax.set_ylabel("Energia (kWh)")
+                            ax.legend()
+                            ax.grid(True)
+                            plt.xticks(rotation=45)
+                            plt.tight_layout()
+                            st.pyplot(fig)
+                            
+                            st.subheader("📊 Comparativo Diário: Consumo Real vs Metas Originais e Ajustadas")
+
+                            # Preparar dados
+                            df_consumo = st.session_state.consumo.copy()
+                            df_consumo["Data"] = df_consumo["Datetime"].dt.date
+                            consumo_diario = df_consumo.groupby("Data")["Área Produtiva"].sum().reset_index()
+
+                            df_limites = st.session_state.limites_df.copy()
+                            df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
+
+                            # Calcular meta diária original da área produtiva
+                            colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                            "TRIM&FINAL"]
+                            df_limites["Meta Original"] = df_limites[colunas_area].sum(axis=1) + 13.75 * 24
+
+                            # Mesclar consumo real
+                            df_plot = df_limites[["Data", "Meta Original"]].merge(consumo_diario, on="Data", how="left")
+                            df_plot.rename(columns={"Área Produtiva": "Consumo Real"}, inplace=True)
+
+                            # Calcular nova meta ajustada
+                            hoje = st.session_state.data_selecionada
+                            dias_passados = df_plot["Consumo Real"].notna().sum()
+                            dias_restantes = df_plot["Consumo Real"].isna().sum()
+                            meta_total = df_plot["Meta Original"].sum()
+                            consumo_real_total = df_plot["Consumo Real"].sum()
+                            diferenca = meta_total - consumo_real_total
+
+                            df_plot["Nova Meta Ajustada"] = df_plot["Meta Original"]
+                            if dias_restantes > 0:
+                                nova_meta_valor = diferenca / dias_restantes
+                                df_plot.loc[df_plot["Consumo Real"].isna(), "Nova Meta Ajustada"] = nova_meta_valor
+
+                            # Plotar gráfico
+                            fig, ax = plt.subplots(figsize=(12, 6))
+                            ax.plot(df_plot["Data"], df_plot["Meta Original"], label="Meta Original Diária",
+                                    linestyle="--", color="black")
+                            ax.plot(df_plot["Data"], df_plot["Nova Meta Ajustada"], label="Nova Meta Ajustada",
+                                    linestyle="-.", color="orange")
+                            ax.plot(df_plot["Data"], df_plot["Consumo Real"], label="Consumo Real Diário", marker="o",
+                                    color="blue")
+                            ax.set_title("Consumo Diário da Área Produtiva vs Metas")
+                            ax.set_xlabel("Data")
+                            ax.set_ylabel("Energia (kWh)")
+                            ax.legend()
+                            ax.grid(True)
+                            plt.xticks(rotation=45)
+                            plt.tight_layout()
+                            st.pyplot(fig)
+
+
+
+
                         else:
                             st.warning("Dados de consumo não encontrados em st.session_state.")
+
 
 
                 with open("relatorio_month_prediction.html", "r", encoding="utf-8") as f:
