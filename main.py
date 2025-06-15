@@ -804,26 +804,23 @@ if dados_colados:
                             p5 = np.percentile(simulacoes_mc, 5, axis=0)
                             p95 = np.percentile(simulacoes_mc, 95, axis=0)
 
-                            # Meta
-                            meta_diaria = 1250
+                            # Meta diária real a partir do JSON
+                            df_limites = st.session_state.limites_df.copy()
+                            df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
-                            # Gráfico Plotly
-                            fig = go.Figure()
-                            fig.add_trace(
-                                go.Scatter(x=serie_historica.index, y=serie_historica.values, name='Consumo Real',
-                                           line=dict(color='blue')))
-                            fig.add_trace(go.Scatter(x=datas_futuras, y=previsao_arima, name='Previsão ARIMA',
-                                                     line=dict(color='orange', dash='dash')))
-                            fig.add_trace(go.Scatter(x=datas_futuras, y=media_mc, name='Monte Carlo (média)',
-                                                     line=dict(color='green', dash='dot')))
-                            fig.add_trace(go.Scatter(x=np.concatenate([datas_futuras, datas_futuras[::-1]]),
-                                                     y=np.concatenate([p95, p5[::-1]]),
-                                                     fill='toself', fillcolor='rgba(0,255,0,0.1)',
-                                                     line=dict(color='rgba(255,255,255,0)'),
-                                                     name='Monte Carlo (90% intervalo)'))
-                            fig.add_trace(go.Scatter(x=[serie_historica.index.min(), datas_futuras[-1]],
-                                                     y=[meta_diaria, meta_diaria], name='Meta Diária',
-                                                     line=dict(color='crimson', dash='dot')))
+                            colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                            "TRIM&FINAL"]
+                            df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                            meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
+
+                            # Adicionar linha de metas reais ao gráfico
+                            fig.add_trace(go.Scatter(
+                                x=meta_diaria_df["Data"],
+                                y=meta_diaria_df["Meta Horária"],
+                                mode='lines',
+                                name='Meta Diária Real',
+                                line=dict(color='crimson', dash='dot')
+                            ))
 
                             fig.update_layout(title='🔍 Previsão de Consumo de Energia: ARIMA vs Monte Carlo',
                                               xaxis_title='Data', yaxis_title='Consumo (kWh)',
@@ -832,12 +829,15 @@ if dados_colados:
 
                             st.plotly_chart(fig, use_container_width=True)
 
-                            #Gráfico de Comparativo Diário de novas metas
-
-                            # Forecast Interativo com Monte Carlo
+                            import numpy as np
+                            import pandas as pd
+                            import plotly.graph_objects as go
+                            from datetime import timedelta
                             import matplotlib.pyplot as plt
                             from matplotlib import cm
+                            import streamlit as st
 
+                            # Forecast Interativo com Monte Carlo
                             st.subheader("📈 Forecast Interativo com Monte Carlo")
 
                             if 'consumo' in st.session_state and 'data_selecionada' in st.session_state:
@@ -892,20 +892,21 @@ if dados_colados:
                                             showlegend=False
                                         ))
 
-                                    # Distribuição lateral
+                                    # Histograma lateral real
                                     final_values = [sim[-1] for sim in future_simulations]
-                                    hist_y = np.linspace(min(final_values), max(final_values), 50)
-                                    hist_x = np.histogram(final_values, bins=hist_y)[0]
-                                    hist_x = hist_x / max(hist_x) * 6  # escala para largura visual
+                                    hist_counts, hist_bins = np.histogram(final_values, bins=30)
+                                    bin_centers = 0.5 * (hist_bins[:-1] + hist_bins[1:])
+                                    max_count = max(hist_counts)
+                                    x_offset = time_future[-1] + timedelta(hours=1)
 
-                                    fig.add_trace(go.Scatter(
-                                        x=[time_future[-1] + timedelta(hours=1)] * len(hist_y),
-                                        y=hist_y,
-                                        mode='markers+lines',
-                                        marker=dict(size=hist_x, color='goldenrod', opacity=0.6),
-                                        line=dict(width=0),
-                                        name='Distribuição final'
-                                    ))
+                                    for count, y in zip(hist_counts, bin_centers):
+                                        fig.add_trace(go.Scatter(
+                                            x=[x_offset, x_offset + timedelta(minutes=30 * count / max_count)],
+                                            y=[y, y],
+                                            mode='lines',
+                                            line=dict(color='goldenrod', width=6),
+                                            showlegend=False
+                                        ))
 
                                     fig.update_layout(
                                         title="Forecasts com Monte Carlo Sampling",
@@ -919,6 +920,7 @@ if dados_colados:
                                     st.warning("Não há dados suficientes ou a coluna 'Área Produtiva' está ausente.")
                             else:
                                 st.warning("Dados de consumo ou data selecionada não encontrados.")
+
 
                         else:
                             st.warning("Dados de consumo não encontrados em st.session_state.")
