@@ -837,7 +837,8 @@ if dados_colados:
                             import plotly.graph_objects as go
                             import pandas as pd
 
-                            st.subheader("📊 Comparativo Diário: Consumo Real vs Metas Originais e Ajustadas")
+                            st.subheader(
+                                "📊 Comparativo Diário: Consumo Real vs Metas Originais e Ajustadas (Distribuição Proporcional)")
 
                             # Preparar dados
                             df_consumo = st.session_state.consumo.copy()
@@ -870,7 +871,7 @@ if dados_colados:
                             df_plot = meta_diaria_df.merge(consumo_diario, on="Data", how="left")
                             df_plot.rename(columns={"Área Produtiva": "Consumo Real"}, inplace=True)
 
-                            # Calcular nova meta ajustada
+                            # Calcular nova meta ajustada proporcional ao perfil de consumo
                             hoje = st.session_state.data_selecionada
                             df_plot["Nova Meta Ajustada"] = df_plot["Meta Original"]
 
@@ -880,13 +881,13 @@ if dados_colados:
                             meta_total = df_plot["Meta Original"].sum()
                             consumo_real = df_plot.loc[mask_passado, "Consumo Real"].sum()
                             saldo = meta_total - consumo_real
-                            dias_restantes = mask_futuro.sum()
 
-                            if dias_restantes > 0:
-                                nova_meta_valor = saldo / dias_restantes
+                            if mask_futuro.sum() > 0:
+                                consumo_estimado = df_plot.loc[mask_futuro, "Meta Original"]
+                                proporcoes = consumo_estimado / consumo_estimado.sum()
                                 df_plot.loc[mask_passado, "Nova Meta Ajustada"] = df_plot.loc[
                                     mask_passado, "Consumo Real"]
-                                df_plot.loc[mask_futuro, "Nova Meta Ajustada"] = nova_meta_valor
+                                df_plot.loc[mask_futuro, "Nova Meta Ajustada"] = proporcoes * saldo
 
                                 # Ajuste final para garantir igualdade exata
                                 diferenca_final = meta_total - df_plot["Nova Meta Ajustada"].sum()
@@ -909,7 +910,7 @@ if dados_colados:
                                 mode='lines', name='Nova Meta Ajustada', line=dict(dash='dot', color='orange')
                             ))
                             fig.update_layout(
-                                title='Consumo Diário da Área Produtiva vs Metas (Mês Selecionado)',
+                                title='Consumo Diário da Área Produtiva vs Metas (Distribuição Proporcional)',
                                 xaxis_title='Data',
                                 yaxis_title='Energia (kWh)',
                                 legend_title='Legenda',
@@ -923,7 +924,6 @@ if dados_colados:
                             col1, col2 = st.columns(2)
                             col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
                             col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
-
 
                             #--------------------------
                             # Verifica se os dados estão disponíveis
