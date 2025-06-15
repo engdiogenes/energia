@@ -834,6 +834,10 @@ if dados_colados:
 
                             #Gráfico de Comparativo Diário de novas metas
 
+                            import plotly.graph_objects as go
+                            import pandas as pd
+                            import numpy as np
+
                             st.subheader("📊 Comparativo Diário: Consumo Real vs Metas Originais e Ajustadas")
 
                             # Preparar dados
@@ -869,16 +873,21 @@ if dados_colados:
 
                             # Calcular nova meta ajustada
                             hoje = st.session_state.data_selecionada
-                            dias_passados = df_plot[df_plot["Data"] <= hoje].shape[0]
-                            dias_restantes = df_plot[df_plot["Data"] > hoje].shape[0]
-                            meta_total = df_plot["Meta Original"].sum()
-                            consumo_real_total = df_plot[df_plot["Data"] <= hoje]["Consumo Real"].sum()
-                            diferenca = meta_total - consumo_real_total
-
                             df_plot["Nova Meta Ajustada"] = df_plot["Meta Original"]
+
+                            # Saldo acumulado até hoje
+                            mask_passado = df_plot["Data"] <= hoje
+                            mask_futuro = df_plot["Data"] > hoje
+
+                            meta_passado = df_plot.loc[mask_passado, "Meta Original"].sum()
+                            consumo_real = df_plot.loc[mask_passado, "Consumo Real"].sum()
+                            saldo = meta_passado - consumo_real
+                            dias_restantes = mask_futuro.sum()
+
                             if dias_restantes > 0:
-                                nova_meta_valor = diferenca / dias_restantes
-                                df_plot.loc[df_plot["Data"] > hoje, "Nova Meta Ajustada"] = nova_meta_valor
+                                ajuste_por_dia = saldo / dias_restantes
+                                df_plot.loc[mask_futuro, "Nova Meta Ajustada"] = df_plot.loc[
+                                                                                     mask_futuro, "Meta Original"] + ajuste_por_dia
 
                             # Criar gráfico interativo
                             fig = go.Figure()
@@ -904,6 +913,7 @@ if dados_colados:
                             )
 
                             st.plotly_chart(fig, use_container_width=True)
+
 
 
 
