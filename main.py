@@ -804,8 +804,23 @@ if dados_colados:
                             p5 = np.percentile(simulacoes_mc, 5, axis=0)
                             p95 = np.percentile(simulacoes_mc, 95, axis=0)
 
-                            # Meta
-                            meta_diaria = 1250
+                            # Meta diária real a partir do JSON
+                            df_limites = st.session_state.limites_df.copy()
+                            df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
+
+                            colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                            "TRIM&FINAL"]
+                            df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                            meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
+
+                            # Adicionar linha de metas reais ao gráfico
+                            fig.add_trace(go.Scatter(
+                                x=meta_diaria_df["Data"],
+                                y=meta_diaria_df["Meta Horária"],
+                                mode='lines',
+                                name='Meta Diária Real',
+                                line=dict(color='crimson', dash='dot')
+                            ))
 
                             # Gráfico Plotly
                             fig = go.Figure()
@@ -821,9 +836,7 @@ if dados_colados:
                                                      fill='toself', fillcolor='rgba(0,255,0,0.1)',
                                                      line=dict(color='rgba(255,255,255,0)'),
                                                      name='Monte Carlo (90% intervalo)'))
-                            fig.add_trace(go.Scatter(x=[serie_historica.index.min(), datas_futuras[-1]],
-                                                     y=[meta_diaria, meta_diaria], name='Meta Diária',
-                                                     line=dict(color='crimson', dash='dot')))
+
 
                             fig.update_layout(title='🔍 Previsão de Consumo de Energia: ARIMA vs Monte Carlo',
                                               xaxis_title='Data', yaxis_title='Consumo (kWh)',
