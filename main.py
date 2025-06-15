@@ -640,7 +640,19 @@ if dados_colados:
                     limites_restantes = limites_mes[limites_mes["Data"].dt.date > data_ref]
                     targets_restantes = limites_restantes[colunas_area_produtiva].sum().sum()
                     adicional_restante = limites_restantes["Data"].dt.date.nunique() * 24 * 13.75
-                    consumo_previsto_mes = consumo_ate_agora + targets_restantes + adicional_restante
+                    # Verificar se o mês está completo (todos os dias com consumo real)
+                    dias_com_consumo = set(
+                        df_consumo[df_consumo["Datetime"].dt.month == data_ref.month]["Datetime"].dt.date.unique())
+                    dias_esperados = set(limites_mes["Data"].dt.date.unique())
+                    mes_completo = dias_esperados.issubset(dias_com_consumo)
+
+                    if mes_completo:
+                        consumo_previsto_mes = df_consumo[
+                            (df_consumo["Datetime"].dt.month == data_ref.month) &
+                            (df_consumo["Datetime"].dt.year == data_ref.year)
+                            ]["Área Produtiva"].sum()
+                    else:
+                        consumo_previsto_mes = consumo_ate_agora + targets_restantes + adicional_restante
 
                     # Métricas
                     col1, col2 = st.columns(2)
