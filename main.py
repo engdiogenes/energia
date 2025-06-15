@@ -834,10 +834,6 @@ if dados_colados:
 
                             #Gráfico de Comparativo Diário de novas metas
 
-                            import plotly.graph_objects as go
-                            import pandas as pd
-                            import numpy as np
-
                             st.subheader("📊 Comparativo Diário: Consumo Real vs Metas Originais e Ajustadas")
 
                             # Preparar dados
@@ -847,6 +843,18 @@ if dados_colados:
 
                             df_limites = st.session_state.limites_df.copy()
                             df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
+
+                            # Filtrar apenas o mês selecionado
+                            mes = st.session_state.data_selecionada.month
+                            ano = st.session_state.data_selecionada.year
+                            df_limites = df_limites[
+                                pd.to_datetime(df_limites["Data"]).dt.month == mes
+                                & pd.to_datetime(df_limites["Data"]).dt.year == ano
+                                ]
+                            consumo_diario = consumo_diario[
+                                pd.to_datetime(consumo_diario["Data"]).dt.month == mes
+                                & pd.to_datetime(consumo_diario["Data"]).dt.year == ano
+                                ]
 
                             # Calcular meta diária somando os limites horários por dia
                             colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
@@ -887,13 +895,15 @@ if dados_colados:
                                 mode='lines', name='Nova Meta Ajustada', line=dict(dash='dot', color='orange')
                             ))
                             fig.update_layout(
-                                title='Consumo Diário da Área Produtiva vs Metas',
+                                title='Consumo Diário da Área Produtiva vs Metas (Mês Selecionado)',
                                 xaxis_title='Data',
                                 yaxis_title='Energia (kWh)',
                                 legend_title='Legenda',
                                 hovermode='x unified',
                                 template='plotly_white'
                             )
+
+                            st.plotly_chart(fig, use_container_width=True)
 
                             st.plotly_chart(fig, use_container_width=True)
 
