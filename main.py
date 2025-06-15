@@ -930,12 +930,7 @@ if dados_colados:
                             col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
                             col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
-                            import numpy as np
-                            import pandas as pd
-                            import plotly.graph_objects as go
-                            from datetime import timedelta
-                            import streamlit as st
-
+                            #--------------------------
                             # Verifica se os dados estão disponíveis
                             if 'consumo' in st.session_state and 'data_selecionada' in st.session_state:
                                 df = st.session_state.consumo.copy()
@@ -965,12 +960,42 @@ if dados_colados:
 
                                     # Gráfico principal
                                     fig = go.Figure()
-                                    fig.add_trace(go.Scatter(x=time_hist, y=y_hist, mode='lines', name='Histórico',
-                                                             line=dict(color='black')))
+
+                                    # Linha preta do histórico
+                                    fig.add_trace(go.Scatter(
+                                        x=time_hist,
+                                        y=y_hist,
+                                        mode='lines',
+                                        name='Histórico',
+                                        line=dict(color='black')
+                                    ))
+
+                                    # Linhas coloridas das simulações futuras
                                     for sim in future_simulations:
-                                        fig.add_trace(go.Scatter(x=time_future, y=sim, mode='lines',
-                                                                 line=dict(color='rgba(0,100,255,0.1)'),
-                                                                 showlegend=False))
+                                        fig.add_trace(go.Scatter(
+                                            x=time_future,
+                                            y=sim,
+                                            mode='lines',
+                                            line=dict(color='rgba(0,100,255,0.2)'),
+                                            showlegend=False
+                                        ))
+
+                                    # Distribuição lateral
+                                    final_values = [sim[-1] for sim in future_simulations]
+                                    hist_y = np.linspace(min(final_values), max(final_values), 50)
+                                    hist_x = np.histogram(final_values, bins=hist_y)[0]
+                                    hist_x = hist_x / max(hist_x) * 6  # escala para largura visual
+
+                                    fig.add_trace(go.Scatter(
+                                        x=[time_future[-1] + timedelta(hours=1)] * len(hist_y),
+                                        y=hist_y,
+                                        mode='markers+lines',
+                                        marker=dict(size=hist_x, color='goldenrod', opacity=0.6),
+                                        line=dict(width=0),
+                                        name='Distribuição final'
+                                    ))
+
+                                    # Layout
                                     fig.update_layout(
                                         title="Forecasts com Monte Carlo Sampling",
                                         xaxis_title="Tempo",
@@ -978,29 +1003,12 @@ if dados_colados:
                                         template="plotly_white"
                                     )
 
-                                    # Histograma dos valores finais
-                                    final_values = [sim[-1] for sim in future_simulations]
-                                    fig_hist = go.Figure()
-                                    fig_hist.add_trace(go.Histogram(
-                                        x=final_values,
-                                        name='Distribuição final',
-                                        marker_color='goldenrod',
-                                        opacity=0.75
-                                    ))
-                                    fig_hist.update_layout(
-                                        title="Distribuição dos valores finais simulados",
-                                        xaxis_title="Valor final simulado",
-                                        yaxis_title="Frequência",
-                                        template="plotly_white"
-                                    )
-
-                                    # Exibir gráficos
                                     st.plotly_chart(fig, use_container_width=True)
-                                    st.plotly_chart(fig_hist, use_container_width=True)
                                 else:
                                     st.warning("Não há dados suficientes ou a coluna 'Área Produtiva' está ausente.")
                             else:
                                 st.warning("Dados de consumo ou data selecionada não encontrados.")
+
 
 
 
