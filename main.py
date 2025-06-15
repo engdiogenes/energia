@@ -913,6 +913,13 @@ if dados_colados:
                             )
 
                             st.plotly_chart(fig, use_container_width=True)
+                            
+                            # Exibir métricas de metas mensais
+                            st.markdown("### 📊 Resumo das Metas Mensais")
+                            col1, col2 = st.columns(2)
+                            col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
+                            col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
+
 
 
 
