@@ -924,11 +924,6 @@ if dados_colados:
                             col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
                             col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
-                            # Exibir métricas
-                            st.markdown("### 📈 Resumo das Metas Mensais")
-                            col1, col2 = st.columns(2)
-                            col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
-                            col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
                             #--------------------------
                             # Verifica se os dados estão disponíveis
@@ -938,7 +933,7 @@ if dados_colados:
                                 df.set_index('Datetime', inplace=True)
 
                                 data_base = pd.to_datetime(st.session_state.data_selecionada)
-                                past_hours = 48
+                                past_hours = 96
                                 future_hours = 24
 
                                 # Seleciona as últimas 48 horas antes da data base
@@ -950,7 +945,7 @@ if dados_colados:
                                     time_hist = df_past.tail(past_hours).index
 
                                     # Simular 100 trajetórias futuras
-                                    n_simulations = 100
+                                    n_simulations = 1000
                                     future_simulations = [
                                         y_hist[-1] + np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=future_hours))
                                         for _ in range(n_simulations)
