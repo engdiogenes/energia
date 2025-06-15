@@ -921,6 +921,78 @@ if dados_colados:
                             col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
 
+                            #gráfico 2 de previsão
+                            import numpy as np
+                            import pandas as pd
+                            import plotly.graph_objects as go
+                            from datetime import timedelta
+                            import streamlit as st
+
+                            # Selecionar data base na barra lateral
+                            data_selecionada = st.sidebar.date_input("Selecione a data base para previsão")
+
+                            # Parâmetros
+                            past_hours = 48
+                            future_hours = 24
+                            start_datetime = pd.to_datetime(data_selecionada)
+                            time_index = pd.date_range(start=start_datetime - timedelta(hours=past_hours),
+                                                       periods=past_hours + future_hours, freq="H")
+
+                            # Simular dados históricos
+                            np.random.seed(42)
+                            historical_data = np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=past_hours)) + 50
+
+                            # Simular 100 trajetórias futuras
+                            n_simulations = 100
+                            future_simulations = [
+                                historical_data[-1] + np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=future_hours))
+                                for _ in range(n_simulations)
+                            ]
+
+                            # Criar gráfico
+                            fig = go.Figure()
+
+                            # Histórico
+                            fig.add_trace(go.Scatter(
+                                x=time_index[:past_hours],
+                                y=historical_data,
+                                mode='lines',
+                                name='Histórico',
+                                line=dict(color='black')
+                            ))
+
+                            # Simulações futuras
+                            for sim in future_simulations:
+                                fig.add_trace(go.Scatter(
+                                    x=time_index[past_hours:],
+                                    y=sim,
+                                    mode='lines',
+                                    line=dict(color='rgba(0,100,255,0.1)'),
+                                    showlegend=False
+                                ))
+
+                            # Histograma final
+                            final_values = [sim[-1] for sim in future_simulations]
+                            fig.add_trace(go.Histogram(
+                                x=final_values,
+                                name='Distribuição final',
+                                marker_color='goldenrod',
+                                opacity=0.6,
+                                yaxis='y2'
+                            ))
+
+                            # Layout
+                            fig.update_layout(
+                                title="Forecasts with Monte Carlo Sampling",
+                                xaxis_title="Tempo",
+                                yaxis=dict(title="Consumo de Energia"),
+                                yaxis2=dict(overlaying='y', side='right', showgrid=False),
+                                bargap=0.1,
+                                template="plotly_white"
+                            )
+
+                            # Exibir no Streamlit
+                            st.plotly_chart(fig)
 
 
 
