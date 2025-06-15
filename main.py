@@ -834,98 +834,6 @@ if dados_colados:
 
                             #Gráfico de Comparativo Diário de novas metas
 
-                            import plotly.graph_objects as go
-                            import pandas as pd
-
-                            st.subheader(
-                                "📊 Comparativo Diário: Consumo Real vs Metas Originais e Ajustadas (Distribuição Proporcional)")
-
-                            # Preparar dados
-                            df_consumo = st.session_state.consumo.copy()
-                            df_consumo["Data"] = df_consumo["Datetime"].dt.date
-                            consumo_diario = df_consumo.groupby("Data")["Área Produtiva"].sum().reset_index()
-
-                            df_limites = st.session_state.limites_df.copy()
-                            df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
-
-                            # Filtrar mês e ano selecionado
-                            mes = st.session_state.data_selecionada.month
-                            ano = st.session_state.data_selecionada.year
-                            df_limites = df_limites[
-                                (pd.to_datetime(df_limites["Data"]).dt.month == mes) &
-                                (pd.to_datetime(df_limites["Data"]).dt.year == ano)
-                                ]
-                            consumo_diario = consumo_diario[
-                                (pd.to_datetime(consumo_diario["Data"]).dt.month == mes) &
-                                (pd.to_datetime(consumo_diario["Data"]).dt.year == ano)
-                                ]
-
-                            # Calcular meta diária
-                            colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                            "TRIM&FINAL"]
-                            df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1)
-                            meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
-                            meta_diaria_df.rename(columns={"Meta Horária": "Meta Original"}, inplace=True)
-
-                            # Mesclar com consumo real
-                            df_plot = meta_diaria_df.merge(consumo_diario, on="Data", how="left")
-                            df_plot.rename(columns={"Área Produtiva": "Consumo Real"}, inplace=True)
-
-                            # Calcular nova meta ajustada proporcional ao perfil de consumo
-                            hoje = st.session_state.data_selecionada
-                            df_plot["Nova Meta Ajustada"] = df_plot["Meta Original"]
-
-                            mask_passado = df_plot["Data"] <= hoje
-                            mask_futuro = df_plot["Data"] > hoje
-
-                            meta_total = df_plot["Meta Original"].sum()
-                            consumo_real = df_plot.loc[mask_passado, "Consumo Real"].sum()
-                            saldo = meta_total - consumo_real
-
-                            if mask_futuro.sum() > 0:
-                                consumo_estimado = df_plot.loc[mask_futuro, "Meta Original"]
-                                proporcoes = consumo_estimado / consumo_estimado.sum()
-                                df_plot.loc[mask_passado, "Nova Meta Ajustada"] = df_plot.loc[
-                                    mask_passado, "Consumo Real"]
-                                df_plot.loc[mask_futuro, "Nova Meta Ajustada"] = proporcoes * saldo
-
-                                # Ajuste final para garantir igualdade exata
-                                diferenca_final = meta_total - df_plot["Nova Meta Ajustada"].sum()
-                                if abs(diferenca_final) > 0.01:
-                                    idx_ultimo = df_plot[mask_futuro].index[-1]
-                                    df_plot.loc[idx_ultimo, "Nova Meta Ajustada"] += diferenca_final
-
-                            # Gráfico interativo
-                            fig = go.Figure()
-                            fig.add_trace(go.Scatter(
-                                x=df_plot["Data"], y=df_plot["Consumo Real"],
-                                mode='lines+markers', name='Consumo Real Diário', line=dict(color='blue')
-                            ))
-                            fig.add_trace(go.Scatter(
-                                x=df_plot["Data"], y=df_plot["Meta Original"],
-                                mode='lines', name='Meta Original Diária', line=dict(dash='dash', color='black')
-                            ))
-                            fig.add_trace(go.Scatter(
-                                x=df_plot["Data"], y=df_plot["Nova Meta Ajustada"],
-                                mode='lines', name='Nova Meta Ajustada', line=dict(dash='dot', color='orange')
-                            ))
-                            fig.update_layout(
-                                title='Consumo Diário da Área Produtiva vs Metas (Distribuição Proporcional)',
-                                xaxis_title='Data',
-                                yaxis_title='Energia (kWh)',
-                                legend_title='Legenda',
-                                hovermode='x unified',
-                                template='plotly_white'
-                            )
-                            st.plotly_chart(fig, use_container_width=True)
-
-                            # Métricas
-                            st.markdown("### 📈 Resumo das Metas Mensais")
-                            col1, col2 = st.columns(2)
-                            col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
-                            col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
-
-                            #--------------------------
                             # Forecast Interativo com Monte Carlo
                             import matplotlib.pyplot as plt
                             from matplotlib import cm
@@ -1011,6 +919,7 @@ if dados_colados:
                                     st.warning("Não há dados suficientes ou a coluna 'Área Produtiva' está ausente.")
                             else:
                                 st.warning("Dados de consumo ou data selecionada não encontrados.")
+
                         else:
                             st.warning("Dados de consumo não encontrados em st.session_state.")
 
