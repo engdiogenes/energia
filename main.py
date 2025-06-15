@@ -926,10 +926,15 @@ if dados_colados:
                             col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
                             #--------------------------
-                            # Forecast Interativo com Monte Carlo
+                            import numpy as np
+                            import pandas as pd
+                            import plotly.graph_objects as go
+                            from datetime import timedelta
                             import matplotlib.pyplot as plt
                             from matplotlib import cm
+                            import streamlit as st
 
+                            # Forecast Interativo com Monte Carlo
                             st.subheader("📈 Forecast Interativo com Monte Carlo")
 
                             if 'consumo' in st.session_state and 'data_selecionada' in st.session_state:
@@ -984,20 +989,21 @@ if dados_colados:
                                             showlegend=False
                                         ))
 
-                                    # Distribuição lateral
+                                    # Histograma lateral real
                                     final_values = [sim[-1] for sim in future_simulations]
-                                    hist_y = np.linspace(min(final_values), max(final_values), 50)
-                                    hist_x = np.histogram(final_values, bins=hist_y)[0]
-                                    hist_x = hist_x / max(hist_x) * 6  # escala para largura visual
+                                    hist_counts, hist_bins = np.histogram(final_values, bins=30)
+                                    bin_centers = 0.5 * (hist_bins[:-1] + hist_bins[1:])
+                                    max_count = max(hist_counts)
+                                    x_offset = time_future[-1] + timedelta(hours=1)
 
-                                    fig.add_trace(go.Scatter(
-                                        x=[time_future[-1] + timedelta(hours=1)] * len(hist_y),
-                                        y=hist_y,
-                                        mode='markers+lines',
-                                        marker=dict(size=hist_x, color='goldenrod', opacity=0.6),
-                                        line=dict(width=0),
-                                        name='Distribuição final'
-                                    ))
+                                    for count, y in zip(hist_counts, bin_centers):
+                                        fig.add_trace(go.Scatter(
+                                            x=[x_offset, x_offset + timedelta(minutes=30 * count / max_count)],
+                                            y=[y, y],
+                                            mode='lines',
+                                            line=dict(color='goldenrod', width=6),
+                                            showlegend=False
+                                        ))
 
                                     fig.update_layout(
                                         title="Forecasts com Monte Carlo Sampling",
