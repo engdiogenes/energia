@@ -711,6 +711,9 @@ if dados_colados:
 
                         # Filtrar apenas o mês e ano da data selecionada
                         data_base = st.session_state.data_selecionada
+                        meta_diaria_df["Data"] = pd.to_datetime(meta_diaria_df["Data"], errors='coerce')
+                        meta_diaria_df = meta_diaria_df.dropna(subset=["Data"])
+
                         meta_diaria_df = meta_diaria_df[
                             (meta_diaria_df["Data"].dt.month == data_base.month) &
                             (meta_diaria_df["Data"].dt.year == data_base.year)
