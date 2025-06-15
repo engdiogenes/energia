@@ -844,16 +844,16 @@ if dados_colados:
                             df_limites = st.session_state.limites_df.copy()
                             df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
-                            # Filtrar apenas o mês selecionado
+                            # Filtrar apenas o mês e ano selecionado
                             mes = st.session_state.data_selecionada.month
                             ano = st.session_state.data_selecionada.year
                             df_limites = df_limites[
-                                pd.to_datetime(df_limites["Data"]).dt.month == mes
-                                & pd.to_datetime(df_limites["Data"]).dt.year == ano
+                                (pd.to_datetime(df_limites["Data"]).dt.month == mes) &
+                                (pd.to_datetime(df_limites["Data"]).dt.year == ano)
                                 ]
                             consumo_diario = consumo_diario[
-                                pd.to_datetime(consumo_diario["Data"]).dt.month == mes
-                                & pd.to_datetime(consumo_diario["Data"]).dt.year == ano
+                                (pd.to_datetime(consumo_diario["Data"]).dt.month == mes) &
+                                (pd.to_datetime(consumo_diario["Data"]).dt.year == ano)
                                 ]
 
                             # Calcular meta diária somando os limites horários por dia
@@ -905,7 +905,6 @@ if dados_colados:
 
                             st.plotly_chart(fig, use_container_width=True)
 
-                            st.plotly_chart(fig, use_container_width=True)
 
 
                         else:
