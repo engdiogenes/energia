@@ -834,6 +834,10 @@ if dados_colados:
 
                             #Gráfico de Comparativo Diário de novas metas
 
+                            import plotly.graph_objects as go
+                            import pandas as pd
+                            import numpy as np
+
                             st.subheader("📊 Comparativo Diário: Consumo Real vs Metas Originais e Ajustadas")
 
                             # Preparar dados
@@ -844,26 +848,29 @@ if dados_colados:
                             df_limites = st.session_state.limites_df.copy()
                             df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
-                            # Calcular meta diária original da área produtiva
+                            # Calcular meta diária somando os limites horários por dia
                             colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
                                             "TRIM&FINAL"]
-                            df_limites["Meta Original"] = df_limites[colunas_area].sum(axis=1) + 13.75 * 24
+                            df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1)
+                            meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
+                            meta_diaria_df.rename(columns={"Meta Horária": "Meta Original"}, inplace=True)
 
-                            # Mesclar consumo real
-                            df_plot = df_limites[["Data", "Meta Original"]].merge(consumo_diario, on="Data", how="left")
+                            # Mesclar com consumo real
+                            df_plot = meta_diaria_df.merge(consumo_diario, on="Data", how="left")
                             df_plot.rename(columns={"Área Produtiva": "Consumo Real"}, inplace=True)
 
                             # Calcular nova meta ajustada
-                            dias_passados = df_plot["Consumo Real"].notna().sum()
-                            dias_restantes = df_plot["Consumo Real"].isna().sum()
+                            hoje = st.session_state.data_selecionada
+                            dias_passados = df_plot[df_plot["Data"] <= hoje].shape[0]
+                            dias_restantes = df_plot[df_plot["Data"] > hoje].shape[0]
                             meta_total = df_plot["Meta Original"].sum()
-                            consumo_real_total = df_plot["Consumo Real"].sum()
+                            consumo_real_total = df_plot[df_plot["Data"] <= hoje]["Consumo Real"].sum()
                             diferenca = meta_total - consumo_real_total
 
                             df_plot["Nova Meta Ajustada"] = df_plot["Meta Original"]
                             if dias_restantes > 0:
                                 nova_meta_valor = diferenca / dias_restantes
-                                df_plot.loc[df_plot["Consumo Real"].isna(), "Nova Meta Ajustada"] = nova_meta_valor
+                                df_plot.loc[df_plot["Data"] > hoje, "Nova Meta Ajustada"] = nova_meta_valor
 
                             # Criar gráfico interativo
                             fig = go.Figure()
@@ -889,6 +896,7 @@ if dados_colados:
                             )
 
                             st.plotly_chart(fig, use_container_width=True)
+
 
                         else:
                             st.warning("Dados de consumo não encontrados em st.session_state.")
