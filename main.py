@@ -256,7 +256,7 @@ if dados_colados:
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            tabs = st.tabs([" Overview", " Per meter", " Targets", " Dashboard", " Calender", " Conversion ", " Month prediction "])
+            tabs = st.tabs([" Overview", " Per meter", " Daily targets", " Dashboard", " Calender", " Conversion ", " Month prediction "])
 
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
@@ -971,7 +971,7 @@ if dados_colados:
                             # Calcular meta diária
                             colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
                                             "TRIM&FINAL"]
-                            df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1)
+                            df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
                             meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
                             meta_diaria_df.rename(columns={"Meta Horária": "Meta Original"}, inplace=True)
 
