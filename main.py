@@ -702,14 +702,6 @@ if dados_colados:
                         (df_limites["Data"].dt.year == data_ref.year)
                         ]["Meta Horária"].sum()
 
-                    # Exibir métrica
-                    delta_estimado = consumo_estimado_total - meta_mensal
-                    st.metric(
-                        label="📈 Estimativa Total com Base no Padrão Atual",
-                        value=f"{consumo_estimado_total:,.0f} kWh",
-                        delta=f"{delta_estimado:,.0f} kWh"
-                    )
-
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
                     dias_consumidos = df_mes["Data"].nunique()
                     media_diaria = consumo_ate_hoje / dias_consumidos if dias_consumidos > 0 else 0
@@ -749,13 +741,7 @@ if dados_colados:
                         (df_limites["Data"].dt.year == data_ref.year)
                         ]["Meta Horária"].sum()
 
-                    # Exibir métrica
-                    delta_estimado = consumo_estimado_total - meta_mensal
-                    st.metric(
-                        label="📈 Estimativa Total com Base no Padrão Atual",
-                        value=f"{consumo_estimado_total:,.0f} kWh",
-                        delta=f"{delta_estimado:,.0f} kWh"
-                    )
+                    
 
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
                     dias_consumidos = df_mes["Data"].nunique()
@@ -772,13 +758,7 @@ if dados_colados:
                         (df_limites["Data"].dt.year == data_ref.year)
                         ]["Meta Horária"].sum()
 
-                    # Exibir métrica
-                    delta_estimado = consumo_estimado_total - meta_mensal
-                    st.metric(
-                        label="📈 Estimativa Total com Base no Padrão Atual",
-                        value=f"{consumo_estimado_total:,.0f} kWh",
-                        delta=f"{delta_estimado:,.0f} kWh"
-                    )
+                    
 
                     # Tabela de previsão diária
                     st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
