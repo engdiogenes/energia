@@ -116,7 +116,7 @@ def carregar_dados(dados_colados):
 # st.title(" Energy data analyser")
 
 with st.sidebar:
-    #st.sidebar.image("logo.png", width=360)
+    # st.sidebar.image("logo.png", width=360)
     # st.logo("logo.png", size="Large", link=None, icon_image=None)
     st.header(" Data Input")
     import gspread
@@ -150,13 +150,12 @@ with st.sidebar:
 
         # Exibir no Streamlit
         if pd.notna(ultima_data):
-          st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
+            st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
         else:
             st.sidebar.warning("Não foi possível determinar a última data de atualização.")
 
     else:
         dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
-
 
     # Campo para inserir e-mail
     to_email = st.text_input("Destinatário do e-mail")
@@ -258,7 +257,8 @@ if dados_colados:
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            tabs = st.tabs([" Overview", " Per meter", " Daily targets", " Dashboard", " Calender", " Conversion ", " Month prediction "])
+            tabs = st.tabs([" Overview", " Per meter", " Daily targets", " Dashboard", " Calender", " Conversion ",
+                            " Month prediction "])
 
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
@@ -321,7 +321,6 @@ if dados_colados:
 
                 st.divider()
 
-                
                 import pandas as pd
                 import io
 
@@ -352,8 +351,7 @@ if dados_colados:
                 # Exibir o resultado
                 st.subheader("📅 Consumo diário do mês")
                 st.dataframe(df_diario, use_container_width=True)
-                # TABS 2 - POR MEDIDOR
-            with tabs[1]:
+                
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
                 st.subheader(" Consumo Diário por Medidor")
                 consumo_diario = consumo.copy()
@@ -386,6 +384,30 @@ if dados_colados:
                 st.plotly_chart(fig, use_container_width=True, key=f"graf_{medidor}")
 
                 st.divider()
+            with tabs[1]:
+                st.subheader(" Gráficos por Medidor com Curva de Limite")
+                for medidor in medidores_disponiveis:
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=horas,
+                        y=dados_dia[medidor],
+                        mode="lines+markers",
+                        name="Consumo"
+                    ))
+
+                    limites = st.session_state.limites_por_medidor_horario.get(medidor, [5.0] * 24)
+                    fig.add_trace(go.Scatter(
+                        x=list(range(24)),
+                        y=limites,
+                        mode="lines",
+                        name="Limite",
+                        line=dict(dash="dash", color="red")
+                    ))
+
+                    fig.update_layout(title=medidor, xaxis_title="Hora", yaxis_title="kWh", height=300,
+                                      template="plotly_white")
+                    st.plotly_chart(fig, use_container_width=True, key=f"chart_{medidor}")
+                    st.divider()
 
             # TABS 3 - CONFIGURAR LIMITES
             with tabs[2]:
@@ -707,8 +729,6 @@ if dados_colados:
                         (df_limites["Data"].dt.year == data_ref.year)
                         ]["Meta Horária"].sum()
 
-
-
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
                     dias_consumidos = df_mes["Data"].nunique()
                     media_diaria = consumo_ate_hoje / dias_consumidos if dias_consumidos > 0 else 0
@@ -723,8 +743,6 @@ if dados_colados:
                         (df_limites["Data"].dt.month == data_ref.month) &
                         (df_limites["Data"].dt.year == data_ref.year)
                         ]["Meta Horária"].sum()
-
-
 
                     # Tabela de previsão diária
                     st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
@@ -1018,7 +1036,7 @@ if dados_colados:
 
                             st.plotly_chart(fig, use_container_width=True)
 
-                            #Gráfico de Comparativo Diário de novas metas
+                            # Gráfico de Comparativo Diário de novas metas
 
                             import plotly.graph_objects as go
                             import pandas as pd
@@ -1111,7 +1129,7 @@ if dados_colados:
                             col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
                             col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
-                            #--------------------------
+                            # --------------------------
                             import numpy as np
                             import pandas as pd
                             import plotly.graph_objects as go
