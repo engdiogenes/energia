@@ -122,7 +122,7 @@ def carregar_dados(dados_colados):
 with st.sidebar:
     #st.sidebar.image("logo.png", width=360)
     # st.logo("logo.png", size="Large", link=None, icon_image=None)
-    st.header(" Data Input")
+    st.header(" Powertrack")
     import gspread
     from oauth2client.service_account import ServiceAccountCredentials
 
