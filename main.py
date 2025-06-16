@@ -32,7 +32,6 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-
 # Caminho padrão do JSON
 CAMINHO_JSON_PADRAO = "limites_padrao.json"
 
@@ -351,29 +350,25 @@ if dados_colados:
                 st.plotly_chart(fig, use_container_width=True, key=f"grafico_{medidor}")
                 st.divider()
 
-                # Consumo diário do mês a partir do Google Sheets
                 st.subheader("📅 Consumo diário do mês")
 
                 try:
                     df_google = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
                     df_google["Datetime"] = pd.to_datetime(df_google["Date"] + " " + df_google["Time"], dayfirst=True)
-                    df_google["Data"] = df_google["Datetime"].dt.date
+                    df_google = df_google.sort_values("Datetime").reset_index(drop=True)
 
-                    # Filtrar mês selecionado
-                    df_mes = df_google[
-                        (df_google["Datetime"].dt.month == data_selecionada.month) &
-                        (df_google["Datetime"].dt.year == data_selecionada.year)
-                        ]
+                    colunas_medidores = [col for col in df_google.columns if col not in ["Date", "Time", "Datetime"]]
+                    df_consumo_horario = df_google[["Datetime"] + colunas_medidores].copy()
+                    df_consumo_horario[colunas_medidores] = df_consumo_horario[colunas_medidores].diff()
+                    df_consumo_horario = df_consumo_horario.dropna().reset_index(drop=True)
+                    df_consumo_horario["Data"] = df_consumo_horario["Datetime"].dt.date
 
-                    # Agregar por dia
-                    colunas_medidores = [col for col in df_google.columns if
-                                         col not in ["Date", "Time", "Datetime", "Data"]]
-                    df_diario = df_mes.groupby("Data")[colunas_medidores].sum().reset_index()
+                    df_diario = df_consumo_horario.groupby("Data")[colunas_medidores].sum().reset_index()
 
                     st.dataframe(df_diario, use_container_width=True)
 
                 except Exception as e:
-                    st.warning(f"Erro ao carregar dados do Google Sheets: {e}")
+                    st.warning(f"Erro ao calcular consumo diário: {e}")
 
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
                 st.subheader(" Consumo Diário por Medidor")
