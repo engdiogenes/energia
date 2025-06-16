@@ -31,6 +31,9 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
+with open("powertrack_welcome.html", "r", encoding="utf-8") as f:
+    welcome_html = f.read()
+st.components.v1.html(welcome_html, height=400)
 
 
 # Caminho padrão do JSON
@@ -122,7 +125,7 @@ def carregar_dados(dados_colados):
 with st.sidebar:
     #st.sidebar.image("logo.png", width=360)
     # st.logo("logo.png", size="Large", link=None, icon_image=None)
-    st.header(" Powertrack")
+    st.header(" Data Input")
     import gspread
     from oauth2client.service_account import ServiceAccountCredentials
 
@@ -262,7 +265,7 @@ if dados_colados:
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            tabs = st.tabs([" Overview", " Per meter", " Targets", " Dashboard", " Calender", " Conversion ", " Month prediction "])
+            tabs = st.tabs([" Overview", " Per meter", " Daily targets", " Dashboard", " Calender", " Conversion ", " Month prediction "])
 
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
@@ -350,6 +353,31 @@ if dados_colados:
                 )
                 st.plotly_chart(fig, use_container_width=True, key=f"grafico_{medidor}")
                 st.divider()
+
+                # Consumo diário do mês a partir do Google Sheets
+                st.subheader("📅 Consumo diário do mês")
+
+                try:
+                    df_google = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
+                    df_google["Datetime"] = pd.to_datetime(df_google["Date"] + " " + df_google["Time"], dayfirst=True)
+                    df_google["Data"] = df_google["Datetime"].dt.date
+
+                    # Filtrar mês selecionado
+                    df_mes = df_google[
+                        (df_google["Datetime"].dt.month == data_selecionada.month) &
+                        (df_google["Datetime"].dt.year == data_selecionada.year)
+                        ]
+
+                    # Agregar por dia
+                    colunas_medidores = [col for col in df_google.columns if
+                                         col not in ["Date", "Time", "Datetime", "Data"]]
+                    df_diario = df_mes.groupby("Data")[colunas_medidores].sum().reset_index()
+
+                    st.dataframe(df_diario, use_container_width=True)
+
+                except Exception as e:
+                    st.warning(f"Erro ao carregar dados do Google Sheets: {e}")
+
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
                 st.subheader(" Consumo Diário por Medidor")
                 consumo_diario = consumo.copy()
@@ -1156,9 +1184,6 @@ if dados_colados:
 
                 st.markdown("### 📘 Relatório Técnico Detalhado")
                 components.html(html_content, height=1000, scrolling=True)
-
-
-
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
