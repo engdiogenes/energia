@@ -670,7 +670,7 @@ if dados_colados:
                     col1.metric("🔋 Consumo máximo previsto para o mês (área produtiva)", f"{consumo_max_mes:.2f} kWh")
                     col2.metric("🔮 Consumo previsto para o mês (baseado no consumo atual + targets restantes)",
                                 f"{consumo_previsto_mes:.2f} kWh")
-                    
+
                     # Estimar consumo total do mês com base no padrão atual
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
                     df_diario = df_consumo.groupby("Data")["Área Produtiva"].sum().reset_index()
@@ -681,6 +681,29 @@ if dados_colados:
                         (df_diario["Data"].dt.month == data_ref.month) &
                         (df_diario["Data"].dt.year == data_ref.year)
                         ]
+
+                    consumo_ate_hoje = df_mes["Área Produtiva"].sum()
+                    dias_consumidos = df_mes["Data"].nunique()
+                    media_diaria = consumo_ate_hoje / dias_consumidos if dias_consumidos > 0 else 0
+                    dias_no_mes = pd.Period(data_ref.strftime("%Y-%m")).days_in_month
+                    dias_restantes = dias_no_mes - dias_consumidos
+                    consumo_estimado_total = consumo_ate_hoje + (media_diaria * dias_restantes)
+
+                    # Calcular meta mensal real
+                    df_limites["Data"] = pd.to_datetime(df_limites["Data"])
+                    df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
+                    meta_mensal = df_limites[
+                        (df_limites["Data"].dt.month == data_ref.month) &
+                        (df_limites["Data"].dt.year == data_ref.year)
+                        ]["Meta Horária"].sum()
+
+                    # Exibir métrica
+                    delta_estimado = consumo_estimado_total - meta_mensal
+                    st.metric(
+                        label="📈 Estimativa Total com Base no Padrão Atual",
+                        value=f"{consumo_estimado_total:,.0f} kWh",
+                        delta=f"{delta_estimado:,.0f} kWh"
+                    )
 
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
                     dias_consumidos = df_mes["Data"].nunique()
