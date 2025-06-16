@@ -257,7 +257,7 @@ if dados_colados:
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            tabs = st.tabs([" Overview", " Per meter", " Daily targets", " Dashboard", " Calender", " Conversion ",
+            tabs = st.tabs([" Overview", " Per meter", " Targets", " Dashboard", " Calender", " Conversion ",
                             " Month prediction "])
 
             # TABS 1 - VISÃO GERAL
