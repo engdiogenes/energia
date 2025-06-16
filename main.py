@@ -321,6 +321,7 @@ if dados_colados:
 
                 st.divider()
 
+                
                 import pandas as pd
                 import io
 
@@ -351,7 +352,8 @@ if dados_colados:
                 # Exibir o resultado
                 st.subheader("📅 Consumo diário do mês")
                 st.dataframe(df_diario, use_container_width=True)
-
+                # TABS 2 - POR MEDIDOR
+            with tabs[1]:
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
                 st.subheader(" Consumo Diário por Medidor")
                 consumo_diario = consumo.copy()
@@ -382,10 +384,6 @@ if dados_colados:
                 )
 
                 st.plotly_chart(fig, use_container_width=True, key=f"graf_{medidor}")
-
-                st.divider()
-
-                
 
                 st.divider()
 
