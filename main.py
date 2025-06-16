@@ -31,9 +31,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-with open("powertrack_welcome.html", "r", encoding="utf-8") as f:
-    welcome_html = f.read()
-st.components.v1.html(welcome_html, height=400)
 
 
 # Caminho padrão do JSON
