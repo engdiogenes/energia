@@ -31,9 +31,6 @@ st.set_page_config(
     layout="wide",
     initial_sidebar_state="expanded"
 )
-with open("powertrack_welcome.html", "r", encoding="utf-8") as f:
-    welcome_html = f.read()
-st.components.v1.html(welcome_html, height=400)
 
 
 # Caminho padrão do JSON
@@ -1184,6 +1181,9 @@ if dados_colados:
 
                 st.markdown("### 📘 Relatório Técnico Detalhado")
                 components.html(html_content, height=1000, scrolling=True)
+
+
+
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
