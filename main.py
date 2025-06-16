@@ -25,7 +25,16 @@ import streamlit.components.v1 as components
 
 
 
-st.set_page_config(layout="wide", page_title="Monitor de Energia")
+st.set_page_config(
+    page_title="PowerTrack",
+    page_icon="⚡",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
+with open("powertrack_welcome.html", "r", encoding="utf-8") as f:
+    welcome_html = f.read()
+st.components.v1.html(welcome_html, height=400)
+
 
 # Caminho padrão do JSON
 CAMINHO_JSON_PADRAO = "limites_padrao.json"
