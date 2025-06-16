@@ -324,51 +324,36 @@ if dados_colados:
 
                 st.divider()
 
-                st.subheader(f" Consumo horário em {data_selecionada.strftime('%d/%m/%Y')}")
-                medidores_selecionados = st.multiselect(
-                    "Selecione os medidores:",
-                    medidores_disponiveis,
-                    default=[m for m in medidores_disponiveis if m != "Área Produtiva"]
-                )
+                import pandas as pd
+                import io
 
-                fig = go.Figure()
-                for medidor in medidores_selecionados:
-                    fig.add_trace(go.Scatter(
-                        x=dados_dia["Datetime"].dt.strftime("%H:%M"),
-                        y=dados_dia[medidor],
-                        mode="lines+markers",
-                        name=medidor
-                    ))
+                # Carregar os dados do Google Sheets (substitua 'dados_colados' pela variável real)
+                df = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
+                df["Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=True)
+                df = df.sort_values("Datetime").reset_index(drop=True)
 
-                fig.update_layout(
-                    xaxis_title="Hora do dia",
-                    yaxis_title="Consumo (kWh)",
-                    template="plotly_white",
-                    height=500,
-                    legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
-                )
-                st.plotly_chart(fig, use_container_width=True, key=f"grafico_{medidor}")
-                st.divider()
+                # Identificar colunas de medidores
+                colunas_medidores = [col for col in df.columns if col not in ["Date", "Time", "Datetime"]]
 
+                # Calcular consumo horário por diferença
+                df_consumo = df[["Datetime"] + colunas_medidores].copy()
+                df_consumo[colunas_medidores] = df_consumo[colunas_medidores].diff()
+                df_consumo = df_consumo.dropna().reset_index(drop=True)
+                df_consumo["Data"] = df_consumo["Datetime"].dt.date
+
+                # Contar quantas diferenças por dia (consumos horários)
+                contagem_por_dia = df_consumo.groupby("Data").size()
+
+                # Considerar apenas dias com 24 diferenças (ou seja, 25 leituras)
+                dias_completos = contagem_por_dia[contagem_por_dia == 24].index
+                df_filtrado = df_consumo[df_consumo["Data"].isin(dias_completos)]
+
+                # Agregar consumo diário
+                df_diario = df_filtrado.groupby("Data")[colunas_medidores].sum().reset_index()
+
+                # Exibir o resultado
                 st.subheader("📅 Consumo diário do mês")
-
-                try:
-                    df_google = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
-                    df_google["Datetime"] = pd.to_datetime(df_google["Date"] + " " + df_google["Time"], dayfirst=True)
-                    df_google = df_google.sort_values("Datetime").reset_index(drop=True)
-
-                    colunas_medidores = [col for col in df_google.columns if col not in ["Date", "Time", "Datetime"]]
-                    df_consumo_horario = df_google[["Datetime"] + colunas_medidores].copy()
-                    df_consumo_horario[colunas_medidores] = df_consumo_horario[colunas_medidores].diff()
-                    df_consumo_horario = df_consumo_horario.dropna().reset_index(drop=True)
-                    df_consumo_horario["Data"] = df_consumo_horario["Datetime"].dt.date
-
-                    df_diario = df_consumo_horario.groupby("Data")[colunas_medidores].sum().reset_index()
-
-                    st.dataframe(df_diario, use_container_width=True)
-
-                except Exception as e:
-                    st.warning(f"Erro ao calcular consumo diário: {e}")
+                st.dataframe(df_diario, use_container_width=True)
 
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
                 st.subheader(" Consumo Diário por Medidor")
