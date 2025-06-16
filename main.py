@@ -388,34 +388,38 @@ if dados_colados:
 
                 st.divider()
 
-                # Tabela de consumo horário dos prédios
-                st.markdown("###  Consumo por hora")
-                st.dataframe(dados_dia.set_index("Datetime")[medidores_selecionados].round(2), use_container_width=True)
-            # TABS 2 - POR MEDIDOR
-            with tabs[1]:
-                st.subheader(" Gráficos por Medidor com Curva de Limite")
-                for medidor in medidores_disponiveis:
-                    fig = go.Figure()
-                    fig.add_trace(go.Scatter(
-                        x=horas,
-                        y=dados_dia[medidor],
-                        mode="lines+markers",
-                        name="Consumo"
-                    ))
+                import pandas as pd
+                import io
 
-                    limites = st.session_state.limites_por_medidor_horario.get(medidor, [5.0] * 24)
-                    fig.add_trace(go.Scatter(
-                        x=list(range(24)),
-                        y=limites,
-                        mode="lines",
-                        name="Limite",
-                        line=dict(dash="dash", color="red")
-                    ))
+                # Carregar os dados do Google Sheets (substitua 'dados_colados' pela variável real)
+                df = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
+                df["Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=True)
+                df = df.sort_values("Datetime").reset_index(drop=True)
 
-                    fig.update_layout(title=medidor, xaxis_title="Hora", yaxis_title="kWh", height=300,
-                                      template="plotly_white")
-                    st.plotly_chart(fig, use_container_width=True, key=f"chart_{medidor}")
-                    st.divider()
+                # Identificar colunas de medidores
+                colunas_medidores = [col for col in df.columns if col not in ["Date", "Time", "Datetime"]]
+
+                # Calcular consumo horário por diferença
+                df_consumo = df[["Datetime"] + colunas_medidores].copy()
+                df_consumo[colunas_medidores] = df_consumo[colunas_medidores].diff()
+                df_consumo = df_consumo.dropna().reset_index(drop=True)
+                df_consumo["Data"] = df_consumo["Datetime"].dt.date
+
+                # Contar quantas diferenças por dia (consumos horários)
+                contagem_por_dia = df_consumo.groupby("Data").size()
+
+                # Considerar apenas dias com 24 diferenças (ou seja, 25 leituras)
+                dias_completos = contagem_por_dia[contagem_por_dia == 24].index
+                df_filtrado = df_consumo[df_consumo["Data"].isin(dias_completos)]
+
+                # Agregar consumo diário
+                df_diario = df_filtrado.groupby("Data")[colunas_medidores].sum().reset_index()
+
+                # Exibir o resultado
+                st.subheader("📅 Consumo diário do mês")
+                st.dataframe(df_diario, use_container_width=True)
+
+                st.divider()
 
             # TABS 3 - CONFIGURAR LIMITES
             with tabs[2]:
@@ -671,7 +675,7 @@ if dados_colados:
                     col2.metric("🔮 Consumo previsto para o mês (baseado no consumo atual + targets restantes)",
                                 f"{consumo_previsto_mes:.2f} kWh")
 
-                    # Estimar consumo total do mês com base no padrão atual
+                    # Estimativa total com base no padrão atual de consumo
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
                     df_diario = df_consumo.groupby("Data")["Área Produtiva"].sum().reset_index()
                     df_diario["Data"] = pd.to_datetime(df_diario["Data"])
@@ -681,6 +685,54 @@ if dados_colados:
                         (df_diario["Data"].dt.month == data_ref.month) &
                         (df_diario["Data"].dt.year == data_ref.year)
                         ]
+
+                    consumo_ate_hoje = df_mes["Área Produtiva"].sum()
+                    dias_consumidos = df_mes["Data"].nunique()
+                    media_diaria = consumo_ate_hoje / dias_consumidos if dias_consumidos > 0 else 0
+                    dias_no_mes = pd.Period(data_ref.strftime("%Y-%m")).days_in_month
+                    dias_restantes = dias_no_mes - dias_consumidos
+                    consumo_estimado_total = consumo_ate_hoje + (media_diaria * dias_restantes)
+
+                    # Calcular meta mensal real
+                    colunas_area_produtiva = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                              "TRIM&FINAL"]
+                    df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
+                    meta_mensal = df_limites[
+                        (df_limites["Data"].dt.month == data_ref.month) &
+                        (df_limites["Data"].dt.year == data_ref.year)
+                        ]["Meta Horária"].sum()
+
+                    # Exibir métrica
+                    delta_estimado = consumo_estimado_total - meta_mensal
+                    st.metric(
+                        label="📈 Estimativa Total com Base no Padrão Atual",
+                        value=f"{consumo_estimado_total:,.0f} kWh",
+                        delta=f"{delta_estimado:,.0f} kWh"
+                    )
+
+                    consumo_ate_hoje = df_mes["Área Produtiva"].sum()
+                    dias_consumidos = df_mes["Data"].nunique()
+                    media_diaria = consumo_ate_hoje / dias_consumidos if dias_consumidos > 0 else 0
+                    dias_no_mes = pd.Period(data_ref.strftime("%Y-%m")).days_in_month
+                    dias_restantes = dias_no_mes - dias_consumidos
+                    consumo_estimado_total = consumo_ate_hoje + (media_diaria * dias_restantes)
+
+                    # Calcular meta mensal real
+                    colunas_area_produtiva = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
+                                              "TRIM&FINAL"]
+                    df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
+                    meta_mensal = df_limites[
+                        (df_limites["Data"].dt.month == data_ref.month) &
+                        (df_limites["Data"].dt.year == data_ref.year)
+                        ]["Meta Horária"].sum()
+
+                    # Exibir métrica
+                    delta_estimado = consumo_estimado_total - meta_mensal
+                    st.metric(
+                        label="📈 Estimativa Total com Base no Padrão Atual",
+                        value=f"{consumo_estimado_total:,.0f} kWh",
+                        delta=f"{delta_estimado:,.0f} kWh"
+                    )
 
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
                     dias_consumidos = df_mes["Data"].nunique()
