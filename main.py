@@ -22,9 +22,6 @@ from statsmodels.tsa.arima.model import ARIMA
 from datetime import timedelta
 import streamlit.components.v1 as components
 
-
-
-
 st.set_page_config(
     page_title="PowerTrack",
     page_icon="⚡",
@@ -388,36 +385,7 @@ if dados_colados:
 
                 st.divider()
 
-                import pandas as pd
-                import io
-
-                # Carregar os dados do Google Sheets (substitua 'dados_colados' pela variável real)
-                df = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
-                df["Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=True)
-                df = df.sort_values("Datetime").reset_index(drop=True)
-
-                # Identificar colunas de medidores
-                colunas_medidores = [col for col in df.columns if col not in ["Date", "Time", "Datetime"]]
-
-                # Calcular consumo horário por diferença
-                df_consumo = df[["Datetime"] + colunas_medidores].copy()
-                df_consumo[colunas_medidores] = df_consumo[colunas_medidores].diff()
-                df_consumo = df_consumo.dropna().reset_index(drop=True)
-                df_consumo["Data"] = df_consumo["Datetime"].dt.date
-
-                # Contar quantas diferenças por dia (consumos horários)
-                contagem_por_dia = df_consumo.groupby("Data").size()
-
-                # Considerar apenas dias com 24 diferenças (ou seja, 25 leituras)
-                dias_completos = contagem_por_dia[contagem_por_dia == 24].index
-                df_filtrado = df_consumo[df_consumo["Data"].isin(dias_completos)]
-
-                # Agregar consumo diário
-                df_diario = df_filtrado.groupby("Data")[colunas_medidores].sum().reset_index()
-
-                # Exibir o resultado
-                st.subheader("📅 Consumo diário do mês")
-                st.dataframe(df_diario, use_container_width=True)
+                
 
                 st.divider()
 
@@ -741,7 +709,7 @@ if dados_colados:
                         (df_limites["Data"].dt.year == data_ref.year)
                         ]["Meta Horária"].sum()
 
-                    
+
 
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
                     dias_consumidos = df_mes["Data"].nunique()
@@ -758,7 +726,7 @@ if dados_colados:
                         (df_limites["Data"].dt.year == data_ref.year)
                         ]["Meta Horária"].sum()
 
-                    
+
 
                     # Tabela de previsão diária
                     st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
@@ -1238,21 +1206,14 @@ if dados_colados:
                             else:
                                 st.warning("Dados de consumo ou data selecionada não encontrados.")
 
-
-
                         else:
                             st.warning("Dados de consumo não encontrados em st.session_state.")
-
-
 
                 with open("relatorio_month_prediction.html", "r", encoding="utf-8") as f:
                     html_content = f.read()
 
                 st.markdown("### 📘 Relatório Técnico Detalhado")
                 components.html(html_content, height=1000, scrolling=True)
-
-
-
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
