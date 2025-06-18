@@ -1317,6 +1317,28 @@ if dados_colados:
                     "MP&L", "GAHO", "MAIW", "CAG", "SEOB", "EBPC",
                     "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN", "PCCB"
                 ]
+                # Medidores da área produtiva
+                medidores_produtivos = [
+                    "MP&L", "GAHO", "MAIW", "CAG", "SEOB", "EBPC",
+                    "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN"
+                ]
+
+                # DataFrame de consumo e data selecionada
+                df = st.session_state.consumo
+                data_ref = st.session_state.data_selecionada
+
+                # Filtrar o mês e ano da data selecionada
+                df_mes = df[
+                    (df["Datetime"].dt.month == data_ref.month) &
+                    (df["Datetime"].dt.year == data_ref.year)
+                    ]
+
+                # Calcular o consumo total da área produtiva
+                consumo_total_produtivo = df_mes[medidores_produtivos].sum().sum()
+
+                # Exibir o resultado
+                st.metric("🔧 Consumo total da área produtiva no mês", f"{consumo_total_produtivo:,.0f} kWh")
+
                 consumo_por_medidor = df_mes[medidores].sum().to_dict()
 
                 # Normalização para tamanho e cor
