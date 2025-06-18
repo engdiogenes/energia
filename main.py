@@ -21,6 +21,8 @@ from datetime import datetime
 from statsmodels.tsa.arima.model import ARIMA
 from datetime import timedelta
 import streamlit.components.v1 as components
+from streamlit_agraph import agraph, Node, Edge, Config
+
 
 st.set_page_config(
     page_title="PowerTrack",
@@ -282,8 +284,8 @@ if dados_colados:
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            tabs = st.tabs([" Overview", " Per meter", " Targets", " Dashboard", " Calender", " Conversion ",
-                            " Month prediction "])
+            tabs = st.tabs(["Overview", "Per meter", "Targets", "Dashboard", "Calender", "Conversion ",
+                            "Month prediction", "Meter's layout"])
 
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
@@ -345,7 +347,7 @@ if dados_colados:
                 col6.metric("📉 Balance of the Day (Productive area)", f"{saldo_area:.2f} kWh", delta_color="inverse")
 
                 st.divider()
-                
+
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
                 st.subheader(" Consumo Diário por Medidor")
                 consumo_diario = consumo.copy()
@@ -593,7 +595,7 @@ if dados_colados:
 
             # TABS 5 - CALENDÁRIO
             with tabs[5]:
-                st.title("or CSV para JSON - Limites Horários por Medidor")
+                st.title("CSV para JSON - Limites Horários por Medidor")
                 uploaded_file = st.file_uploader("Faça upload do arquivo CSV", type="csv")
                 if uploaded_file is not None:
                     try:
@@ -1296,6 +1298,51 @@ if dados_colados:
 
                 st.markdown("### 📘 Relatório Técnico Detalhado")
                 components.html(html_content, height=1000, scrolling=True)
+
+            with tabs[7]:  # ou ajuste o índice conforme a posição da nova aba
+                st.subheader("📍 Meter's Layout")
+
+                nodes = [
+                    Node(id="Full Plant", label="Full Plant", size=40, color="#1f77b4"),
+                    Node(id="Productive areas", label="Productive areas", size=30, color="#2ca02c"),
+                    Node(id="THIRD PARTS", label="THIRD PARTS", size=30, color="#ff7f0e"),
+                    Node(id="MP&L", label="MP&L"),
+                    Node(id="GAHO", label="GAHO"),
+                    Node(id="MAIW", label="MAIW"),
+                    Node(id="CAG", label="CAG"),
+                    Node(id="SEOB", label="SEOB"),
+                    Node(id="EBPC", label="EBPC"),
+                    Node(id="PMDC-OFFICE", label="PMDC-OFFICE"),
+                    Node(id="TRIM&FINAL", label="TRIM&FINAL"),
+                    Node(id="OFFICE + CANTEEN", label="OFFICE + CANTEEN"),
+                    Node(id="Emissions Lab", label="Emissions Lab")
+                ]
+
+                edges = [
+                    Edge(source="Full Plant", target="Productive areas"),
+                    Edge(source="Full Plant", target="THIRD PARTS"),
+                    Edge(source="Productive areas", target="MP&L"),
+                    Edge(source="Productive areas", target="GAHO"),
+                    Edge(source="Productive areas", target="MAIW"),
+                    Edge(source="Productive areas", target="CAG"),
+                    Edge(source="Productive areas", target="SEOB"),
+                    Edge(source="Productive areas", target="EBPC"),
+                    Edge(source="Productive areas", target="PMDC-OFFICE"),
+                    Edge(source="Productive areas", target="TRIM&FINAL"),
+                    Edge(source="Productive areas", target="OFFICE + CANTEEN"),
+                    Edge(source="THIRD PARTS", target="Emissions Lab")
+                ]
+
+                config = Config(
+                    width=1000,
+                    height=600,
+                    directed=True,
+                    physics=True,
+                    hierarchical=True
+                )
+
+                agraph(nodes=nodes, edges=edges, config=config)
+
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
