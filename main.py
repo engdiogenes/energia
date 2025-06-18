@@ -222,16 +222,36 @@ if dados_colados:
             st.session_state.consumo = consumo
             consumo_completo = consumo.copy()
 
-            datas_disponiveis = consumo["Datetime"].dt.date.unique()
-            if len(datas_disponiveis) > 0:
-                data_selecionada = st.sidebar.date_input(
-                    "Selecione a data",
-                    value=max(datas_disponiveis),
-                    min_value=min(datas_disponiveis),
-                    max_value=max(datas_disponiveis)
-                )
-            else:
-                st.warning("Nenhuma data disponível nos dados carregados.")
+            from datetime import timedelta
+
+            # Lista de datas disponíveis
+            datas_disponiveis = sorted(consumo["Datetime"].dt.date.unique())
+
+            # Recuperar ou inicializar a data selecionada
+            if "data_selecionada" not in st.session_state:
+                st.session_state.data_selecionada = datas_disponiveis[-1]
+
+            # Navegação por botões
+            col_a, col_b, col_c = st.sidebar.columns([1, 2, 1])
+            with col_a:
+                if st.button("◀", key="dia_anterior"):
+                    idx = datas_disponiveis.index(st.session_state.data_selecionada)
+                    if idx > 0:
+                        st.session_state.data_selecionada = datas_disponiveis[idx - 1]
+            with col_c:
+                if st.button("▶", key="dia_posterior"):
+                    idx = datas_disponiveis.index(st.session_state.data_selecionada)
+                    if idx < len(datas_disponiveis) - 1:
+                        st.session_state.data_selecionada = datas_disponiveis[idx + 1]
+
+            # Campo de seleção de data
+            data_selecionada = st.sidebar.date_input(
+                "Selecione a data",
+                value=st.session_state.data_selecionada,
+                min_value=min(datas_disponiveis),
+                max_value=max(datas_disponiveis)
+            )
+            st.session_state.data_selecionada = data_selecionada
 
             # Créditos e data no rodapé da sidebar (logo após o campo de data)
             st.sidebar.markdown(
