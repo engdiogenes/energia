@@ -22,6 +22,8 @@ from statsmodels.tsa.arima.model import ARIMA
 from datetime import timedelta
 import streamlit.components.v1 as components
 from streamlit_agraph import agraph, Node, Edge, Config
+import matplotlib.cm as cm
+import matplotlib.colors as mcolors
 
 
 st.set_page_config(
@@ -704,8 +706,8 @@ if dados_colados:
 
                     # Exibir métricas adicionais
                     col3, col4 = st.columns(2)
-                    col3.metric("🎯 Target acumulado até hoje (área produtiva)", f"{meta_ate_hoje:,.0f} kWh")
-                    col4.metric("⚡ Consumo real acumulado até hoje (área produtiva)",
+                    col3.metric("🎯 Target acumulado até a data selecionada (área produtiva)", f"{meta_ate_hoje:,.0f} kWh")
+                    col4.metric("⚡ Consumo real acumulado até a data selecionada (área produtiva)",
                                 f"{consumo_real_ate_hoje:,.0f} kWh")
 
                     # Estimativa total com base no padrão atual de consumo
@@ -754,7 +756,7 @@ if dados_colados:
                     # Exibir métrica
                     delta_estimado = consumo_estimado_total - meta_mensal
                     st.metric(
-                        label="📈 Estimativa Total com Base no Padrão Atual",
+                        label="📈 Estimativa de consumo com Base no Padrão Atual",
                         value=f"{consumo_estimado_total:,.0f} kWh",
                         delta=f"{delta_estimado:,.0f} kWh",
                         delta_color="inverse" if delta_estimado < 0 else "normal"
@@ -1299,10 +1301,6 @@ if dados_colados:
                 st.markdown("### 📘 Relatório Técnico Detalhado")
                 components.html(html_content, height=1000, scrolling=True)
 
-            from streamlit_agraph import agraph, Node, Edge, Config
-            import matplotlib.pyplot as plt
-            import matplotlib.cm as cm
-            import matplotlib.colors as mcolors
 
             with tabs[7]:  # ou ajuste o índice conforme necessário
                 st.subheader("📍 Meter's Layout")
@@ -1359,7 +1357,7 @@ if dados_colados:
 
                 nodes = [
                     Node(id="Full Plant", label="Full Plant", size=50, color="#1f77b4"),
-                    Node(id="Productive areas", label="Productive areas", size=35, color="#2ca02c"),
+                    Node(id="PRODUCIVE AREAS", label="PRODUCIVE AREAS", size=35, color="#2ca02c"),
                     Node(id="THIRD PARTS", label="THIRD PARTS", size=35, color="#ff7f0e"),
                 ]
 
@@ -1371,10 +1369,10 @@ if dados_colados:
                     nodes.append(Node(id=nome, label=label, size=size, color=color))
 
                 edges = [
-                            Edge(source="Full Plant", target="Productive areas"),
+                            Edge(source="Full Plant", target="PRODUCIVE AREAS"),
                             Edge(source="Full Plant", target="THIRD PARTS"),
                         ] + [
-                            Edge(source="Productive areas", target=nome) for nome in medidores if nome != "PCCB"
+                            Edge(source="PRODUCIVE AREAS", target=nome) for nome in medidores if nome != "PCCB"
                         ] + [
                             Edge(source="THIRD PARTS", target="PCCB")
                         ]
