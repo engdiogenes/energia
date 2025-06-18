@@ -736,7 +736,7 @@ if dados_colados:
                         label="📈 Estimativa Total com Base no Padrão Atual",
                         value=f"{consumo_estimado_total:,.0f} kWh",
                         delta=f"{delta_estimado:,.0f} kWh",
-                        delta_color="inverse" if delta_estimado > 0 else "normal"
+                        delta_color="inverse" if delta_estimado < 0 else "normal"
                     )
 
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
