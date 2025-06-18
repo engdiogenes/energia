@@ -49,14 +49,6 @@ def t(chave):
     return traducoes[lang].get(chave, chave)
 st.set_page_config(
 
-# Seletor de idioma na sidebar
-idioma = st.sidebar.selectbox(
-    '🌐 Language / Idioma',
-    options=['Português (BR)', 'English (UK)'],
-    index=0,
-    format_func=lambda x: '🇧🇷 Português' if 'Português' in x else '🇬🇧 English'
-)
-st.session_state.idioma = idioma
     page_title="PowerTrack",
     page_icon="⚡",
     layout="wide",
@@ -152,6 +144,14 @@ def carregar_dados(dados_colados):
 with st.sidebar:
     # st.sidebar.image("logo.png", width=360)
     # st.logo("logo.png", size="Large", link=None, icon_image=None)
+    # Seletor de idioma na sidebar
+    idioma = st.sidebar.selectbox(
+        '🌐 Language / Idioma',
+        options=['Português (BR)', 'English (UK)'],
+        index=0,
+        format_func=lambda x: '🇧🇷 Português' if 'Português' in x else '🇬🇧 English'
+    )
+    st.session_state.idioma = idioma
     st.header(" PowerTrack")
     import gspread
     from oauth2client.service_account import ServiceAccountCredentials
@@ -1267,6 +1267,3 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
-
-
-
