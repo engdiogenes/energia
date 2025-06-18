@@ -146,7 +146,12 @@ with st.sidebar:
         # Converter os dados colados em DataFrame temporário para extrair a última data
         df_temp = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
         df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
-        ultima_data = df_temp["Datetime"].max()
+        if not df_temp.empty:
+            df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
+            ultima_data = df_temp["Datetime"].max()
+            st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
+        else:
+            st.sidebar.warning("Não foi possível determinar a última data de atualização.")
 
         # Exibir no Streamlit
         if pd.notna(ultima_data):
@@ -222,12 +227,16 @@ if dados_colados:
             consumo_completo = consumo.copy()
 
             datas_disponiveis = consumo["Datetime"].dt.date.unique()
-            data_selecionada = st.sidebar.date_input(
-                "Selecione a data",
-                value=max(datas_disponiveis),
-                min_value=min(datas_disponiveis),
-                max_value=max(datas_disponiveis)
-            )
+            if len(datas_disponiveis) > 0:
+                data_selecionada = st.sidebar.date_input(
+                    "Selecione a data",
+                    value=max(datas_disponiveis),
+                    min_value=min(datas_disponiveis),
+                    max_value=max(datas_disponiveis)
+                )
+            else:
+                st.warning("Nenhuma data disponível nos dados carregados.")
+
             # Créditos e data no rodapé da sidebar (logo após o campo de data)
             st.sidebar.markdown(
                 f"""
