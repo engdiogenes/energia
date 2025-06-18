@@ -1329,7 +1329,7 @@ if dados_colados:
                             Edge(source="Full Plant", target="THIRD PARTS"),
                         ] + [
                             Edge(source="Productive areas", target=nome) for nome in medidores if
-                            nome != "Emissions Lab"
+                            nome != "PCCB"
                         ] + [
                             Edge(source="THIRD PARTS", target="Emissions Lab")
                         ]
