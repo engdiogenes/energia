@@ -1310,7 +1310,7 @@ if dados_colados:
 
                 medidores = [
                     "MP&L", "GAHO", "MAIW", "CAG", "SEOB", "EBPC",
-                    "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN", "Emissions Lab"
+                    "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN", "PCCB"  # PCCB = Emissions Lab
                 ]
                 consumo_por_medidor = df_mes[medidores].sum().to_dict()
 
@@ -1321,21 +1321,21 @@ if dados_colados:
                 ]
                 for nome in medidores:
                     consumo = consumo_por_medidor.get(nome, 0)
-                    label = f"{nome}\\n{consumo:,.0f} kWh"
+                    label = f"{nome if nome != 'PCCB' else 'Emissions Lab'}\n{consumo:,.0f} kWh"
                     nodes.append(Node(id=nome, label=label, size=25))
 
                 edges = [
                             Edge(source="Full Plant", target="Productive areas"),
                             Edge(source="Full Plant", target="THIRD PARTS"),
                         ] + [
-                            Edge(source="Productive areas", target=nome) for nome in medidores if
-                            nome != "PCCB"
+                            Edge(source="Productive areas", target=nome) for nome in medidores if nome != "PCCB"
                         ] + [
-                            Edge(source="THIRD PARTS", target="Emissions Lab")
+                            Edge(source="THIRD PARTS", target="PCCB")
                         ]
 
                 config = Config(width=1000, height=600, directed=True, hierarchical=True)
                 agraph(nodes=nodes, edges=edges, config=config)
+
 
 
 
