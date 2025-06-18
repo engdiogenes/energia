@@ -351,7 +351,7 @@ if dados_colados:
                 # Exibir o resultado
                 st.subheader("📅 Consumo diário do mês")
                 st.dataframe(df_diario, use_container_width=True)
-                
+
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
                 st.subheader(" Consumo Diário por Medidor")
                 consumo_diario = consumo.copy()
@@ -662,6 +662,25 @@ if dados_colados:
                     col1.metric("🔋 Consumo máximo previsto para o mês (área produtiva)", f"{consumo_max_mes:.2f} kWh")
                     col2.metric("🔮 Consumo previsto para o mês (baseado no consumo atual + targets restantes)",
                                 f"{consumo_previsto_mes:.2f} kWh")
+                    # Calcular soma dos targets da área produtiva até o dia selecionado (mês atual)
+                    targets_ate_hoje = limites_mes[limites_mes["Data"].dt.date <= data_ref][
+                        colunas_area_produtiva].sum().sum()
+                    adicional_ate_hoje = limites_mes[limites_mes["Data"].dt.date <= data_ref][
+                                             "Data"].dt.date.nunique() * 24 * 13.75
+                    meta_ate_hoje = targets_ate_hoje + adicional_ate_hoje
+
+                    # Calcular consumo real da área produtiva até o dia selecionado (mês atual)
+                    consumo_real_ate_hoje = df_consumo[
+                        (df_consumo["Datetime"].dt.month == data_ref.month) &
+                        (df_consumo["Datetime"].dt.year == data_ref.year) &
+                        (df_consumo["Datetime"].dt.date <= data_ref)
+                        ]["Área Produtiva"].sum()
+
+                    # Exibir métricas adicionais
+                    col3, col4 = st.columns(2)
+                    col3.metric("🎯 Target acumulado até hoje (área produtiva)", f"{meta_ate_hoje:,.0f} kWh")
+                    col4.metric("⚡ Consumo real acumulado até hoje (área produtiva)",
+                                f"{consumo_real_ate_hoje:,.0f} kWh")
 
                     # Estimativa total com base no padrão atual de consumo
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
