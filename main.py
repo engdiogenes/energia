@@ -1299,49 +1299,44 @@ if dados_colados:
                 st.markdown("### 📘 Relatório Técnico Detalhado")
                 components.html(html_content, height=1000, scrolling=True)
 
-            with tabs[7]:  # ou ajuste o índice conforme a posição da nova aba
+            with tabs[7]:  # ou ajuste o índice conforme necessário
                 st.subheader("📍 Meter's Layout")
 
-                nodes = [
-                    Node(id="Full Plant", label="Full Plant", size=40, color="#1f77b4"),
-                    Node(id="Productive areas", label="Productive areas", size=30, color="#2ca02c"),
-                    Node(id="THIRD PARTS", label="THIRD PARTS", size=30, color="#ff7f0e"),
-                    Node(id="MP&L", label="MP&L"),
-                    Node(id="GAHO", label="GAHO"),
-                    Node(id="MAIW", label="MAIW"),
-                    Node(id="CAG", label="CAG"),
-                    Node(id="SEOB", label="SEOB"),
-                    Node(id="EBPC", label="EBPC"),
-                    Node(id="PMDC-OFFICE", label="PMDC-OFFICE"),
-                    Node(id="TRIM&FINAL", label="TRIM&FINAL"),
-                    Node(id="OFFICE + CANTEEN", label="OFFICE + CANTEEN"),
-                    Node(id="Emissions Lab", label="Emissions Lab")
+                data_ref = st.session_state.data_selecionada
+                df_mes = st.session_state.consumo[
+                    (st.session_state.consumo["Datetime"].dt.month == data_ref.month) &
+                    (st.session_state.consumo["Datetime"].dt.year == data_ref.year)
+                    ]
+
+                medidores = [
+                    "MP&L", "GAHO", "MAIW", "CAG", "SEOB", "EBPC",
+                    "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN", "Emissions Lab"
                 ]
+                consumo_por_medidor = df_mes[medidores].sum().to_dict()
+
+                nodes = [
+                    Node(id="Full Plant", label="Full Plant", size=40),
+                    Node(id="Productive areas", label="Productive areas", size=30),
+                    Node(id="THIRD PARTS", label="THIRD PARTS", size=30),
+                ]
+                for nome in medidores:
+                    consumo = consumo_por_medidor.get(nome, 0)
+                    label = f"{nome}\\n{consumo:,.0f} kWh"
+                    nodes.append(Node(id=nome, label=label, size=25))
 
                 edges = [
-                    Edge(source="Full Plant", target="Productive areas"),
-                    Edge(source="Full Plant", target="THIRD PARTS"),
-                    Edge(source="Productive areas", target="MP&L"),
-                    Edge(source="Productive areas", target="GAHO"),
-                    Edge(source="Productive areas", target="MAIW"),
-                    Edge(source="Productive areas", target="CAG"),
-                    Edge(source="Productive areas", target="SEOB"),
-                    Edge(source="Productive areas", target="EBPC"),
-                    Edge(source="Productive areas", target="PMDC-OFFICE"),
-                    Edge(source="Productive areas", target="TRIM&FINAL"),
-                    Edge(source="Productive areas", target="OFFICE + CANTEEN"),
-                    Edge(source="THIRD PARTS", target="Emissions Lab")
-                ]
+                            Edge(source="Full Plant", target="Productive areas"),
+                            Edge(source="Full Plant", target="THIRD PARTS"),
+                        ] + [
+                            Edge(source="Productive areas", target=nome) for nome in medidores if
+                            nome != "Emissions Lab"
+                        ] + [
+                            Edge(source="THIRD PARTS", target="Emissions Lab")
+                        ]
 
-                config = Config(
-                    width=1000,
-                    height=600,
-                    directed=True,
-                    physics=True,
-                    hierarchical=True
-                )
-
+                config = Config(width=1000, height=600, directed=True, hierarchical=True)
                 agraph(nodes=nodes, edges=edges, config=config)
+
 
 
     except Exception as e:
