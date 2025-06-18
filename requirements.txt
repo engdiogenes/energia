@@ -10,3 +10,5 @@ fpdf
 gspread
 oauth2client
 statsmodels
+streamlit-agraph
+
