@@ -32,6 +32,7 @@ with st.sidebar:
     )
     st.session_state.idioma = idioma
 
+
 def t(key):
     translations = {
         "pt": {
@@ -83,6 +84,8 @@ def t(key):
     }
     lang = "pt" if "Português" in st.session_state.get("idioma", "Português (BR)") else "en"
     return translations[lang].get(key, key)
+st.write("Idioma atual:", st.session_state.get("idioma", "não definido"))
+st.write("Tradução de 'daily_target':", t("daily_target"))
 
 
 st.set_page_config(
