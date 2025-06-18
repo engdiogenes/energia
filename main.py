@@ -4,6 +4,51 @@ import io
 import json
 import plotly.graph_objects as go
 import datetime
+
+# Seletor de idioma e função de tradução
+import streamlit as st
+
+with st.sidebar:
+    idioma = st.selectbox(
+        "🌐 Language / Idioma",
+        options=["Português (BR)", "English (UK)"],
+        index=0,
+        format_func=lambda x: "🇧🇷 Português" if "Português" in x else "🇬🇧 English"
+    )
+    st.session_state.idioma = idioma
+
+def t(chave):
+    traducoes = {
+        "pt": {
+            "daily_target": "🎯 Meta Diária",
+            "daily_consumption": "⚡ Consumo Diário",
+            "balance": "📉 Saldo do Dia",
+            "month_prediction": "📅 Previsão Mensal",
+            "send_email": "✉️ Enviar por E-mail",
+            "select_date": "Selecione a data",
+            "last_update": "📅 Última atualização",
+            "forecast": "🔮 Estimativa Total com Base no Padrão Atual",
+            "target_until_today": "🎯 Target acumulado até hoje (área produtiva)",
+            "real_until_today": "⚡ Consumo real acumulado até hoje (área produtiva)",
+            "diagnosis": "🧠 Diagnóstico Interativo - Climatização Extra",
+        },
+        "en": {
+            "daily_target": "🎯 Daily Target",
+            "daily_consumption": "⚡ Daily Consumption",
+            "balance": "📉 Balance of the Day",
+            "month_prediction": "📅 Month Prediction",
+            "send_email": "✉️ Send by Email",
+            "select_date": "Select Date",
+            "last_update": "📅 Last update",
+            "forecast": "🔮 Total Estimate Based on Current Pattern",
+            "target_until_today": "🎯 Accumulated Target Until Today (Production Area)",
+            "real_until_today": "⚡ Real Consumption Until Today (Production Area)",
+            "diagnosis": "🧠 Interactive Diagnosis - Extra Air Conditioning",
+        }
+    }
+    lang = "pt" if "Português" in st.session_state.get("idioma", "Português") else "en"
+    return traducoes[lang].get(chave, chave)
+
 from streamlit_calendar import calendar
 import fpdf
 import os
@@ -49,7 +94,7 @@ if os.path.exists(CAMINHO_JSON_PADRAO):
     except Exception as e:
         st.warning(f"Erro ao carregar limites padrão: {e}")
 
-st.markdown(t("""))
+st.markdown("""
     <style>
     .block-container {
         padding-top: 1rem;
@@ -113,12 +158,12 @@ def carregar_dados(dados_colados):
     return consumo
 
 
-# st.title(t(" Energy data analyser")))
+# st.title(" Energy data analyser")
 
 with st.sidebar:
     # st.sidebar.image("logo.png", width=360)
     # st.logo("logo.png", size="Large", link=None, icon_image=None)
-    st.header(t(" PowerTrack")))
+    st.header(" PowerTrack")
     import gspread
     from oauth2client.service_account import ServiceAccountCredentials
 
@@ -139,7 +184,7 @@ with st.sidebar:
         return texto_tabulado
 
 
-    origem_dados = st.radio(t("Escolha a origem dos dados:")), ["Google Sheets", "Colar manualmente"])
+    origem_dados = st.radio("Escolha a origem dos dados:", ["Google Sheets", "Colar manualmente"])
 
     if origem_dados == "Google Sheets":
         dados_colados = obter_dados_do_google_sheets()
@@ -152,17 +197,17 @@ with st.sidebar:
         if pd.notna(ultima_data):
             st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
         else:
-            st.sidebar.warning(t("Não foi possível determinar a última data de atualização.")))
+            st.sidebar.warning("Não foi possível determinar a última data de atualização.")
 
     else:
-        dados_colados = st.text_area(t("Cole os dados aqui (tabulados):")), height=300)
+        dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
 
     # Campo para inserir e-mail
-    to_email = st.text_input(t("Destinatário do e-mail")))
+    to_email = st.text_input("Destinatário do e-mail")
     # Botão para enviar o relatório por e-mail
-    if st.button(t("✉️ Enviar por E-mail")), key="enviar_email_sidebar", use_container_width=True):
+    if st.button("✉️ Enviar por E-mail", key="enviar_email_sidebar", use_container_width=True):
         if not to_email:
-            st.warning(t("Por favor, insira o e-mail do destinatário.")))
+            st.warning("Por favor, insira o e-mail do destinatário.")
         else:
             try:
                 EMAIL = st.secrets["email"]["address"]
@@ -210,7 +255,7 @@ with st.sidebar:
                     server.login(EMAIL, PASSWORD)
                     server.send_message(msg)
 
-                st.success(t("E-mail enviado com sucesso!")))
+                st.success("E-mail enviado com sucesso!")
             except Exception as e:
                 st.error(f"Erro ao enviar e-mail: {e}")
 
@@ -349,11 +394,11 @@ if dados_colados:
                 df_diario = df_filtrado.groupby("Data")[colunas_medidores].sum().reset_index()
 
                 # Exibir o resultado
-                st.subheader(t("📅 Consumo diário do mês")))
+                st.subheader("📅 Consumo diário do mês")
                 st.dataframe(df_diario, use_container_width=True)
 
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
-                st.subheader(t(" Consumo Diário por Medidor")))
+                st.subheader(" Consumo Diário por Medidor")
                 consumo_diario = consumo.copy()
                 consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
                 consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
@@ -385,7 +430,7 @@ if dados_colados:
 
                 st.divider()
             with tabs[1]:
-                st.subheader(t(" Gráficos por Medidor com Curva de Limite")))
+                st.subheader(" Gráficos por Medidor com Curva de Limite")
                 for medidor in medidores_disponiveis:
                     fig = go.Figure()
                     fig.add_trace(go.Scatter(
@@ -411,7 +456,7 @@ if dados_colados:
 
             # TABS 3 - CONFIGURAR LIMITES
             with tabs[2]:
-                st.subheader(t(" Limites Horários Carregados")))
+                st.subheader(" Limites Horários Carregados")
 
                 if "limites_df" in st.session_state:
                     st.dataframe(
@@ -425,7 +470,7 @@ if dados_colados:
                         mime="application/json"
                     )
                     # Exibir metas mensais de consumo da área produtiva em MWh
-                    st.subheader(t("📊 Metas Mensais de Consumo da Área Produtiva (em MWh)")))
+                    st.subheader("📊 Metas Mensais de Consumo da Área Produtiva (em MWh)")
 
                     df_limites = st.session_state.limites_df.copy()
                     df_limites["Data"] = pd.to_datetime(df_limites["Data"])
@@ -455,11 +500,11 @@ if dados_colados:
 
 
                 else:
-                    st.warning(t("Nenhum limite foi carregado.")))
+                    st.warning("Nenhum limite foi carregado.")
 
             # TABS 3 - DASHBOARD
             with tabs[3]:
-                st.subheader(t(" Painel Resumo")))
+                st.subheader(" Painel Resumo")
                 colunas = st.columns(4)
                 for idx, medidor in enumerate(medidores_disponiveis):
                     with colunas[idx % 4]:
@@ -474,7 +519,7 @@ if dados_colados:
                         )
 
                 st.divider()
-                st.subheader(t(" Gráficos de Consumo vs Limite")))
+                st.subheader(" Gráficos de Consumo vs Limite")
                 linhas = [st.columns(4) for _ in range(3)]
                 for idx, medidor in enumerate(medidores_disponiveis):
                     linha = idx // 4
@@ -508,7 +553,7 @@ if dados_colados:
 
             # TABS 4 - CALENDÁRIO
             with tabs[4]:
-                st.subheader(t("Calendário Interativo de Consumo da Área Produtiva")))
+                st.subheader("Calendário Interativo de Consumo da Área Produtiva")
                 consumo_completo["Data"] = consumo_completo["Datetime"].dt.date
                 dias_unicos = sorted(consumo_completo["Data"].unique())
                 dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
@@ -565,18 +610,18 @@ if dados_colados:
                                 )
                                 st.plotly_chart(fig, use_container_width=True)
                             else:
-                                st.markdown(t("_Sem dados_")))
+                                st.markdown("_Sem dados_")
 
             # TABS 5 - CALENDÁRIO
             with tabs[5]:
-                st.title(t("or CSV para JSON - Limites Horários por Medidor")))
+                st.title("or CSV para JSON - Limites Horários por Medidor")
                 uploaded_file = st.file_uploader("Faça upload do arquivo CSV", type="csv")
                 if uploaded_file is not None:
                     try:
                         # Lê o CSV com codificação ISO-8859-1
                         df = pd.read_csv(uploaded_file, encoding="ISO-8859-1")
 
-                        st.subheader(t("Pré-visualização do CSV")))
+                        st.subheader("Pré-visualização do CSV")
                         st.dataframe(df)
 
                         # Usa as duas primeiras colunas como Data e Hora
@@ -597,19 +642,19 @@ if dados_colados:
                         # Converte para JSON
                         json_data = df.reset_index().to_dict(orient="records")
 
-                        st.subheader(t("JSON Gerado")))
+                        st.subheader("JSON Gerado")
                         st.json(json_data)
 
                         # Permite download
                         json_str = json.dumps(json_data, indent=2, ensure_ascii=False)
 
-                        st.download_button(t("Baixar JSON")), json_str, file_name="limites_horarios.json",
+                        st.download_button("Baixar JSON", json_str, file_name="limites_horarios.json",
                                            mime="application/json")
                     except Exception as e:
                         st.error(f"Erro ao processar os dados: {e}")
             # TABS 6 - PREVISÃO MENSAL
             with tabs[6]:
-                st.title(t("📅 Month Prediction")))
+                st.title("📅 Month Prediction")
 
                 if "limites_df" in st.session_state and "data_selecionada" in st.session_state and "consumo" in st.session_state:
                     limites_df = st.session_state.limites_df.copy()
@@ -745,7 +790,7 @@ if dados_colados:
                         ]["Meta Horária"].sum()
 
                     # Tabela de previsão diária
-                    st.subheader(t("📋 Previsão e Consumo Diário da Área Produtiva")))
+                    st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
                     datas_unicas = sorted(limites_mes["Data"].dt.date.unique())
                     dados_tabela = []
 
@@ -765,7 +810,7 @@ if dados_colados:
                     df_tabela = pd.DataFrame(dados_tabela)
 
                     # Simulação de Monte Carlo - Gráfico Interativo com Plotly (com faixa de confiança)
-                    st.subheader(t("📈 Simulação de Monte Carlo - Consumo Diário Futuro com Faixa de Confiança")))
+                    st.subheader("📈 Simulação de Monte Carlo - Consumo Diário Futuro com Faixa de Confiança")
 
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
                     historico_diario = df_consumo[
@@ -1124,7 +1169,7 @@ if dados_colados:
                             st.plotly_chart(fig, use_container_width=True)
 
                             # Métricas
-                            st.markdown(t("### 📈 Resumo das Metas Mensais")))
+                            st.markdown("### 📈 Resumo das Metas Mensais")
                             col1, col2 = st.columns(2)
                             col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
                             col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
@@ -1139,7 +1184,7 @@ if dados_colados:
                             import streamlit as st
 
                             # Forecast Interativo com Monte Carlo
-                            st.subheader(t("📈 Forecast Interativo com Monte Carlo")))
+                            st.subheader("📈 Forecast Interativo com Monte Carlo")
 
                             if 'consumo' in st.session_state and 'data_selecionada' in st.session_state:
                                 df = st.session_state.consumo.copy()
@@ -1218,17 +1263,17 @@ if dados_colados:
 
                                     st.plotly_chart(fig, use_container_width=True)
                                 else:
-                                    st.warning(t("Não há dados suficientes ou a coluna 'Área Produtiva' está ausente.")))
+                                    st.warning("Não há dados suficientes ou a coluna 'Área Produtiva' está ausente.")
                             else:
-                                st.warning(t("Dados de consumo ou data selecionada não encontrados.")))
+                                st.warning("Dados de consumo ou data selecionada não encontrados.")
 
                         else:
-                            st.warning(t("Dados de consumo não encontrados em st.session_state.")))
+                            st.warning("Dados de consumo não encontrados em st.session_state.")
 
                 with open("relatorio_month_prediction.html", "r", encoding="utf-8") as f:
                     html_content = f.read()
 
-                st.markdown(t("### 📘 Relatório Técnico Detalhado")))
+                st.markdown("### 📘 Relatório Técnico Detalhado")
                 components.html(html_content, height=1000, scrolling=True)
 
     except Exception as e:
