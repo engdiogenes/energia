@@ -1299,6 +1299,11 @@ if dados_colados:
                 st.markdown("### 📘 Relatório Técnico Detalhado")
                 components.html(html_content, height=1000, scrolling=True)
 
+            from streamlit_agraph import agraph, Node, Edge, Config
+            import matplotlib.pyplot as plt
+            import matplotlib.cm as cm
+            import matplotlib.colors as mcolors
+
             with tabs[7]:  # ou ajuste o índice conforme necessário
                 st.subheader("📍 Meter's Layout")
 
@@ -1310,19 +1315,38 @@ if dados_colados:
 
                 medidores = [
                     "MP&L", "GAHO", "MAIW", "CAG", "SEOB", "EBPC",
-                    "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN", "PCCB"  # PCCB = Emissions Lab
+                    "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN", "PCCB"
                 ]
                 consumo_por_medidor = df_mes[medidores].sum().to_dict()
 
+                # Normalização para tamanho e cor
+                valores = list(consumo_por_medidor.values())
+                min_val, max_val = min(valores), max(valores)
+                norm = mcolors.Normalize(vmin=min_val, vmax=max_val)
+                cmap = cm.get_cmap('tab10')
+
+
+                def tamanho_no(valor):
+                    return 20 + 30 * ((valor - min_val) / (max_val - min_val)) if max_val > min_val else 30
+
+
+                def cor_no(idx):
+                    rgba = cmap(idx % 10)
+                    return mcolors.to_hex(rgba)
+
+
                 nodes = [
-                    Node(id="Full Plant", label="Full Plant", size=40),
-                    Node(id="Productive areas", label="Productive areas", size=30),
-                    Node(id="THIRD PARTS", label="THIRD PARTS", size=30),
+                    Node(id="Full Plant", label="Full Plant", size=50, color="#1f77b4"),
+                    Node(id="Productive areas", label="Productive areas", size=35, color="#2ca02c"),
+                    Node(id="THIRD PARTS", label="THIRD PARTS", size=35, color="#ff7f0e"),
                 ]
-                for nome in medidores:
+
+                for idx, nome in enumerate(medidores):
                     consumo = consumo_por_medidor.get(nome, 0)
-                    label = f"{nome if nome != 'PCCB' else 'Emissions Lab'}\n{consumo:,.0f} kWh"
-                    nodes.append(Node(id=nome, label=label, size=25))
+                    label = f"{'Emissions Lab' if nome == 'PCCB' else nome}\n{consumo:,.0f} kWh"
+                    size = tamanho_no(consumo)
+                    color = cor_no(idx)
+                    nodes.append(Node(id=nome, label=label, size=size, color=color))
 
                 edges = [
                             Edge(source="Full Plant", target="Productive areas"),
@@ -1335,8 +1359,6 @@ if dados_colados:
 
                 config = Config(width=1000, height=600, directed=True, hierarchical=True)
                 agraph(nodes=nodes, edges=edges, config=config)
-
-
 
 
     except Exception as e:
