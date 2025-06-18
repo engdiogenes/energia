@@ -4,51 +4,6 @@ import io
 import json
 import plotly.graph_objects as go
 import datetime
-
-# Seletor de idioma e função de tradução
-import streamlit as st
-
-with st.sidebar:
-    idioma = st.selectbox(
-        "🌐 Language / Idioma",
-        options=["Português (BR)", "English (UK)"],
-        index=0,
-        format_func=lambda x: "🇧🇷 Português" if "Português" in x else "🇬🇧 English"
-    )
-    st.session_state.idioma = idioma
-
-def t(chave):
-    traducoes = {
-        "pt": {
-            "daily_target": "🎯 Meta Diária",
-            "daily_consumption": "⚡ Consumo Diário",
-            "balance": "📉 Saldo do Dia",
-            "month_prediction": "📅 Previsão Mensal",
-            "send_email": "✉️ Enviar por E-mail",
-            "select_date": "Selecione a data",
-            "last_update": "📅 Última atualização",
-            "forecast": "🔮 Estimativa Total com Base no Padrão Atual",
-            "target_until_today": "🎯 Target acumulado até hoje (área produtiva)",
-            "real_until_today": "⚡ Consumo real acumulado até hoje (área produtiva)",
-            "diagnosis": "🧠 Diagnóstico Interativo - Climatização Extra",
-        },
-        "en": {
-            "daily_target": "🎯 Daily Target",
-            "daily_consumption": "⚡ Daily Consumption",
-            "balance": "📉 Balance of the Day",
-            "month_prediction": "📅 Month Prediction",
-            "send_email": "✉️ Send by Email",
-            "select_date": "Select Date",
-            "last_update": "📅 Last update",
-            "forecast": "🔮 Total Estimate Based on Current Pattern",
-            "target_until_today": "🎯 Accumulated Target Until Today (Production Area)",
-            "real_until_today": "⚡ Real Consumption Until Today (Production Area)",
-            "diagnosis": "🧠 Interactive Diagnosis - Extra Air Conditioning",
-        }
-    }
-    lang = "pt" if "Português" in st.session_state.get("idioma", "Português") else "en"
-    return traducoes[lang].get(chave, chave)
-
 from streamlit_calendar import calendar
 import fpdf
 import os
@@ -163,7 +118,10 @@ def carregar_dados(dados_colados):
 with st.sidebar:
     # st.sidebar.image("logo.png", width=360)
     # st.logo("logo.png", size="Large", link=None, icon_image=None)
-    st.header(" PowerTrack")
+    st.markdown("""
+        <h1 style='font-size: 28px; color: #262730; margin-bottom: 1rem;'>⚡ PowerTrack</h1>
+    """, unsafe_allow_html=True)
+
     import gspread
     from oauth2client.service_account import ServiceAccountCredentials
 
@@ -191,14 +149,12 @@ with st.sidebar:
         # Converter os dados colados em DataFrame temporário para extrair a última data
         df_temp = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
         df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
-        ultima_data = df_temp["Datetime"].max()
-
-        # Exibir no Streamlit
-        if pd.notna(ultima_data):
+        if not df_temp.empty:
+            df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
+            ultima_data = df_temp["Datetime"].max()
             st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
         else:
             st.sidebar.warning("Não foi possível determinar a última data de atualização.")
-
     else:
         dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
 
@@ -267,12 +223,16 @@ if dados_colados:
             consumo_completo = consumo.copy()
 
             datas_disponiveis = consumo["Datetime"].dt.date.unique()
-            data_selecionada = st.sidebar.date_input(
-                "Selecione a data",
-                value=max(datas_disponiveis),
-                min_value=min(datas_disponiveis),
-                max_value=max(datas_disponiveis)
-            )
+            if len(datas_disponiveis) > 0:
+                data_selecionada = st.sidebar.date_input(
+                    "Selecione a data",
+                    value=max(datas_disponiveis),
+                    min_value=min(datas_disponiveis),
+                    max_value=max(datas_disponiveis)
+                )
+            else:
+                st.warning("Nenhuma data disponível nos dados carregados.")
+
             # Créditos e data no rodapé da sidebar (logo após o campo de data)
             st.sidebar.markdown(
                 f"""
@@ -707,6 +667,25 @@ if dados_colados:
                     col1.metric("🔋 Consumo máximo previsto para o mês (área produtiva)", f"{consumo_max_mes:.2f} kWh")
                     col2.metric("🔮 Consumo previsto para o mês (baseado no consumo atual + targets restantes)",
                                 f"{consumo_previsto_mes:.2f} kWh")
+                    # Calcular soma dos targets da área produtiva até o dia selecionado (mês atual)
+                    targets_ate_hoje = limites_mes[limites_mes["Data"].dt.date <= data_ref][
+                        colunas_area_produtiva].sum().sum()
+                    adicional_ate_hoje = limites_mes[limites_mes["Data"].dt.date <= data_ref][
+                                             "Data"].dt.date.nunique() * 24 * 13.75
+                    meta_ate_hoje = targets_ate_hoje + adicional_ate_hoje
+
+                    # Calcular consumo real da área produtiva até o dia selecionado (mês atual)
+                    consumo_real_ate_hoje = df_consumo[
+                        (df_consumo["Datetime"].dt.month == data_ref.month) &
+                        (df_consumo["Datetime"].dt.year == data_ref.year) &
+                        (df_consumo["Datetime"].dt.date <= data_ref)
+                        ]["Área Produtiva"].sum()
+
+                    # Exibir métricas adicionais
+                    col3, col4 = st.columns(2)
+                    col3.metric("🎯 Target acumulado até hoje (área produtiva)", f"{meta_ate_hoje:,.0f} kWh")
+                    col4.metric("⚡ Consumo real acumulado até hoje (área produtiva)",
+                                f"{consumo_real_ate_hoje:,.0f} kWh")
 
                     # Estimativa total com base no padrão atual de consumo
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
@@ -756,7 +735,8 @@ if dados_colados:
                     st.metric(
                         label="📈 Estimativa Total com Base no Padrão Atual",
                         value=f"{consumo_estimado_total:,.0f} kWh",
-                        delta=f"{delta_estimado:,.0f} kWh"
+                        delta=f"{delta_estimado:,.0f} kWh",
+                        delta_color="inverse" if delta_estimado > 0 else "normal"
                     )
 
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
@@ -1167,6 +1147,28 @@ if dados_colados:
                                 template='plotly_white'
                             )
                             st.plotly_chart(fig, use_container_width=True)
+                            # Diagnóstico Interativo - Climatização Extra
+                            st.subheader("🧠 Diagnóstico Interativo - Climatização Extra")
+
+                            # Cálculo do saldo de energia até o momento
+                            saldo_energia = meta_ate_hoje - consumo_real_ate_hoje
+
+                            if saldo_energia >= 0:
+                                horas_extras = saldo_energia / 785
+                                dias_extras = horas_extras / 8
+                                st.success(f"""
+                                ✅ Até o momento, há um saldo positivo de **{saldo_energia:,.0f} kWh** de energia.
+                                Isso permite aproximadamente **{horas_extras:.1f} horas** extras de climatização no mês,
+                                o que equivale a cerca de **{dias_extras:.1f} dias** completos de climatização adicional.
+                                """)
+                            else:
+                                horas_a_economizar = abs(saldo_energia) / 785
+                                dias_a_economizar = horas_a_economizar / 8
+                                st.error(f"""
+                                ⚠️ O consumo da área produtiva até o momento excedeu o target em **{abs(saldo_energia):,.0f} kWh**.
+                                Para voltar ao limite mensal, será necessário economizar cerca de **{horas_a_economizar:.1f} horas**
+                                de climatização, o que representa aproximadamente **{dias_a_economizar:.1f} dias** de uso contínuo.
+                                """)
 
                             # Métricas
                             st.markdown("### 📈 Resumo das Metas Mensais")
@@ -1278,6 +1280,3 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
-
-
-
