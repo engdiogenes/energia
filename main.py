@@ -1141,6 +1141,28 @@ if dados_colados:
                                 template='plotly_white'
                             )
                             st.plotly_chart(fig, use_container_width=True)
+                            # Diagnóstico Interativo - Climatização Extra
+                            st.subheader("🧠 Diagnóstico Interativo - Climatização Extra")
+
+                            # Cálculo do saldo de energia até o momento
+                            saldo_energia = meta_ate_hoje - consumo_real_ate_hoje
+
+                            if saldo_energia >= 0:
+                                horas_extras = saldo_energia / 785
+                                dias_extras = horas_extras / 8
+                                st.success(f"""
+                                ✅ Até o momento, há um saldo positivo de **{saldo_energia:,.0f} kWh** de energia.
+                                Isso permite aproximadamente **{horas_extras:.1f} horas** extras de climatização no mês,
+                                o que equivale a cerca de **{dias_extras:.1f} dias** completos de climatização adicional.
+                                """)
+                            else:
+                                horas_a_economizar = abs(saldo_energia) / 785
+                                dias_a_economizar = horas_a_economizar / 8
+                                st.error(f"""
+                                ⚠️ O consumo da área produtiva até o momento excedeu o target em **{abs(saldo_energia):,.0f} kWh**.
+                                Para voltar ao limite mensal, será necessário economizar cerca de **{horas_a_economizar:.1f} horas**
+                                de climatização, o que representa aproximadamente **{dias_a_economizar:.1f} dias** de uso contínuo.
+                                """)
 
                             # Métricas
                             st.markdown("### 📈 Resumo das Metas Mensais")
