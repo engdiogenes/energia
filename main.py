@@ -22,33 +22,70 @@ from statsmodels.tsa.arima.model import ARIMA
 from datetime import timedelta
 import streamlit.components.v1 as components
 
+# Language selector and translation function
+with st.sidebar:
+    idioma = st.selectbox(
+        "🌐 Language / Idioma",
+        options=["Português (BR)", "English (UK)"],
+        index=0,
+        format_func=lambda x: "🇧🇷 Português" if "Português" in x else "🇬🇧 English"
+    )
+    st.session_state.idioma = idioma
 
-# Função de tradução multilíngue
-def t(chave):
-    traducoes = {
-        'pt': {
-            'daily_target': '🎯 Meta Diária',
-            'daily_consumption': '⚡ Consumo Diário',
-            'balance': '📉 Saldo do Dia',
-            'month_prediction': '📅 Previsão Mensal',
-            'send_email': '✉️ Enviar por E-mail',
-            'select_date': 'Selecione a data',
-            'last_update': '📅 Última atualização',
+def t(key):
+    translations = {
+        "pt": {
+            "app_title": "⚡ PowerTrack",
+            "language_selector": "🌐 Idioma",
+            "last_update": "📅 Última atualização",
+            "select_date": "Selecione a data",
+            "month_prediction": "📅 Previsão Mensal",
+            "daily_target": "🎯 Meta Diária",
+            "daily_consumption": "⚡ Consumo Diário",
+            "balance": "📉 Saldo do Dia",
+            "send_email": "✉️ Enviar por E-mail",
+            "forecast_title": "📈 Estimativa Total com Base no Padrão Atual",
+            "max_forecast": "🔋 Consumo máximo previsto para o mês (área produtiva)",
+            "predicted_forecast": "🔮 Consumo previsto para o mês (baseado no consumo atual + targets restantes)",
+            "accumulated_target": "🎯 Target acumulado até hoje (área produtiva)",
+            "accumulated_consumption": "⚡ Consumo real acumulado até hoje (área produtiva)",
+            "diagnosis_title": "🧠 Diagnóstico Interativo - Climatização Extra",
+            "positive_balance": "✅ Até o momento, há um saldo positivo de",
+            "extra_hours": "Isso permite aproximadamente",
+            "extra_days": "o que equivale a cerca de",
+            "negative_balance": "⚠️ O consumo da área produtiva até o momento excedeu o target em",
+            "need_to_save": "Para voltar ao limite mensal, será necessário economizar cerca de",
+            "days_to_cut": "o que representa aproximadamente",
         },
-        'en': {
-            'daily_target': '🎯 Daily Target',
-            'daily_consumption': '⚡ Daily Consumption',
-            'balance': '📉 Balance of the Day',
-            'month_prediction': '📅 Month Prediction',
-            'send_email': '✉️ Send by Email',
-            'select_date': 'Select Date',
-            'last_update': '📅 Last update',
+        "en": {
+            "app_title": "⚡ PowerTrack",
+            "language_selector": "🌐 Language",
+            "last_update": "📅 Last update",
+            "select_date": "Select date",
+            "month_prediction": "📅 Month Prediction",
+            "daily_target": "🎯 Daily Target",
+            "daily_consumption": "⚡ Daily Consumption",
+            "balance": "📉 Balance of the Day",
+            "send_email": "✉️ Send by Email",
+            "forecast_title": "📈 Total Estimate Based on Current Pattern",
+            "max_forecast": "🔋 Maximum forecasted consumption for the month (productive area)",
+            "predicted_forecast": "🔮 Forecasted consumption for the month (based on current consumption + remaining targets)",
+            "accumulated_target": "🎯 Accumulated target until today (productive area)",
+            "accumulated_consumption": "⚡ Real accumulated consumption until today (productive area)",
+            "diagnosis_title": "🧠 Interactive Diagnosis - Extra Air Conditioning",
+            "positive_balance": "✅ So far, there is a positive energy balance of",
+            "extra_hours": "This allows approximately",
+            "extra_days": "which is equivalent to about",
+            "negative_balance": "⚠️ The productive area consumption so far exceeded the target by",
+            "need_to_save": "To return to the monthly limit, it will be necessary to save about",
+            "days_to_cut": "which represents approximately",
         }
     }
-    lang = 'pt' if 'Português' in st.session_state.idioma else 'en'
-    return traducoes[lang].get(chave, chave)
-st.set_page_config(
+    lang = "pt" if "Português" in st.session_state.get("idioma", "Português (BR)") else "en"
+    return translations[lang].get(key, key)
 
+
+st.set_page_config(
     page_title="PowerTrack",
     page_icon="⚡",
     layout="wide",
@@ -144,14 +181,6 @@ def carregar_dados(dados_colados):
 with st.sidebar:
     # st.sidebar.image("logo.png", width=360)
     # st.logo("logo.png", size="Large", link=None, icon_image=None)
-    # Seletor de idioma na sidebar
-    idioma = st.sidebar.selectbox(
-        '🌐 Language / Idioma',
-        options=['Português (BR)', 'English (UK)'],
-        index=0,
-        format_func=lambda x: '🇧🇷 Português' if 'Português' in x else '🇬🇧 English'
-    )
-    st.session_state.idioma = idioma
     st.header(" PowerTrack")
     import gspread
     from oauth2client.service_account import ServiceAccountCredentials
