@@ -118,7 +118,10 @@ def carregar_dados(dados_colados):
 with st.sidebar:
     # st.sidebar.image("logo.png", width=360)
     # st.logo("logo.png", size="Large", link=None, icon_image=None)
-    st.header(" PowerTrack")
+    st.markdown("""
+        <h1 style='font-size: 28px; color: #262730; margin-bottom: 1rem;'>⚡ PowerTrack</h1>
+    """, unsafe_allow_html=True)
+
     import gspread
     from oauth2client.service_account import ServiceAccountCredentials
 
