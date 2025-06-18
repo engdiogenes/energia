@@ -1274,6 +1274,3 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
-
-
-
