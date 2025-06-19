@@ -875,38 +875,38 @@ if dados_colados:
                         # Meta diária
                         # Meta diária real a partir do JSON
                         df_limites = st.session_state.limites_df.copy()
-                        df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
+                        df_limites["Date"] = pd.to_datetime(df_limites["Date"]).dt.date
 
                         colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
                                         "TRIM&FINAL"]
                         df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
-                        meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
+                        meta_diaria_df = df_limites.groupby("Date")["Hourly Target"].sum().reset_index()
 
                         # Filtrar apenas o mês e ano da data selecionada
                         data_base = st.session_state.data_selecionada
-                        meta_diaria_df["Data"] = pd.to_datetime(meta_diaria_df["Data"], errors='coerce')
-                        meta_diaria_df = meta_diaria_df.dropna(subset=["Data"])
+                        meta_diaria_df["Date"] = pd.to_datetime(meta_diaria_df["Date"], errors='coerce')
+                        meta_diaria_df = meta_diaria_df.dropna(subset=["Date"])
 
                         meta_diaria_df = meta_diaria_df[
-                            (meta_diaria_df["Data"].dt.month == data_base.month) &
-                            (meta_diaria_df["Data"].dt.year == data_base.year)
+                            (meta_diaria_df["Date"].dt.month == data_base.month) &
+                            (meta_diaria_df["Date"].dt.year == data_base.year)
                             ]
 
-                        meta_diaria_df.columns = ["Data", "Meta Horária"]
+                        meta_diaria_df.columns = ["Date", "Hourly Target"]
 
                         # Adicionar linha de metas reais ao gráfico
                         fig.add_trace(go.Scatter(
-                            x=meta_diaria_df["Data"],
-                            y=meta_diaria_df["Meta Horária"],
+                            x=meta_diaria_df["Date"],
+                            y=meta_diaria_df["Hourly Target"],
                             mode='lines',
-                            name='Meta Diária Real',
+                            name='Actual Daily Target',
                             line=dict(color='green', dash='dot')
                         ))
 
                         fig.update_layout(
-                            title='Previsão de Consumo com Monte Carlo - Área Produtiva',
-                            xaxis_title='Data',
-                            yaxis_title='Consumo Diário (kWh)',
+                            title='Consumption Forecasting with Monte Carlo - Production Area',
+                            xaxis_title='Date',
+                            yaxis_title='Daily consumption (kWh)',
                             legend_title='Legenda',
                             template='plotly_white'
                         )
@@ -916,17 +916,17 @@ if dados_colados:
                         # Diagnóstico inteligente
                         # Calcular metas reais do JSON para os dias do histórico e futuros
                         df_limites = st.session_state.limites_df.copy()
-                        df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
+                        df_limites["Date"] = pd.to_datetime(df_limites["Date"]).dt.date
 
                         colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
                                         "TRIM&FINAL"]
-                        df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
-                        meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
-                        meta_diaria_df["Data"] = pd.to_datetime(meta_diaria_df["Data"], errors='coerce')
+                        df_limites["Hourly Target"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                        meta_diaria_df = df_limites.groupby("Date")["Hourly Target"].sum().reset_index()
+                        meta_diaria_df["Date"] = pd.to_datetime(meta_diaria_df["Date"], errors='coerce')
 
                         # Filtrar metas para os dias do histórico e futuros
                         datas_relevantes = list(historico_diario.index) + dias_futuros
-                        meta_total = meta_diaria_df[meta_diaria_df["Data"].isin(datas_relevantes)]["Meta Horária"].sum()
+                        meta_total = meta_diaria_df[meta_diaria_df["Date"].isin(datas_relevantes)]["Hourly Target"].sum()
 
                         # Novo saldo total com base nas metas reais
                         saldo_total = historico_diario.sum() + media_simulada.sum() - meta_total
@@ -934,22 +934,22 @@ if dados_colados:
                         variabilidade = np.std(simulacoes)
 
                         if saldo_total > 0:
-                            diagnostico = "A previsão indica que o consumo total da área produtiva deve ultrapassar a meta mensal de energia elétrica."
+                            diagnostico = "The forecast indicates that total consumption in the productive area is expected to exceed the monthly electricity target."
                         else:
-                            diagnostico = "A previsão sugere que o consumo total da área produtiva deve permanecer dentro da meta mensal de energia elétrica."
+                            diagnostico = "The forecast suggests that total consumption in the productive area should remain within the monthly electricity target."
 
                         legenda = (
-                            f"O consumo real apresenta variações em torno da meta diária. "
-                            f"A simulação de Monte Carlo mostra uma variabilidade de aproximadamente {variabilidade:.1f} kWh "
-                            f"entre as trajetórias simuladas. {diagnostico}"
+                            f"Actual consumption varies around the daily target. "
+                            f"The Monte Carlo simulation shows a variability of approximately {variabilidade:.1f} kWh "
+                            f"between the simulated trajectories. {diagnostico}"
                         )
 
-                        st.markdown(f"**📌 Diagnóstico Inteligente:** {legenda}")
+                        st.markdown(f"**📌 Intelligent Diagnosis:** {legenda}")
 
                         # Análise interpretativa baseada nas simulações
                         targets_futuros = df_tabela[
-                            df_tabela["Data"].apply(lambda d: datetime.strptime(d, "%Y-%m-%d").date() > data_ref)][
-                            "Consumo Previsto (kWh)"].values
+                            df_tabela["Date"].apply(lambda d: datetime.strptime(d, "%Y-%m-%d").date() > data_ref)][
+                            "Expected Consumption(kWh)"].values
 
                         em_alta = 0
                         em_baixa = 0
@@ -968,25 +968,25 @@ if dados_colados:
                                 estaveis += 1
 
                         if em_alta > em_baixa and em_alta > estaveis:
-                            tendencia = "alta"
-                            risco = "há risco de ultrapassar os limites mensais de consumo"
+                            tendencia = "high"
+                            risco = "there is a risk of exceeding the monthly consumption limits"
                         elif em_baixa > em_alta and em_baixa > estaveis:
-                            tendencia = "baixa"
-                            risco = "há folga no consumo em relação ao limite"
+                            tendencia = "low"
+                            risco = "there is a gap in consumption in relation to the limit"
                         else:
-                            tendencia = "estável"
-                            risco = "o consumo está dentro da faixa esperada"
+                            tendencia = "stable"
+                            risco = "consumption is within the expected range"
 
                         st.markdown(f"""
-                        ### 🔍 **Análise da Previsão de Consumo da Área Produtiva**
+                        ### 🔍 **Analysis of Consumption Forecast for the Production Area**
 
-                        Com base nas simulações de Monte Carlo realizadas:
+                        Based on the Monte Carlo simulations performed:
 
-                        - **{em_alta}** simulações indicam tendência de alta no consumo  
-                        - **{em_baixa}** simulações indicam tendência de queda  
-                        - **{estaveis}** simulações indicam estabilidade  
+                        - **{em_alta}** simulations indicate upward trend in consumption  
+                        - **{em_baixa}** simulations indicate downward trend  
+                        - **{estaveis}** simulations indicate stability  
 
-                        📉 A tendência geral é **{tendencia}**, o que sugere que **{risco}**.
+                        📉 The general trend is **{tendencia}**, which suggests that **{risco}**.
                         """)
 
                         import plotly.graph_objects as go
