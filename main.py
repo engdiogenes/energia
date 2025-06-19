@@ -1357,7 +1357,7 @@ if dados_colados:
 
                 nodes = [
                     Node(id="Full Plant", label="Full Plant", size=50, color="#1f77b4"),
-                    Node(id="PRODUCIVE AREAS", label="PRODUCIVE AREAS", size=35, color="#2ca02c"),
+                    Node(id="PRODUCTIVE AREAS", label="PRODUCTIVE AREAS", size=35, color="#2ca02c"),
                     Node(id="THIRD PARTS", label="THIRD PARTS", size=35, color="#ff7f0e"),
                 ]
 
@@ -1369,10 +1369,10 @@ if dados_colados:
                     nodes.append(Node(id=nome, label=label, size=size, color=color))
 
                 edges = [
-                            Edge(source="Full Plant", target="PRODUCIVE AREAS"),
+                            Edge(source="Full Plant", target="PRODUCTIVE AREAS"),
                             Edge(source="Full Plant", target="THIRD PARTS"),
                         ] + [
-                            Edge(source="PRODUCIVE AREAS", target=nome) for nome in medidores if nome != "PCCB"
+                            Edge(source="PRODUCTIVE AREAS", target=nome) for nome in medidores if nome != "PCCB"
                         ] + [
                             Edge(source="THIRD PARTS", target="PCCB")
                         ]
