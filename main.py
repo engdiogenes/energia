@@ -15,6 +15,7 @@ from email import encoders
 from datetime import datetime
 import numpy as np
 import matplotlib
+import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
 from statsmodels.tsa.arima.model import ARIMA
@@ -145,7 +146,7 @@ with st.sidebar:
         return texto_tabulado
 
 
-    origem_dados = st.radio("Select the data source:", ["Google Sheets", "Paste manually"])
+    origem_dados = st.radio("Escolha a origem dos dados:", ["Google Sheets", "Colar manualmente"])
 
     if origem_dados == "Google Sheets":
         dados_colados = obter_dados_do_google_sheets()
@@ -155,18 +156,18 @@ with st.sidebar:
         if not df_temp.empty:
             df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
             ultima_data = df_temp["Datetime"].max()
-            st.sidebar.markdown(f"📅 **Last update:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
+            st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
         else:
-            st.sidebar.warning("It was not possible to determine the last update date.")
+            st.sidebar.warning("Não foi possível determinar a última data de atualização.")
     else:
-        dados_colados = st.text_area("Paste the data here (tabulated):", height=300)
+        dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
 
     # Campo para inserir e-mail
-    to_email = st.text_input("Email recipient")
+    to_email = st.text_input("Destinatário do e-mail")
     # Botão para enviar o relatório por e-mail
     if st.button("✉️ Enviar por E-mail", key="enviar_email_sidebar", use_container_width=True):
         if not to_email:
-            st.warning("Please enter the recipient's email address.")
+            st.warning("Por favor, insira o e-mail do destinatário.")
         else:
             try:
                 EMAIL = st.secrets["email"]["address"]
@@ -175,7 +176,7 @@ with st.sidebar:
                 msg = MIMEMultipart()
                 msg["From"] = EMAIL
                 msg["To"] = to_email
-                msg["Subject"] = "Energy Consumption Report"
+                msg["Subject"] = "Relatório de Consumo Energético"
 
                 # Verifica se algum medidor ultrapassou o limite diário
                 medidores_excedidos = []
@@ -204,7 +205,7 @@ with st.sidebar:
 
                 # Adiciona alerta se houver medidores excedidos
                 if medidores_excedidos:
-                    body += "\n⚠️ Alert: The following meters have exceeded their daily limits:\n"
+                    body += "\n⚠️ Alerta: Os seguintes medidores ultrapassaram seus limites diários:\n"
                     body += "\n".join(medidores_excedidos)
 
                 msg.attach(MIMEText(body, "plain"))
@@ -214,13 +215,13 @@ with st.sidebar:
                     server.login(EMAIL, PASSWORD)
                     server.send_message(msg)
 
-                st.success("Email sent successfully!")
+                st.success("E-mail enviado com sucesso!")
             except Exception as e:
-                st.error(f"Error sending email: {e}")
+                st.error(f"Erro ao enviar e-mail: {e}")
 
 if dados_colados:
     try:
-        with st.spinner("Processing data..."):
+        with st.spinner("Processando os dados..."):
             consumo = carregar_dados(dados_colados)
             st.session_state.consumo = consumo
             consumo_completo = consumo.copy()
@@ -249,7 +250,7 @@ if dados_colados:
 
             # Campo de seleção de data
             data_selecionada = st.sidebar.date_input(
-                "Select the date",
+                "Selecione a data",
                 value=st.session_state.data_selecionada,
                 min_value=min(datas_disponiveis),
                 max_value=max(datas_disponiveis)
@@ -261,7 +262,7 @@ if dados_colados:
                 f"""
                 <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
                 <div style='font-size: 0.8rem; color: gray; text-align: center;'>
-                    Developed by <strong>Diógenes Oliveira</strong>
+                    Desenvolvido por <strong>Diógenes Oliveira</strong>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -350,12 +351,12 @@ if dados_colados:
                 st.divider()
 
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
-                st.subheader(" Daily Consumption per Meter")
+                st.subheader(" Consumo Diário por Medidor")
                 consumo_diario = consumo.copy()
                 consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
                 consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
                 medidores_calendario = st.multiselect(
-                    "Select the gauges for the calendar:",
+                    "Selecione os medidores para o calendário:",
                     medidores_disponiveis,
                     default=[m for m in medidores_disponiveis if m != "Área Produtiva"]
                 )
@@ -371,8 +372,8 @@ if dados_colados:
 
                 fig.update_layout(
                     barmode="stack",
-                    xaxis_title="Date",
-                    yaxis_title="Total Consumption (kWh)",
+                    xaxis_title="Data",
+                    yaxis_title="Consumo Total (kWh)",
                     template="plotly_white",
                     height=500,
                     legend=dict(orientation="h", y=-0.3, x=0.5, xanchor="center")
@@ -406,13 +407,13 @@ if dados_colados:
                 df_diario = df_filtrado.groupby("Data")[colunas_medidores].sum().reset_index()
 
                 # Exibir o resultado
-                st.subheader("📅 Daily consumption for the month")
+                st.subheader("📅 Consumo diário do mês")
                 st.dataframe(df_diario, use_container_width=True)
                 # fim consumo diário do Mês
 
                 st.divider()
             with tabs[1]:
-                st.subheader(" Graphs by Meter with Limit Curve")
+                st.subheader(" Gráficos por Medidor com Curva de Limite")
                 for medidor in medidores_disponiveis:
                     fig = go.Figure()
                     fig.add_trace(go.Scatter(
@@ -438,7 +439,7 @@ if dados_colados:
 
             # TABS 3 - CONFIGURAR LIMITES
             with tabs[2]:
-                st.subheader(" Loaded Time Limits")
+                st.subheader(" Limites Horários Carregados")
 
                 if "limites_df" in st.session_state:
                     st.dataframe(
@@ -446,13 +447,13 @@ if dados_colados:
                         use_container_width=True
                     )
                     st.download_button(
-                        "Download JSON Limits",
+                        "Baixar Limites JSON",
                         st.session_state.limites_df.to_json(orient="records", date_format="iso", indent=2),
                         file_name="limites_horarios_completos.json",
                         mime="application/json"
                     )
                     # Exibir metas mensais de consumo da área produtiva em MWh
-                    st.subheader("📊 Monthly Consumption Targets for the Production Area (in MWh)")
+                    st.subheader("📊 Metas Mensais de Consumo da Área Produtiva (em MWh)")
 
                     df_limites = st.session_state.limites_df.copy()
                     df_limites["Data"] = pd.to_datetime(df_limites["Data"])
@@ -482,11 +483,11 @@ if dados_colados:
 
 
                 else:
-                    st.warning("No limits have been loaded.")
+                    st.warning("Nenhum limite foi carregado.")
 
             # TABS 3 - DASHBOARD
             with tabs[3]:
-                st.subheader(" Summary Panel")
+                st.subheader(" Painel Resumo")
                 colunas = st.columns(4)
                 for idx, medidor in enumerate(medidores_disponiveis):
                     with colunas[idx % 4]:
@@ -501,7 +502,7 @@ if dados_colados:
                         )
 
                 st.divider()
-                st.subheader(" Consumption vs Limit Charts")
+                st.subheader(" Gráficos de Consumo vs Limite")
                 linhas = [st.columns(4) for _ in range(3)]
                 for idx, medidor in enumerate(medidores_disponiveis):
                     linha = idx // 4
@@ -535,7 +536,7 @@ if dados_colados:
 
             # TABS 4 - CALENDÁRIO
             with tabs[4]:
-                st.subheader("Interactive Consumption Calendar for the Production Area")
+                st.subheader("Calendário Interativo de Consumo da Área Produtiva")
                 consumo_completo["Data"] = consumo_completo["Datetime"].dt.date
                 dias_unicos = sorted(consumo_completo["Data"].unique())
                 dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
@@ -596,14 +597,14 @@ if dados_colados:
 
             # TABS 5 - CALENDÁRIO
             with tabs[5]:
-                st.title("CSV to JSON - Hourly Limits per Meter")
-                uploaded_file = st.file_uploader("Upload the CSV file", type="csv")
+                st.title("CSV para JSON - Limites Horários por Medidor")
+                uploaded_file = st.file_uploader("Faça upload do arquivo CSV", type="csv")
                 if uploaded_file is not None:
                     try:
                         # Lê o CSV com codificação ISO-8859-1
                         df = pd.read_csv(uploaded_file, encoding="ISO-8859-1")
 
-                        st.subheader("CSV preview")
+                        st.subheader("Pré-visualização do CSV")
                         st.dataframe(df)
 
                         # Usa as duas primeiras colunas como Data e Hora
@@ -624,16 +625,16 @@ if dados_colados:
                         # Converte para JSON
                         json_data = df.reset_index().to_dict(orient="records")
 
-                        st.subheader("Generated JSON")
+                        st.subheader("JSON Gerado")
                         st.json(json_data)
 
                         # Permite download
                         json_str = json.dumps(json_data, indent=2, ensure_ascii=False)
 
-                        st.download_button("Download JSON", json_str, file_name="limites_horarios.json",
+                        st.download_button("Baixar JSON", json_str, file_name="limites_horarios.json",
                                            mime="application/json")
                     except Exception as e:
-                        st.error(f"Error processing data:{e}")
+                        st.error(f"Erro ao processar os dados: {e}")
             # TABS 6 - PREVISÃO MENSAL
             with tabs[6]:
                 st.title("📅 Month Prediction")
@@ -686,8 +687,8 @@ if dados_colados:
 
                     # Métricas
                     col1, col2 = st.columns(2)
-                    col1.metric("🔋 Maximum consumption forecast for the month (production area)", f"{consumo_max_mes:.2f} kWh")
-                    col2.metric("🔮 Expected consumption for the month (based on current consumption + remaining targets)",
+                    col1.metric("🔋 Consumo máximo previsto para o mês (área produtiva)", f"{consumo_max_mes:.2f} kWh")
+                    col2.metric("🔮 Consumo previsto para o mês (baseado no consumo atual + targets restantes)",
                                 f"{consumo_previsto_mes:.2f} kWh")
                     # Calcular soma dos targets da área produtiva até o dia selecionado (mês atual)
                     targets_ate_hoje = limites_mes[limites_mes["Data"].dt.date <= data_ref][
@@ -705,8 +706,8 @@ if dados_colados:
 
                     # Exibir métricas adicionais
                     col3, col4 = st.columns(2)
-                    col3.metric("🎯 Target accumulated up to the selected date (production area)", f"{meta_ate_hoje:,.0f} kWh")
-                    col4.metric("⚡ Actual consumption accumulated up to the selected date (production area)",
+                    col3.metric("🎯 Target acumulado até a data selecionada (área produtiva)", f"{meta_ate_hoje:,.0f} kWh")
+                    col4.metric("⚡ Consumo real acumulado até a data selecionada (área produtiva)",
                                 f"{consumo_real_ate_hoje:,.0f} kWh")
 
                     # Estimativa total com base no padrão atual de consumo
@@ -755,7 +756,7 @@ if dados_colados:
                     # Exibir métrica
                     delta_estimado = consumo_estimado_total - meta_mensal
                     st.metric(
-                        label="📈 Consumption estimate based on current behavior",
+                        label="📈 Estimativa de consumo com Base no Padrão Atual",
                         value=f"{consumo_estimado_total:,.0f} kWh",
                         delta=f"{delta_estimado:,.0f} kWh",
                         delta_color="inverse" if delta_estimado < 0 else "normal"
@@ -792,7 +793,7 @@ if dados_colados:
                         ]["Meta Horária"].sum()
 
                     # Tabela de previsão diária
-                    st.subheader("📋 Forecast and Daily Consumption of the Production Area")
+                    st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
                     datas_unicas = sorted(limites_mes["Data"].dt.date.unique())
                     dados_tabela = []
 
@@ -812,7 +813,7 @@ if dados_colados:
                     df_tabela = pd.DataFrame(dados_tabela)
 
                     # Simulação de Monte Carlo - Gráfico Interativo com Plotly (com faixa de confiança)
-                    st.subheader("📈 Monte Carlo Simulation - Future Daily Consumption with Confidence Interval")
+                    st.subheader("📈 Simulação de Monte Carlo - Consumo Diário Futuro com Faixa de Confiança")
 
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
                     historico_diario = df_consumo[
@@ -840,7 +841,7 @@ if dados_colados:
                             x=historico_diario.index,
                             y=historico_diario.values,
                             mode='lines+markers',
-                            name='Actual Consumption',
+                            name='Consumo Real',
                             line=dict(color='blue')
                         ))
 
@@ -849,7 +850,7 @@ if dados_colados:
                             x=dias_futuros,
                             y=p95,
                             mode='lines',
-                            name='95% percentile',
+                            name='Percentil 95%',
                             line=dict(width=0),
                             showlegend=False
                         ))
@@ -857,7 +858,7 @@ if dados_colados:
                             x=dias_futuros,
                             y=p5,
                             mode='lines',
-                            name='90% Confidence Interval',
+                            name='Faixa de Confiança 90%',
                             fill='tonexty',
                             fillcolor='rgba(255,165,0,0.2)',
                             line=dict(width=0)
@@ -868,45 +869,45 @@ if dados_colados:
                             x=dias_futuros,
                             y=media_simulada,
                             mode='lines+markers',
-                            name='Average Forecast',
+                            name='Previsão Média',
                             line=dict(color='orange', dash='dash')
                         ))
 
                         # Meta diária
                         # Meta diária real a partir do JSON
                         df_limites = st.session_state.limites_df.copy()
-                        df_limites["Date"] = pd.to_datetime(df_limites["Date"]).dt.date
+                        df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
                         colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
                                         "TRIM&FINAL"]
                         df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
-                        meta_diaria_df = df_limites.groupby("Date")["Hourly Target"].sum().reset_index()
+                        meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
 
                         # Filtrar apenas o mês e ano da data selecionada
                         data_base = st.session_state.data_selecionada
-                        meta_diaria_df["Date"] = pd.to_datetime(meta_diaria_df["Date"], errors='coerce')
-                        meta_diaria_df = meta_diaria_df.dropna(subset=["Date"])
+                        meta_diaria_df["Data"] = pd.to_datetime(meta_diaria_df["Data"], errors='coerce')
+                        meta_diaria_df = meta_diaria_df.dropna(subset=["Data"])
 
                         meta_diaria_df = meta_diaria_df[
-                            (meta_diaria_df["Date"].dt.month == data_base.month) &
-                            (meta_diaria_df["Date"].dt.year == data_base.year)
+                            (meta_diaria_df["Data"].dt.month == data_base.month) &
+                            (meta_diaria_df["Data"].dt.year == data_base.year)
                             ]
 
-                        meta_diaria_df.columns = ["Date", "Hourly Target"]
+                        meta_diaria_df.columns = ["Data", "Meta Horária"]
 
                         # Adicionar linha de metas reais ao gráfico
                         fig.add_trace(go.Scatter(
-                            x=meta_diaria_df["Date"],
-                            y=meta_diaria_df["Hourly Target"],
+                            x=meta_diaria_df["Data"],
+                            y=meta_diaria_df["Meta Horária"],
                             mode='lines',
-                            name='Actual Daily Target',
+                            name='Meta Diária Real',
                             line=dict(color='green', dash='dot')
                         ))
 
                         fig.update_layout(
-                            title='Consumption Forecasting with Monte Carlo - Production Area',
-                            xaxis_title='Date',
-                            yaxis_title='Daily consumption (kWh)',
+                            title='Previsão de Consumo com Monte Carlo - Área Produtiva',
+                            xaxis_title='Data',
+                            yaxis_title='Consumo Diário (kWh)',
                             legend_title='Legenda',
                             template='plotly_white'
                         )
@@ -916,17 +917,17 @@ if dados_colados:
                         # Diagnóstico inteligente
                         # Calcular metas reais do JSON para os dias do histórico e futuros
                         df_limites = st.session_state.limites_df.copy()
-                        df_limites["Date"] = pd.to_datetime(df_limites["Date"]).dt.date
+                        df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
                         colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
                                         "TRIM&FINAL"]
-                        df_limites["Hourly Target"] = df_limites[colunas_area].sum(axis=1) + 13.75
-                        meta_diaria_df = df_limites.groupby("Date")["Hourly Target"].sum().reset_index()
-                        meta_diaria_df["Date"] = pd.to_datetime(meta_diaria_df["Date"], errors='coerce')
+                        df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                        meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
+                        meta_diaria_df["Data"] = pd.to_datetime(meta_diaria_df["Data"], errors='coerce')
 
                         # Filtrar metas para os dias do histórico e futuros
                         datas_relevantes = list(historico_diario.index) + dias_futuros
-                        meta_total = meta_diaria_df[meta_diaria_df["Date"].isin(datas_relevantes)]["Hourly Target"].sum()
+                        meta_total = meta_diaria_df[meta_diaria_df["Data"].isin(datas_relevantes)]["Meta Horária"].sum()
 
                         # Novo saldo total com base nas metas reais
                         saldo_total = historico_diario.sum() + media_simulada.sum() - meta_total
@@ -934,22 +935,22 @@ if dados_colados:
                         variabilidade = np.std(simulacoes)
 
                         if saldo_total > 0:
-                            diagnostico = "The forecast indicates that total consumption in the productive area is expected to exceed the monthly electricity target."
+                            diagnostico = "A previsão indica que o consumo total da área produtiva deve ultrapassar a meta mensal de energia elétrica."
                         else:
-                            diagnostico = "The forecast suggests that total consumption in the productive area should remain within the monthly electricity target."
+                            diagnostico = "A previsão sugere que o consumo total da área produtiva deve permanecer dentro da meta mensal de energia elétrica."
 
                         legenda = (
-                            f"Actual consumption varies around the daily target. "
-                            f"The Monte Carlo simulation shows a variability of approximately {variabilidade:.1f} kWh "
-                            f"between the simulated trajectories. {diagnostico}"
+                            f"O consumo real apresenta variações em torno da meta diária. "
+                            f"A simulação de Monte Carlo mostra uma variabilidade de aproximadamente {variabilidade:.1f} kWh "
+                            f"entre as trajetórias simuladas. {diagnostico}"
                         )
 
-                        st.markdown(f"**📌 Intelligent Diagnosis:** {legenda}")
+                        st.markdown(f"**📌 Diagnóstico Inteligente:** {legenda}")
 
                         # Análise interpretativa baseada nas simulações
                         targets_futuros = df_tabela[
-                            df_tabela["Date"].apply(lambda d: datetime.strptime(d, "%Y-%m-%d").date() > data_ref)][
-                            "Expected Consumption(kWh)"].values
+                            df_tabela["Data"].apply(lambda d: datetime.strptime(d, "%Y-%m-%d").date() > data_ref)][
+                            "Consumo Previsto (kWh)"].values
 
                         em_alta = 0
                         em_baixa = 0
@@ -968,25 +969,25 @@ if dados_colados:
                                 estaveis += 1
 
                         if em_alta > em_baixa and em_alta > estaveis:
-                            tendencia = "high"
-                            risco = "there is a risk of exceeding the monthly consumption limits"
+                            tendencia = "alta"
+                            risco = "há risco de ultrapassar os limites mensais de consumo"
                         elif em_baixa > em_alta and em_baixa > estaveis:
-                            tendencia = "low"
-                            risco = "there is a gap in consumption in relation to the limit"
+                            tendencia = "baixa"
+                            risco = "há folga no consumo em relação ao limite"
                         else:
-                            tendencia = "stable"
-                            risco = "consumption is within the expected range"
+                            tendencia = "estável"
+                            risco = "o consumo está dentro da faixa esperada"
 
                         st.markdown(f"""
-                        ### 🔍 **Analysis of Consumption Forecast for the Production Area**
+                        ### 🔍 **Análise da Previsão de Consumo da Área Produtiva**
 
-                        Based on the Monte Carlo simulations performed:
+                        Com base nas simulações de Monte Carlo realizadas:
 
-                        - **{em_alta}** simulations indicate upward trend in consumption  
-                        - **{em_baixa}** simulations indicate downward trend  
-                        - **{estaveis}** simulations indicate stability  
+                        - **{em_alta}** simulações indicam tendência de alta no consumo  
+                        - **{em_baixa}** simulações indicam tendência de queda  
+                        - **{estaveis}** simulações indicam estabilidade  
 
-                        📉 The general trend is **{tendencia}**, which suggests that **{risco}**.
+                        📉 A tendência geral é **{tendencia}**, o que sugere que **{risco}**.
                         """)
 
                         import plotly.graph_objects as go
