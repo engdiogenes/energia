@@ -1408,6 +1408,7 @@ if dados_colados:
                     # Seleção do dia para previsão
                     selected_day = st.date_input("Select a day for prediction",
                                                  value=df["date"].max() + pd.Timedelta(days=1))
+                    selected_day = pd.to_datetime(selected_day)  # Garante que seja Timestamp
                     selected_day_num = (selected_day - df["date"].min()).days
 
                     X = df[["day_num"]]
@@ -1458,6 +1459,10 @@ if dados_colados:
                 else:
                     st.error(
                         f"File '{csv_file_path}' not found. Please ensure it is in the same directory as the application.")
+
+
+
+
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
