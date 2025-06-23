@@ -2,18 +2,14 @@ import streamlit as st
 import pandas as pd
 import io
 import json
-import plotly.graph_objects as go
 import datetime
 from streamlit_calendar import calendar
-import fpdf
 import os
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.mime.base import MIMEBase
 from email import encoders
-from datetime import datetime
-import numpy as np
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
@@ -22,9 +18,12 @@ from statsmodels.tsa.arima.model import ARIMA
 from datetime import timedelta
 import streamlit.components.v1 as components
 from streamlit_agraph import agraph, Node, Edge, Config
-import matplotlib.cm as cm
 import matplotlib.colors as mcolors
-
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import numpy as np
+from matplotlib import cm
+import plotly.graph_objects as go
 
 st.set_page_config(
     page_title="PowerTrack",
@@ -126,8 +125,6 @@ with st.sidebar:
         <h1 style='font-size: 28px; color: #262730; margin-bottom: 1rem;'>⚡ PowerTrack</h1>
     """, unsafe_allow_html=True)
 
-    import gspread
-    from oauth2client.service_account import ServiceAccountCredentials
 
 
     def obter_dados_do_google_sheets():
@@ -226,8 +223,6 @@ if dados_colados:
             st.session_state.consumo = consumo
             consumo_completo = consumo.copy()
 
-            from datetime import timedelta
-
             # Lista de datas disponíveis
             datas_disponiveis = sorted(consumo["Datetime"].dt.date.unique())
 
@@ -286,7 +281,7 @@ if dados_colados:
             horas = dados_dia["Datetime"].dt.hour
             medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
 
-            tabs = st.tabs(["Overview", "Per meter", "Targets", "Dashboard", "Calender", "Conversion ",
+            tabs = st.tabs(["Overview", "Per meter", "Targets", "Dashboard", "Calendar", "Conversion ",
                             "Month prediction", "Meter's layout", "Ml prediction"])
 
             # TABS 1 - VISÃO GERAL
@@ -990,8 +985,7 @@ if dados_colados:
                         📉 A tendência geral é **{tendencia}**, o que sugere que **{risco}**.
                         """)
 
-                        import plotly.graph_objects as go
-                        from datetime import timedelta
+
 
                         # Verifica se os dados estão disponíveis
                         if 'consumo' in st.session_state:
@@ -1200,13 +1194,7 @@ if dados_colados:
                             col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
                             # --------------------------
-                            import numpy as np
-                            import pandas as pd
-                            import plotly.graph_objects as go
-                            from datetime import timedelta
-                            import matplotlib.pyplot as plt
-                            from matplotlib import cm
-                            import streamlit as st
+
 
                             # Forecast Interativo com Monte Carlo
                             st.subheader("📈 Forecast Interativo com Monte Carlo")
