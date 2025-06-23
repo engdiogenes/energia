@@ -24,6 +24,14 @@ from oauth2client.service_account import ServiceAccountCredentials
 import numpy as np
 from matplotlib import cm
 import plotly.graph_objects as go
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+from sklearn.linear_model import LinearRegression
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.svm import SVR
+from sklearn.metrics import mean_absolute_error, mean_squared_error
+import plotly.graph_objects as go
+import numpy as np
 
 st.set_page_config(
     page_title="PowerTrack",
@@ -1368,30 +1376,21 @@ if dados_colados:
                 config = Config(width=1000, height=600, directed=True, hierarchical=True)
                 agraph(nodes=nodes, edges=edges, config=config)
 
-            with tabs[8]:  # ou ajuste o índice conforme necessário
+            with tabs[8]:
                 st.subheader("⚙️ ML prediction")
 
-                df = st.session_state.consumo.copy()
-                df = df.rename(columns={"Datetime": "date"})
-                df = df[["date", "Área Produtiva"]].rename(columns={"Área Produtiva": "consumption"})
-                df["date"] = pd.to_datetime(df["date"])
+                # Converter dados horários em consumo diário
+                df_diario = st.session_state.consumo.copy()
+                df_diario["date"] = pd.to_datetime(df_diario["Datetime"]).dt.date
+                df_diario = df_diario.groupby("date")["Área Produtiva"].sum().reset_index()
+                df_diario.columns = ["date", "consumption"]
 
-                selected_day = st.sidebar.date_input("Select a day for prediction", value=st.session_state.data_selecionada)
-                from datetime import datetime as dt
-                from sklearn.model_selection import train_test_split
-                from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
-                from sklearn.linear_model import LinearRegression
-                from sklearn.neighbors import KNeighborsRegressor
-                from sklearn.svm import SVR
-                from sklearn.metrics import mean_absolute_error, mean_squared_error
-                import plotly.graph_objects as go
-                import pandas as pd
-                import numpy as np
+                selected_day = st.date_input("Select a day for prediction", value=st.session_state.data_selecionada)
 
-                df = df.sort_values("date")
-                df["day_num"] = (df["date"] - df["date"].min()).dt.days
+                df = df_diario.sort_values("date")
+                df["day_num"] = (pd.to_datetime(df["date"]) - pd.to_datetime(df["date"]).min()).dt.days
                 selected_day = pd.to_datetime(selected_day)
-                selected_day_num = (selected_day - df["date"].min()).days
+                selected_day_num = (selected_day - pd.to_datetime(df["date"]).min()).days
 
                 X = df[["day_num"]]
                 y = df["consumption"]
@@ -1410,7 +1409,8 @@ if dados_colados:
 
                 selected_month = selected_day.month
                 selected_year = selected_day.year
-                df_month = df[(df["date"].dt.month == selected_month) & (df["date"].dt.year == selected_year)]
+                df_month = df[(pd.to_datetime(df["date"]).dt.month == selected_month) & (
+                            pd.to_datetime(df["date"]).dt.year == selected_year)]
 
                 fig.add_trace(
                     go.Scatter(x=df_month["date"], y=df_month["consumption"], mode='lines+markers', name='Real'))
@@ -1424,8 +1424,8 @@ if dados_colados:
                     y_fit = model.predict(X)
 
                     fit_df = pd.DataFrame({"date": df["date"], "fit": y_fit})
-                    fit_df_month = fit_df[
-                        (fit_df["date"].dt.month == selected_month) & (fit_df["date"].dt.year == selected_year)]
+                    fit_df_month = fit_df[(pd.to_datetime(fit_df["date"]).dt.month == selected_month) & (
+                                pd.to_datetime(fit_df["date"]).dt.year == selected_year)]
 
                     fig.add_trace(
                         go.Scatter(x=fit_df_month["date"], y=fit_df_month["fit"], mode='lines', name=f'{name} Fit'))
@@ -1453,6 +1453,7 @@ if dados_colados:
                     drop=True)
                 st.subheader("📊 Model Performance and Predictions")
                 st.dataframe(results_df, use_container_width=True)
+
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
