@@ -1379,8 +1379,8 @@ if dados_colados:
 
                 config = Config(width=1000, height=600, directed=True, hierarchical=True)
                 agraph(nodes=nodes, edges=edges, config=config)
-            
-                        with tabs[8]:  # ou ajuste o índice conforme necessário
+
+            with tabs[8]:  # ou ajuste o índice conforme necessário
                 import streamlit as st
                 import pandas as pd
                 import numpy as np
@@ -1448,7 +1448,6 @@ if dados_colados:
                 else:
                     st.error(
                         f"File '{csv_file_path}' not found. Please ensure it is in the same directory as the application.")
-
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
