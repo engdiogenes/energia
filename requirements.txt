@@ -11,4 +11,7 @@ gspread
 oauth2client
 statsmodels
 streamlit-agraph
+scikit-learn
+
+
 
