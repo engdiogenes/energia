@@ -804,10 +804,10 @@ if dados_colados:
                         saldo = target_dia - consumo_dia
 
                         dados_tabela.append({
-                            "Date": dia.strftime("%Y-%m-%d"),
-                            "Expected Consumption (kWh)": round(target_dia, 2),
-                            "Actual consumption (kWh)": round(consumo_dia, 2),
-                            "Daily Balance (kWh)": round(saldo, 2)
+                            "Data": dia.strftime("%Y-%m-%d"),
+                            "Consumo previsto (kWh)": round(target_dia, 2),
+                            "Consumo real (kWh)": round(consumo_dia, 2),
+                            "Saldo diário (kWh)": round(saldo, 2)
                         })
 
                     df_tabela = pd.DataFrame(dados_tabela)
@@ -1449,6 +1449,9 @@ if dados_colados:
                 else:
                     st.error(
                         f"File '{csv_file_path}' not found. Please ensure it is in the same directory as the application.")
+
+
+
 
     except Exception as e:
         st.error(f"Error processing data: {e}")
