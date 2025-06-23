@@ -1381,93 +1381,90 @@ if dados_colados:
                 agraph(nodes=nodes, edges=edges, config=config)
 
             with tabs[8]:  # ou ajuste o índice conforme necessário
-                import pandas as pd
-                import numpy as np
-                import datetime
-                import plotly.graph_objects as go
+                st.subheader("⚙️ ML prediction")
+
+                df = st.session_state.consumo.copy()
+                df = df.rename(columns={"Datetime": "date"})
+                df = df[["date", "Área Produtiva"]].rename(columns={"Área Produtiva": "consumption"})
+                df["date"] = pd.to_datetime(df["date"])
+
+                selected_day = st.date_input("Select a day for prediction", value=st.session_state.data_selecionada)
+                from datetime import datetime as dt
                 from sklearn.model_selection import train_test_split
                 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
                 from sklearn.linear_model import LinearRegression
                 from sklearn.neighbors import KNeighborsRegressor
                 from sklearn.svm import SVR
                 from sklearn.metrics import mean_absolute_error, mean_squared_error
+                import plotly.graph_objects as go
+                import pandas as pd
+                import numpy as np
 
+                df = df.sort_values("date")
+                df["day_num"] = (df["date"] - df["date"].min()).dt.days
+                selected_day = pd.to_datetime(selected_day)
+                selected_day_num = (selected_day - df["date"].min()).days
 
-                def ml_prediction_tab(df, selected_day):
-                    df = df.copy()
-                    df = df.sort_values("date")
-                    df["day_num"] = (df["date"] - df["date"].min()).dt.days
+                X = df[["day_num"]]
+                y = df["consumption"]
+                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-                    selected_day = pd.to_datetime(selected_day)
-                    selected_day_num = (selected_day - df["date"].min()).days
+                models = {
+                    "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
+                    "Linear Regression": LinearRegression(),
+                    "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=42),
+                    "K-Nearest Neighbors": KNeighborsRegressor(n_neighbors=3),
+                    "Support Vector Regression": SVR()
+                }
 
-                    X = df[["day_num"]]
-                    y = df["consumption"]
-                    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+                results = []
+                fig = go.Figure()
 
-                    models = {
-                        "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
-                        "Linear Regression": LinearRegression(),
-                        "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=42),
-                        "K-Nearest Neighbors": KNeighborsRegressor(n_neighbors=3),
-                        "Support Vector Regression": SVR()
-                    }
+                selected_month = selected_day.month
+                selected_year = selected_day.year
+                df_month = df[(df["date"].dt.month == selected_month) & (df["date"].dt.year == selected_year)]
 
-                    results = []
-                    fig = go.Figure()
+                fig.add_trace(
+                    go.Scatter(x=df_month["date"], y=df_month["consumption"], mode='lines+markers', name='Real'))
 
-                    # Filtrar dados do mês selecionado
-                    selected_month = selected_day.month
-                    selected_year = selected_day.year
-                    df_month = df[(df["date"].dt.month == selected_month) & (df["date"].dt.year == selected_year)]
+                for name, model in models.items():
+                    model.fit(X_train, y_train)
+                    y_pred = model.predict(X_test)
+                    mae = mean_absolute_error(y_test, y_pred)
+                    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+                    prediction = model.predict([[selected_day_num]])[0]
+                    y_fit = model.predict(X)
+
+                    fit_df = pd.DataFrame({"date": df["date"], "fit": y_fit})
+                    fit_df_month = fit_df[
+                        (fit_df["date"].dt.month == selected_month) & (fit_df["date"].dt.year == selected_year)]
 
                     fig.add_trace(
-                        go.Scatter(x=df_month["date"], y=df_month["consumption"], mode='lines+markers', name='Real'))
+                        go.Scatter(x=fit_df_month["date"], y=fit_df_month["fit"], mode='lines', name=f'{name} Fit'))
+                    fig.add_trace(go.Scatter(x=[selected_day], y=[prediction], mode='markers',
+                                             name=f'{name} Prediction', marker=dict(size=10)))
 
-                    for name, model in models.items():
-                        model.fit(X_train, y_train)
-                        y_pred = model.predict(X_test)
-                        mae = mean_absolute_error(y_test, y_pred)
-                        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-                        prediction = model.predict([[selected_day_num]])[0]
-                        y_fit = model.predict(X)
+                    rmse_norm = rmse / y_test.mean()
+                    accuracy = max(0, 1 - rmse_norm)
 
-                        # Filtrar apenas os valores ajustados do mês
-                        fit_df = pd.DataFrame({"date": df["date"], "fit": y_fit})
-                        fit_df_month = fit_df[
-                            (fit_df["date"].dt.month == selected_month) & (fit_df["date"].dt.year == selected_year)]
+                    results.append({
+                        "Model": name,
+                        "MAE": round(mae, 2),
+                        "RMSE": round(rmse, 2),
+                        "Accuracy (%)": round(accuracy * 100, 2),
+                        "Prediction for selected day": round(prediction, 2)
+                    })
 
-                        fig.add_trace(
-                            go.Scatter(x=fit_df_month["date"], y=fit_df_month["fit"], mode='lines', name=f'{name} Fit'))
-                        fig.add_trace(go.Scatter(x=[selected_day], y=[prediction], mode='markers',
-                                                 name=f'{name} Prediction', marker=dict(size=10)))
+                fig.update_layout(title="Energy Consumption Forecast (Selected Month)",
+                                  xaxis_title="Date",
+                                  yaxis_title="Consumption (kWh)",
+                                  legend_title="Legend")
+                st.plotly_chart(fig)
 
-                        # Cálculo da precisão
-                        rmse_norm = rmse / y_test.mean()
-                        accuracy = max(0, 1 - rmse_norm)
-
-                        results.append({
-                            "Model": name,
-                            "MAE": round(mae, 2),
-                            "RMSE": round(rmse, 2),
-                            "Accuracy (%)": round(accuracy * 100, 2),
-                            "Prediction for selected day": round(prediction, 2)
-                        })
-
-                    fig.update_layout(title="Energy Consumption Forecast (Selected Month)",
-                                      xaxis_title="Date",
-                                      yaxis_title="Consumption (kWh)",
-                                      legend_title="Legend")
-
-                    results_df = pd.DataFrame(results)
-                    results_df = results_df.sort_values(by="Accuracy (%)", ascending=False).reset_index(drop=True)
-
-                    return fig, results_df
-
-
-
-
-
+                results_df = pd.DataFrame(results).sort_values(by="Accuracy (%)", ascending=False).reset_index(
+                    drop=True)
+                st.subheader("📊 Model Performance and Predictions")
+                st.dataframe(results_df, use_container_width=True)
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
