@@ -1396,93 +1396,68 @@ if dados_colados:
 
                 st.subheader("⚙️ ML prediction")
                 st.markdown(
-                    "This section uses multiple machine learning models to predict monthly and daily energy consumption based on historical data.")
+                    "This section uses multiple machine learning models to predict energy consumption for a selected day.")
 
                 csv_file_path = "historical_consumption.csv"
 
                 if os.path.exists(csv_file_path):
                     df = pd.read_csv(csv_file_path, parse_dates=["date"])
-                    df["month"] = df["date"].dt.to_period("M").astype(str)
-                    monthly_data = df.groupby("month")["consumption"].sum().reset_index()
-                    monthly_data["month"] = pd.to_datetime(monthly_data["month"])
-                    monthly_data["month_num"] = monthly_data["month"].dt.month + 12 * (
-                                monthly_data["month"].dt.year - monthly_data["month"].dt.year.min())
+                    df = df.sort_values("date")
+                    df["day_num"] = (df["date"] - df["date"].min()).dt.days
 
-                    st.write("Monthly aggregated data", monthly_data)
+                    # Seleção do dia para previsão
+                    selected_day = st.date_input("Select a day for prediction",
+                                                 value=df["date"].max() + pd.Timedelta(days=1))
+                    selected_day_num = (selected_day - df["date"].min()).days
 
-                    X = monthly_data[["month_num"]]
-                    y = monthly_data["consumption"]
-
+                    X = df[["day_num"]]
+                    y = df["consumption"]
                     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-                    model_choice = st.selectbox("Select ML model", [
-                        "Random Forest", "Linear Regression", "Gradient Boosting", "K-Nearest Neighbors",
-                        "Support Vector Regression"
-                    ])
+                    models = {
+                        "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
+                        "Linear Regression": LinearRegression(),
+                        "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=42),
+                        "K-Nearest Neighbors": KNeighborsRegressor(n_neighbors=3),
+                        "Support Vector Regression": SVR()
+                    }
 
-                    if model_choice == "Random Forest":
-                        model = RandomForestRegressor(n_estimators=100, random_state=42)
-                    elif model_choice == "Linear Regression":
-                        model = LinearRegression()
-                    elif model_choice == "Gradient Boosting":
-                        model = GradientBoostingRegressor(n_estimators=100, random_state=42)
-                    elif model_choice == "K-Nearest Neighbors":
-                        model = KNeighborsRegressor(n_neighbors=3)
-                    elif model_choice == "Support Vector Regression":
-                        model = SVR()
-
-                    model.fit(X_train, y_train)
-                    y_pred = model.predict(X_test)
-
-                    mae = mean_absolute_error(y_test, y_pred)
-                    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-
-                    st.metric("MAE", f"{mae:.2f}")
-                    st.metric("RMSE", f"{rmse:.2f}")
-
-                    future_month = st.date_input("Select a reference month for prediction", value=datetime.date.today())
-                    future_month_num = (future_month.year - monthly_data[
-                        "month"].dt.year.min()) * 12 + future_month.month
-                    future_month_pred = model.predict([[future_month_num]])[0]
-
-                    st.success(
-                        f"Predicted consumption for {future_month.strftime('%B %Y')}: {future_month_pred:.2f} kWh")
-
-                    # Previsão para o próximo dia
-                    df["day_num"] = (df["date"] - df["date"].min()).dt.days
-                    X_day = df[["day_num"]]
-                    y_day = df["consumption"]
-                    X_day_train, X_day_test, y_day_train, y_day_test = train_test_split(X_day, y_day, test_size=0.2,
-                                                                                        random_state=42)
-
-                    model_day = model.__class__()  # mesmo tipo de modelo
-                    model_day.fit(X_day_train, y_day_train)
-
-                    next_day = df["date"].max() + pd.Timedelta(days=1)
-                    next_day_num = (next_day - df["date"].min()).days
-                    next_day_pred = model_day.predict([[next_day_num]])[0]
-
-                    st.success(f"Predicted consumption for {next_day.strftime('%d %B %Y')}: {next_day_pred:.2f} kWh")
-
-                    # Gráfico interativo com Plotly
+                    results = []
                     fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=monthly_data["month"], y=monthly_data["consumption"],
-                                             mode='lines+markers', name='Historical'))
-                    fig.add_trace(go.Scatter(x=[pd.to_datetime(future_month)], y=[future_month_pred],
-                                             mode='markers', name='Monthly Prediction',
-                                             marker=dict(color='red', size=10)))
+                    fig.add_trace(go.Scatter(x=df["date"], y=df["consumption"], mode='lines+markers', name='Real'))
+
+                    for name, model in models.items():
+                        model.fit(X_train, y_train)
+                        y_pred = model.predict(X_test)
+                        mae = mean_absolute_error(y_test, y_pred)
+                        rmse = np.sqrt(mean_squared_error(y_test, y_pred))
+                        prediction = model.predict([[selected_day_num]])[0]
+                        y_fit = model.predict(X)
+
+                        fig.add_trace(go.Scatter(x=df["date"], y=y_fit, mode='lines', name=f'{name} Fit'))
+                        fig.add_trace(go.Scatter(x=[selected_day], y=[prediction], mode='markers',
+                                                 name=f'{name} Prediction', marker=dict(size=10)))
+
+                        results.append({
+                            "Model": name,
+                            "MAE": round(mae, 2),
+                            "RMSE": round(rmse, 2),
+                            "Prediction for selected day": round(prediction, 2)
+                        })
+
                     fig.update_layout(title="Energy Consumption Forecast",
-                                      xaxis_title="Month",
+                                      xaxis_title="Date",
                                       yaxis_title="Consumption (kWh)",
                                       legend_title="Legend")
                     st.plotly_chart(fig)
 
+                    results_df = pd.DataFrame(results)
+                    st.subheader("📊 Model Performance and Predictions")
+                    st.dataframe(results_df, use_container_width=True)
+
                 else:
                     st.error(
                         f"File '{csv_file_path}' not found. Please ensure it is in the same directory as the application.")
-
-
-
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
