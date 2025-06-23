@@ -1385,18 +1385,19 @@ if dados_colados:
                 import pandas as pd
                 import numpy as np
                 import datetime
-                import matplotlib.pyplot as plt
-                from sklearn.model_selection import train_test_split
-                from sklearn.ensemble import RandomForestRegressor
-                from sklearn.linear_model import LinearRegression
-                from sklearn.metrics import mean_absolute_error, mean_squared_error
                 import os
+                import plotly.graph_objects as go
+                from sklearn.model_selection import train_test_split
+                from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
+                from sklearn.linear_model import LinearRegression
+                from sklearn.neighbors import KNeighborsRegressor
+                from sklearn.svm import SVR
+                from sklearn.metrics import mean_absolute_error, mean_squared_error
 
                 st.subheader("⚙️ ML prediction")
                 st.markdown(
-                    "This section uses machine learning models to predict monthly energy consumption based on historical data.")
+                    "This section uses multiple machine learning models to predict monthly and daily energy consumption based on historical data.")
 
-                # Caminho do arquivo CSV
                 csv_file_path = "historical_consumption.csv"
 
                 if os.path.exists(csv_file_path):
@@ -1414,11 +1415,21 @@ if dados_colados:
 
                     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
 
-                    model_choice = st.selectbox("Select ML model", ["Random Forest", "Linear Regression"])
+                    model_choice = st.selectbox("Select ML model", [
+                        "Random Forest", "Linear Regression", "Gradient Boosting", "K-Nearest Neighbors",
+                        "Support Vector Regression"
+                    ])
+
                     if model_choice == "Random Forest":
                         model = RandomForestRegressor(n_estimators=100, random_state=42)
-                    else:
+                    elif model_choice == "Linear Regression":
                         model = LinearRegression()
+                    elif model_choice == "Gradient Boosting":
+                        model = GradientBoostingRegressor(n_estimators=100, random_state=42)
+                    elif model_choice == "K-Nearest Neighbors":
+                        model = KNeighborsRegressor(n_neighbors=3)
+                    elif model_choice == "Support Vector Regression":
+                        model = SVR()
 
                     model.fit(X_train, y_train)
                     y_pred = model.predict(X_test)
@@ -1432,22 +1443,46 @@ if dados_colados:
                     future_month = st.date_input("Select a reference month for prediction", value=datetime.date.today())
                     future_month_num = (future_month.year - monthly_data[
                         "month"].dt.year.min()) * 12 + future_month.month
-                    future_pred = model.predict([[future_month_num]])[0]
+                    future_month_pred = model.predict([[future_month_num]])[0]
 
-                    st.success(f"Predicted consumption for {future_month.strftime('%B %Y')}: {future_pred:.2f} kWh")
+                    st.success(
+                        f"Predicted consumption for {future_month.strftime('%B %Y')}: {future_month_pred:.2f} kWh")
 
-                    fig, ax = plt.subplots()
-                    ax.plot(monthly_data["month"], monthly_data["consumption"], label="Historical")
-                    ax.scatter(pd.to_datetime(future_month), future_pred, color="red", label="Prediction")
-                    ax.set_title("Energy Consumption Forecast")
-                    ax.set_xlabel("Month")
-                    ax.set_ylabel("Consumption (kWh)")
-                    ax.legend()
-                    st.pyplot(fig)
+                    # Previsão para o próximo dia
+                    df["day_num"] = (df["date"] - df["date"].min()).dt.days
+                    X_day = df[["day_num"]]
+                    y_day = df["consumption"]
+                    X_day_train, X_day_test, y_day_train, y_day_test = train_test_split(X_day, y_day, test_size=0.2,
+                                                                                        random_state=42)
+
+                    model_day = model.__class__()  # mesmo tipo de modelo
+                    model_day.fit(X_day_train, y_day_train)
+
+                    next_day = df["date"].max() + pd.Timedelta(days=1)
+                    next_day_num = (next_day - df["date"].min()).days
+                    next_day_pred = model_day.predict([[next_day_num]])[0]
+
+                    st.success(f"Predicted consumption for {next_day.strftime('%d %B %Y')}: {next_day_pred:.2f} kWh")
+
+                    # Gráfico interativo com Plotly
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(x=monthly_data["month"], y=monthly_data["consumption"],
+                                             mode='lines+markers', name='Historical'))
+                    fig.add_trace(go.Scatter(x=[pd.to_datetime(future_month)], y=[future_month_pred],
+                                             mode='markers', name='Monthly Prediction',
+                                             marker=dict(color='red', size=10)))
+                    fig.update_layout(title="Energy Consumption Forecast",
+                                      xaxis_title="Month",
+                                      yaxis_title="Consumption (kWh)",
+                                      legend_title="Legend")
+                    st.plotly_chart(fig)
 
                 else:
                     st.error(
                         f"File '{csv_file_path}' not found. Please ensure it is in the same directory as the application.")
+
+
+
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
