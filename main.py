@@ -1381,11 +1381,9 @@ if dados_colados:
                 agraph(nodes=nodes, edges=edges, config=config)
 
             with tabs[8]:  # ou ajuste o índice conforme necessário
-                import streamlit as st
                 import pandas as pd
                 import numpy as np
                 import datetime
-                import os
                 import plotly.graph_objects as go
                 from sklearn.model_selection import train_test_split
                 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
@@ -1394,21 +1392,13 @@ if dados_colados:
                 from sklearn.svm import SVR
                 from sklearn.metrics import mean_absolute_error, mean_squared_error
 
-                st.subheader("⚙️ ML prediction")
-                st.markdown(
-                    "This section uses multiple machine learning models to predict energy consumption for a selected day.")
 
-                csv_file_path = "historical_consumption.csv"
-
-                if os.path.exists(csv_file_path):
-                    df = pd.read_csv(csv_file_path, parse_dates=["date"])
+                def ml_prediction_tab(df, selected_day):
+                    df = df.copy()
                     df = df.sort_values("date")
                     df["day_num"] = (df["date"] - df["date"].min()).dt.days
 
-                    # Seleção do dia para previsão
-                    selected_day = st.date_input("Select a day for prediction",
-                                                 value=df["date"].max() + pd.Timedelta(days=1))
-                    selected_day = pd.to_datetime(selected_day)  # Garante que seja Timestamp
+                    selected_day = pd.to_datetime(selected_day)
                     selected_day_num = (selected_day - df["date"].min()).days
 
                     X = df[["day_num"]]
@@ -1425,7 +1415,14 @@ if dados_colados:
 
                     results = []
                     fig = go.Figure()
-                    fig.add_trace(go.Scatter(x=df["date"], y=df["consumption"], mode='lines+markers', name='Real'))
+
+                    # Filtrar dados do mês selecionado
+                    selected_month = selected_day.month
+                    selected_year = selected_day.year
+                    df_month = df[(df["date"].dt.month == selected_month) & (df["date"].dt.year == selected_year)]
+
+                    fig.add_trace(
+                        go.Scatter(x=df_month["date"], y=df_month["consumption"], mode='lines+markers', name='Real'))
 
                     for name, model in models.items():
                         model.fit(X_train, y_train)
@@ -1435,30 +1432,38 @@ if dados_colados:
                         prediction = model.predict([[selected_day_num]])[0]
                         y_fit = model.predict(X)
 
-                        fig.add_trace(go.Scatter(x=df["date"], y=y_fit, mode='lines', name=f'{name} Fit'))
+                        # Filtrar apenas os valores ajustados do mês
+                        fit_df = pd.DataFrame({"date": df["date"], "fit": y_fit})
+                        fit_df_month = fit_df[
+                            (fit_df["date"].dt.month == selected_month) & (fit_df["date"].dt.year == selected_year)]
+
+                        fig.add_trace(
+                            go.Scatter(x=fit_df_month["date"], y=fit_df_month["fit"], mode='lines', name=f'{name} Fit'))
                         fig.add_trace(go.Scatter(x=[selected_day], y=[prediction], mode='markers',
                                                  name=f'{name} Prediction', marker=dict(size=10)))
+
+                        # Cálculo da precisão
+                        rmse_norm = rmse / y_test.mean()
+                        accuracy = max(0, 1 - rmse_norm)
 
                         results.append({
                             "Model": name,
                             "MAE": round(mae, 2),
                             "RMSE": round(rmse, 2),
+                            "Accuracy (%)": round(accuracy * 100, 2),
                             "Prediction for selected day": round(prediction, 2)
                         })
 
-                    fig.update_layout(title="Energy Consumption Forecast",
+                    fig.update_layout(title="Energy Consumption Forecast (Selected Month)",
                                       xaxis_title="Date",
                                       yaxis_title="Consumption (kWh)",
                                       legend_title="Legend")
-                    st.plotly_chart(fig)
 
                     results_df = pd.DataFrame(results)
-                    st.subheader("📊 Model Performance and Predictions")
-                    st.dataframe(results_df, use_container_width=True)
+                    results_df = results_df.sort_values(by="Accuracy (%)", ascending=False).reset_index(drop=True)
 
-                else:
-                    st.error(
-                        f"File '{csv_file_path}' not found. Please ensure it is in the same directory as the application.")
+                    return fig, results_df
+
 
 
 
