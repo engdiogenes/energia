@@ -1388,7 +1388,7 @@ if dados_colados:
                 df = df[["date", "Área Produtiva"]].rename(columns={"Área Produtiva": "consumption"})
                 df["date"] = pd.to_datetime(df["date"])
 
-                selected_day = st.date_input("Select a day for prediction", value=st.session_state.data_selecionada)
+                selected_day = st.sidebar.date_input("Select a day for prediction", value=st.session_state.data_selecionada)
                 from datetime import datetime as dt
                 from sklearn.model_selection import train_test_split
                 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
