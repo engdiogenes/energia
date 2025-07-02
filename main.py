@@ -151,7 +151,7 @@ with st.sidebar:
         return texto_tabulado
 
 
-    origem_dados = st.radio("Escolha a origem dos dados:", ["Google Sheets", "Colar manualmente"])
+    origem_dados = st.radio("Choose the data source:", ["Google Sheets", "Colar manualmente"])
 
     if origem_dados == "Google Sheets":
         dados_colados = obter_dados_do_google_sheets()
@@ -161,7 +161,7 @@ with st.sidebar:
         if not df_temp.empty:
             df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
             ultima_data = df_temp["Datetime"].max()
-            st.sidebar.markdown(f"📅 **Última atualização:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
+            st.sidebar.markdown(f"📅 **Last update:** {ultima_data.strftime('%d/%m/%Y %H:%M')}")
         else:
             st.sidebar.warning("Não foi possível determinar a última data de atualização.")
     else:
@@ -253,7 +253,7 @@ if dados_colados:
 
             # Campo de seleção de data
             data_selecionada = st.sidebar.date_input(
-                "Selecione a data",
+                "Select the date",
                 value=st.session_state.data_selecionada,
                 min_value=min(datas_disponiveis),
                 max_value=max(datas_disponiveis)
@@ -354,12 +354,12 @@ if dados_colados:
                 st.divider()
 
                 # Gráfico de consumo de cada prédio/dia para as áreas produtivas
-                st.subheader(" Consumo Diário por Medidor")
+                st.subheader(" Daily Consumption per Meter")
                 consumo_diario = consumo.copy()
                 consumo_diario["Data"] = consumo_diario["Datetime"].dt.date
                 consumo_agrupado = consumo_diario.groupby("Data")[medidores_disponiveis].sum().reset_index()
                 medidores_calendario = st.multiselect(
-                    "Selecione os medidores para o calendário:",
+                    "Select the gauges for the calendar:",
                     medidores_disponiveis,
                     default=[m for m in medidores_disponiveis if m != "Área Produtiva"]
                 )
@@ -410,13 +410,13 @@ if dados_colados:
                 df_diario = df_filtrado.groupby("Data")[colunas_medidores].sum().reset_index()
 
                 # Exibir o resultado
-                st.subheader("📅 Consumo diário do mês")
+                st.subheader("📅 Daily consumption for the month")
                 st.dataframe(df_diario, use_container_width=True)
                 # fim consumo diário do Mês
 
                 st.divider()
             with tabs[1]:
-                st.subheader(" Gráficos por Medidor com Curva de Limite")
+                st.subheader(" Graphs by Meter with Limit Curve")
                 for medidor in medidores_disponiveis:
                     fig = go.Figure()
                     fig.add_trace(go.Scatter(
@@ -442,7 +442,7 @@ if dados_colados:
 
             # TABS 3 - CONFIGURAR LIMITES
             with tabs[2]:
-                st.subheader(" Limites Horários Carregados")
+                st.subheader(" Loaded Time Limits")
 
                 if "limites_df" in st.session_state:
                     st.dataframe(
@@ -456,7 +456,7 @@ if dados_colados:
                         mime="application/json"
                     )
                     # Exibir metas mensais de consumo da área produtiva em MWh
-                    st.subheader("📊 Metas Mensais de Consumo da Área Produtiva (em MWh)")
+                    st.subheader("📊 Monthly Consumption Targets for the Production Area (in MWh)")
 
                     df_limites = st.session_state.limites_df.copy()
                     df_limites["Data"] = pd.to_datetime(df_limites["Data"])
@@ -490,7 +490,7 @@ if dados_colados:
 
             # TABS 3 - DASHBOARD
             with tabs[3]:
-                st.subheader(" Painel Resumo")
+                st.subheader(" Summary Panel")
                 colunas = st.columns(4)
                 for idx, medidor in enumerate(medidores_disponiveis):
                     with colunas[idx % 4]:
@@ -505,7 +505,7 @@ if dados_colados:
                         )
 
                 st.divider()
-                st.subheader(" Gráficos de Consumo vs Limite")
+                st.subheader(" Consumption vs. Limit Charts")
                 linhas = [st.columns(4) for _ in range(3)]
                 for idx, medidor in enumerate(medidores_disponiveis):
                     linha = idx // 4
@@ -539,7 +539,14 @@ if dados_colados:
 
             # TABS 4 - CALENDÁRIO
             with tabs[4]:
-                st.subheader("Calendário Interativo de Consumo da Área Produtiva")
+                st.subheader("Interactive Consumption Calendar for the Production Area")
+
+                st.markdown("""
+                This section provides a visual overview of daily energy consumption in the production area.
+                Each day is represented with a mini chart showing hourly usage compared to predefined limits.
+                Use this calendar to identify patterns, detect anomalies, and monitor energy efficiency over time. 3 month a go only.
+                """)
+
                 consumo_completo["Data"] = consumo_completo["Datetime"].dt.date
                 dias_unicos = sorted(consumo_completo["Data"].unique())
                 dias_mes = pd.date_range(start=min(dias_unicos), end=max(dias_unicos), freq="D")
@@ -600,8 +607,14 @@ if dados_colados:
 
             # TABS 5 - CALENDÁRIO
             with tabs[5]:
-                st.title("CSV para JSON - Limites Horários por Medidor")
-                uploaded_file = st.file_uploader("Faça upload do arquivo CSV", type="csv")
+                st.title("CSV to JSON - Hourly Limits per Meter")
+                st.markdown("""
+                This section is reserved for the application creator and is intended solely for configuring and converting hourly consumption limits. 
+                It allows the transformation of CSV files containing per-meter hourly limits into a JSON format compatible with the PowerTrack system. 
+                This functionality ensures that reference data is properly structured and ready for use in the platform’s analysis and forecasting tools.
+                """)
+
+                uploaded_file = st.file_uploader("Upload the CSV file", type="csv")
                 if uploaded_file is not None:
                     try:
                         # Lê o CSV com codificação ISO-8859-1
@@ -690,8 +703,8 @@ if dados_colados:
 
                     # Métricas
                     col1, col2 = st.columns(2)
-                    col1.metric("🔋 Consumo máximo previsto para o mês (área produtiva)", f"{consumo_max_mes:.2f} kWh")
-                    col2.metric("🔮 Consumo previsto para o mês (baseado no consumo atual + targets restantes)",
+                    col1.metric("🔋 Actual consumption accumulated up to the selected date (production area)", f"{consumo_max_mes:.2f} kWh")
+                    col2.metric("🔮 Expected consumption for the month (based on current consumption + remaining targets)",
                                 f"{consumo_previsto_mes:.2f} kWh")
                     # Calcular soma dos targets da área produtiva até o dia selecionado (mês atual)
                     targets_ate_hoje = limites_mes[limites_mes["Data"].dt.date <= data_ref][
@@ -709,8 +722,8 @@ if dados_colados:
 
                     # Exibir métricas adicionais
                     col3, col4 = st.columns(2)
-                    col3.metric("🎯 Target acumulado até a data selecionada (área produtiva)", f"{meta_ate_hoje:,.0f} kWh")
-                    col4.metric("⚡ Consumo real acumulado até a data selecionada (área produtiva)",
+                    col3.metric("🎯 Target accumulated up to the selected date (production area)", f"{meta_ate_hoje:,.0f} kWh")
+                    col4.metric("⚡ Actual consumption accumulated up to the selected date (production area)",
                                 f"{consumo_real_ate_hoje:,.0f} kWh")
 
                     # Estimativa total com base no padrão atual de consumo
@@ -796,7 +809,7 @@ if dados_colados:
                         ]["Meta Horária"].sum()
 
                     # Tabela de previsão diária
-                    st.subheader("📋 Previsão e Consumo Diário da Área Produtiva")
+                    st.subheader("📋Forecast and Daily Consumption of the Production Area")
                     datas_unicas = sorted(limites_mes["Data"].dt.date.unique())
                     dados_tabela = []
 
@@ -816,7 +829,7 @@ if dados_colados:
                     df_tabela = pd.DataFrame(dados_tabela)
 
                     # Simulação de Monte Carlo - Gráfico Interativo com Plotly (com faixa de confiança)
-                    st.subheader("📈 Simulação de Monte Carlo - Consumo Diário Futuro com Faixa de Confiança")
+                    st.subheader("📈 Monte Carlo Simulation - Future Daily Consumption with Confidence Interval")
 
                     df_consumo["Data"] = pd.to_datetime(df_consumo["Datetime"]).dt.date
                     historico_diario = df_consumo[
@@ -908,7 +921,7 @@ if dados_colados:
                         ))
 
                         fig.update_layout(
-                            title='Previsão de Consumo com Monte Carlo - Área Produtiva',
+                            title='Consumption Forecasting with Monte Carlo - Production Area',
                             xaxis_title='Data',
                             yaxis_title='Consumo Diário (kWh)',
                             legend_title='Legenda',
@@ -938,14 +951,14 @@ if dados_colados:
                         variabilidade = np.std(simulacoes)
 
                         if saldo_total > 0:
-                            diagnostico = "A previsão indica que o consumo total da área produtiva deve ultrapassar a meta mensal de energia elétrica."
+                            diagnostico = "The forecast indicates that total consumption in the productive area is expected to exceed the monthly electricity target."
                         else:
                             diagnostico = "A previsão sugere que o consumo total da área produtiva deve permanecer dentro da meta mensal de energia elétrica."
 
                         legenda = (
-                            f"O consumo real apresenta variações em torno da meta diária. "
-                            f"A simulação de Monte Carlo mostra uma variabilidade de aproximadamente {variabilidade:.1f} kWh "
-                            f"entre as trajetórias simuladas. {diagnostico}"
+                            f"Actual consumption varies around the daily target."
+                            f"The Monte Carlo simulation shows a variability of approximately {variabilidade:.1f} kWh "
+                            f"between the simulated trajectories. {diagnostico}"
                         )
 
                         st.markdown(f"**📌 Diagnóstico Inteligente:** {legenda}")
@@ -972,25 +985,25 @@ if dados_colados:
                                 estaveis += 1
 
                         if em_alta > em_baixa and em_alta > estaveis:
-                            tendencia = "alta"
-                            risco = "há risco de ultrapassar os limites mensais de consumo"
+                            tendencia = "high"
+                            risco = "there is a risk of exceeding the monthly consumption limits"
                         elif em_baixa > em_alta and em_baixa > estaveis:
-                            tendencia = "baixa"
-                            risco = "há folga no consumo em relação ao limite"
+                            tendencia = "low"
+                            risco = "there is a gap in consumption in relation to the limit"
                         else:
-                            tendencia = "estável"
-                            risco = "o consumo está dentro da faixa esperada"
+                            tendencia = "stable"
+                            risco = "consumption is within the expected range"
 
                         st.markdown(f"""
-                        ### 🔍 **Análise da Previsão de Consumo da Área Produtiva**
+                        ### 🔍 **Analysis of Consumption Forecast for the Production Area**
 
                         Com base nas simulações de Monte Carlo realizadas:
 
-                        - **{em_alta}** simulações indicam tendência de alta no consumo  
-                        - **{em_baixa}** simulações indicam tendência de queda  
-                        - **{estaveis}** simulações indicam estabilidade  
+                        - **{em_alta}** simulations indicate upward trend in consumption  
+                        - **{em_baixa}** simulations indicate downward trend  
+                        - **{estaveis}** simulations indicate stability  
 
-                        📉 A tendência geral é **{tendencia}**, o que sugere que **{risco}**.
+                        📉 The general trend is **{tendencia}**, which suggests that **{risco}**.
                         """)
 
 
@@ -1079,7 +1092,7 @@ if dados_colados:
                                 line=dict(color='crimson', dash='dot')
                             ))
 
-                            fig.update_layout(title='🔍 Previsão de Consumo de Energia: ARIMA vs Monte Carlo',
+                            fig.update_layout(title='🔍 Energy Consumption Forecasting: ARIMA vs Monte Carlo',
                                               xaxis_title='Data', yaxis_title='Consumo (kWh)',
                                               legend=dict(orientation='h', y=1.02, x=1, xanchor='right'),
                                               template='plotly_white')
@@ -1092,7 +1105,7 @@ if dados_colados:
                             import pandas as pd
 
                             st.subheader(
-                                "📊 Comparativo Diário: Consumo Real vs Metas Originais e Ajustadas (Distribuição Proporcional)")
+                                "📊 Daily Comparison: Actual Consumption vs. Original and Adjusted Targets (Proportional Distribution)")
 
                             # Preparar dados
                             df_consumo = st.session_state.consumo.copy()
@@ -1173,7 +1186,7 @@ if dados_colados:
                             )
                             st.plotly_chart(fig, use_container_width=True)
                             # Diagnóstico Interativo - Climatização Extra
-                            st.subheader("🧠 Diagnóstico Interativo - Climatização Extra")
+                            st.subheader("🧠 Interactive Diagnosis - Extra Air Conditioning")
 
                             # Cálculo do saldo de energia até o momento
                             saldo_energia = meta_ate_hoje - consumo_real_ate_hoje
@@ -1182,17 +1195,17 @@ if dados_colados:
                                 horas_extras = saldo_energia / 785
                                 dias_extras = horas_extras / 8
                                 st.success(f"""
-                                ✅ Até o momento, há um saldo positivo de **{saldo_energia:,.0f} kWh** de energia.
-                                Isso permite aproximadamente **{horas_extras:.1f} horas** extras de climatização no mês,
-                                o que equivale a cerca de **{dias_extras:.1f} dias** completos de climatização adicional.
+                                ✅ To date, there is a positive balance of **{saldo_energia:,.0f} kWh** energy.
+                                This allows approximately **{horas_extras:.1f} horas** monthly air conditioning extras,
+                                which is equivalent to approximately **{dias_extras:.1f} dias** complete with additional air conditioning.
                                 """)
                             else:
                                 horas_a_economizar = abs(saldo_energia) / 785
                                 dias_a_economizar = horas_a_economizar / 8
                                 st.error(f"""
-                                ⚠️ O consumo da área produtiva até o momento excedeu o target em **{abs(saldo_energia):,.0f} kWh**.
-                                Para voltar ao limite mensal, será necessário economizar cerca de **{horas_a_economizar:.1f} horas**
-                                de climatização, o que representa aproximadamente **{dias_a_economizar:.1f} dias** de uso contínuo.
+                                ⚠️ Consumption in the production area to date has exceeded the target by **{abs(saldo_energia):,.0f} kWh**.
+                                To return to the monthly limit, it will be necessary to save approximately**{horas_a_economizar:.1f} hours**
+                                air conditioning, which represents approximately **{dias_a_economizar:.1f} dias** for continuous use.
                                 """)
 
                             # Métricas
@@ -1284,12 +1297,12 @@ if dados_colados:
 
                                     st.plotly_chart(fig, use_container_width=True)
                                 else:
-                                    st.warning("Não há dados suficientes ou a coluna 'Área Produtiva' está ausente.")
+                                    st.warning("There is insufficient data or the ‘Production Area’ column is missing.")
                             else:
-                                st.warning("Dados de consumo ou data selecionada não encontrados.")
+                                st.warning("Consumption data or selected date not found.")
 
                         else:
-                            st.warning("Dados de consumo não encontrados em st.session_state.")
+                            st.warning("Consumption data not found in st.session_state.")
 
                 with open("relatorio_month_prediction.html", "r", encoding="utf-8") as f:
                     html_content = f.read()
@@ -1331,7 +1344,7 @@ if dados_colados:
                 consumo_total_produtivo = df_mes[medidores_produtivos].sum().sum()
 
                 # Exibir o resultado
-                st.metric("🔧 Consumo total da área produtiva no mês", f"{consumo_total_produtivo:,.0f} kWh")
+                st.metric("🔧 Total consumption of the productive area in the month", f"{consumo_total_produtivo:,.0f} kWh")
 
                 consumo_por_medidor = df_mes[medidores].sum().to_dict()
 
