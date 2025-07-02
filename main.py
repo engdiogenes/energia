@@ -732,8 +732,9 @@ if dados_colados:
                     df_diario["Data"] = pd.to_datetime(df_diario["Data"])
 
                     # Filtrar mês de referência
-                    dias_referencia = 14  # usar os últimos 14 dias como base
-                    data_inicio = data_ref - timedelta(days=dias_referencia)
+                    dias_referencia = 14
+                    data_ref = pd.to_datetime(data_ref)
+                    data_inicio = pd.to_datetime(data_ref - timedelta(days=dias_referencia))
 
                     df_mes = df_diario[
                         (df_diario["Data"] >= data_inicio) &
