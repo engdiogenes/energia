@@ -30,8 +30,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-import plotly.graph_objects as go
-import numpy as np
+
 
 st.set_page_config(
     page_title="PowerTrack",
@@ -1109,8 +1108,6 @@ if dados_colados:
 
                             # Gráfico de Comparativo Diário de novas metas
 
-                            import plotly.graph_objects as go
-                            import pandas as pd
 
                             st.subheader(
                                 "📊 Daily Comparison: Actual Consumption vs. Original and Adjusted Targets (Proportional Distribution)")
