@@ -731,7 +731,7 @@ if dados_colados:
                     df_diario = df_consumo.groupby("Data")["Área Produtiva"].sum().reset_index()
                     df_diario["Data"] = pd.to_datetime(df_diario["Data"])
 
-                    # Filtrar mês de referência
+                    # Por este:
                     dias_referencia = 14
                     data_ref = pd.to_datetime(data_ref)
                     data_inicio = pd.to_datetime(data_ref - timedelta(days=dias_referencia))
@@ -740,6 +740,7 @@ if dados_colados:
                         (df_diario["Data"] >= data_inicio) &
                         (df_diario["Data"] <= data_ref)
                         ]
+
                     if df_mes.empty or df_mes["Data"].nunique() < 2:
                         st.warning("Ainda não há dados suficientes neste mês para gerar previsões confiáveis.")
                         st.stop()
