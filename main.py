@@ -703,7 +703,7 @@ if dados_colados:
 
                     # Métricas
                     col1, col2 = st.columns(2)
-                    col1.metric("🔋 Month target (production area)", f"{consumo_max_mes:.2f} kWh")
+                    col1.metric("🔋 Actual consumption accumulated up to the selected date (production area)", f"{consumo_max_mes:.2f} kWh")
                     col2.metric("🔮 Expected consumption for the month (based on current consumption + remaining targets)",
                                 f"{consumo_previsto_mes:.2f} kWh")
                     # Calcular soma dos targets da área produtiva até o dia selecionado (mês atual)
@@ -740,6 +740,9 @@ if dados_colados:
                         (df_diario["Data"] >= data_inicio) &
                         (df_diario["Data"] <= data_ref)
                         ]
+                    if df_mes.empty or df_mes["Data"].nunique() < 2:
+                        st.warning("Ainda não há dados suficientes neste mês para gerar previsões confiáveis.")
+                        st.stop()
 
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
                     dias_consumidos = df_mes["Data"].nunique()
@@ -776,7 +779,7 @@ if dados_colados:
                     # Exibir métrica
                     delta_estimado = consumo_estimado_total - meta_mensal
                     st.metric(
-                        label="📈 Consumption estimate based on current standard",
+                        label="📈 Estimativa de consumo com Base no Padrão Atual",
                         value=f"{consumo_estimado_total:,.0f} kWh",
                         delta=f"{delta_estimado:,.0f} kWh",
                         delta_color="inverse" if delta_estimado < 0 else "normal"
