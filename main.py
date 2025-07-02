@@ -21,9 +21,7 @@ from streamlit_agraph import agraph, Node, Edge, Config
 import matplotlib.colors as mcolors
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
-import numpy as np
 from matplotlib import cm
-import plotly.graph_objects as go
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
@@ -736,8 +734,10 @@ if dados_colados:
                         (df_diario["Data"].dt.month == data_ref.month) &
                         (df_diario["Data"].dt.year == data_ref.year)
                         ]
-
-                    consumo_ate_hoje = df_mes["Área Produtiva"].sum()
+                    if df_mes.empty:
+                        st.warning("Ainda não há dados suficientes neste mês para gerar previsões.")
+                    else:
+                        consumo_ate_hoje = df_mes["Área Produtiva"].sum()
                     dias_consumidos = df_mes["Data"].nunique()
                     media_diaria = consumo_ate_hoje / dias_consumidos if dias_consumidos > 0 else 0
                     dias_no_mes = pd.Period(data_ref.strftime("%Y-%m")).days_in_month
@@ -1309,6 +1309,8 @@ if dados_colados:
 
                 st.markdown("### 📘 Relatório Técnico Detalhado")
                 components.html(html_content, height=1000, scrolling=True)
+
+
 
 
             with tabs[7]:  # ou ajuste o índice conforme necessário
