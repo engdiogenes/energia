@@ -30,7 +30,8 @@ from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-
+import plotly.graph_objects as go
+import numpy as np
 
 st.set_page_config(
     page_title="PowerTrack",
@@ -150,7 +151,7 @@ with st.sidebar:
         return texto_tabulado
 
 
-    origem_dados = st.radio("Choose the data source:", ["Google Sheets", "Paste manually"])
+    origem_dados = st.radio("Choose the data source:", ["Google Sheets", "Colar manualmente"])
 
     if origem_dados == "Google Sheets":
         dados_colados = obter_dados_do_google_sheets()
@@ -167,9 +168,9 @@ with st.sidebar:
         dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
 
     # Campo para inserir e-mail
-    to_email = st.text_input("Email recipient")
+    to_email = st.text_input("Destinatário do e-mail")
     # Botão para enviar o relatório por e-mail
-    if st.button("✉️ Send E-mail", key="enviar_email_sidebar", use_container_width=True):
+    if st.button("✉️ Enviar por E-mail", key="enviar_email_sidebar", use_container_width=True):
         if not to_email:
             st.warning("Por favor, insira o e-mail do destinatário.")
         else:
@@ -264,7 +265,7 @@ if dados_colados:
                 f"""
                 <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
                 <div style='font-size: 0.8rem; color: gray; text-align: center;'>
-                    Developed by <strong>Diógenes Oliveira</strong>
+                    Desenvolvido por <strong>Diógenes Oliveira</strong>
                 </div>
                 """,
                 unsafe_allow_html=True
@@ -730,19 +731,11 @@ if dados_colados:
                     df_diario = df_consumo.groupby("Data")["Área Produtiva"].sum().reset_index()
                     df_diario["Data"] = pd.to_datetime(df_diario["Data"])
 
-                    # Por este:
-                    dias_referencia = 14
-                    data_ref = pd.to_datetime(data_ref)
-                    data_inicio = pd.to_datetime(data_ref - timedelta(days=dias_referencia))
-
+                    # Filtrar mês de referência
                     df_mes = df_diario[
-                        (df_diario["Data"] >= data_inicio) &
-                        (df_diario["Data"] <= data_ref)
+                        (df_diario["Data"].dt.month == data_ref.month) &
+                        (df_diario["Data"].dt.year == data_ref.year)
                         ]
-
-                    if df_mes.empty or df_mes["Data"].nunique() < 2:
-                        st.warning("Ainda não há dados suficientes neste mês para gerar previsões confiáveis.")
-                        st.stop()
 
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
                     dias_consumidos = df_mes["Data"].nunique()
@@ -1108,6 +1101,8 @@ if dados_colados:
 
                             # Gráfico de Comparativo Diário de novas metas
 
+                            import plotly.graph_objects as go
+                            import pandas as pd
 
                             st.subheader(
                                 "📊 Daily Comparison: Actual Consumption vs. Original and Adjusted Targets (Proportional Distribution)")
