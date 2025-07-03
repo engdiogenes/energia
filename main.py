@@ -837,7 +837,7 @@ if dados_colados:
                         (pd.to_datetime(df_consumo["Datetime"]).dt.year == data_ref.year)
                         ].groupby("Data")["Área Produtiva"].sum()
 
-                    if len(historico_diario) >= 5:
+                    if len(historico_diario) >= 2:
                         media = historico_diario.mean()
                         desvio = historico_diario.std()
                         dias_futuros = [datetime.strptime(d, "%Y-%m-%d").date() for d in df_tabela["Data"] if
