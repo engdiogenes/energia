@@ -150,7 +150,7 @@ with st.sidebar:
         return texto_tabulado
 
 
-    origem_dados = st.radio("Choose the data source:", ["Google Sheets", "Colar manualmente"])
+    origem_dados = st.radio("Choose the data source:", ["Google Sheets", "Paste manually"])
 
     if origem_dados == "Google Sheets":
         dados_colados = obter_dados_do_google_sheets()
@@ -167,9 +167,9 @@ with st.sidebar:
         dados_colados = st.text_area("Cole os dados aqui (tabulados):", height=300)
 
     # Campo para inserir e-mail
-    to_email = st.text_input("Destinatário do e-mail")
+    to_email = st.text_input("Email recipient")
     # Botão para enviar o relatório por e-mail
-    if st.button("✉️ Enviar por E-mail", key="enviar_email_sidebar", use_container_width=True):
+    if st.button("✉️ Send E-mail", key="enviar_email_sidebar", use_container_width=True):
         if not to_email:
             st.warning("Por favor, insira o e-mail do destinatário.")
         else:
@@ -264,7 +264,7 @@ if dados_colados:
                 f"""
                 <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
                 <div style='font-size: 0.8rem; color: gray; text-align: center;'>
-                    Desenvolvido por <strong>Diógenes Oliveira</strong>
+                    Developed by <strong>Diógenes Oliveira</strong>
                 </div>
                 """,
                 unsafe_allow_html=True
