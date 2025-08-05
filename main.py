@@ -91,9 +91,8 @@ st.markdown("""
         padding-top: 1rem;
         padding-bottom: 1rem;
     }
-    header, footer {
-        visibility: hidden;
-    }
+    /* Removida a linha que ocultava o cabeçalho e rodapé */
+    /* header, footer { visibility: hidden; } */ 
     [data-testid="stSidebar"] {
         background-color: #f0f2f6;
         padding: 1.5rem 1rem;
@@ -1607,9 +1606,13 @@ if dados_colados:
                     ))
                     
                     # Targets Diários (todos os targets disponíveis no histórico e futuros)
+                    # Mescla o df_train (que tem as datas do histórico) e o df_predict_future (que tem as datas futuras)
+                    # para criar um único DataFrame com todas as datas e seus respectivos daily_target
+                    full_target_df = pd.concat([df_train[['date', 'daily_target']], df_predict_future[['date', 'daily_target']]]).drop_duplicates().sort_values('date')
+
                     fig_daily.add_trace(go.Scatter(
-                        x=df_consumo_area_daily['date'],
-                        y=df_consumo_area_daily['daily_target'],
+                        x=full_target_df['date'],
+                        y=full_target_df['daily_target'],
                         mode='lines',
                         name='Daily Target',
                         line=dict(color='green', dash='dot')
@@ -1657,10 +1660,11 @@ if dados_colados:
                             predicted_daily_value = best_daily_predictions.loc[selected_future_day_for_hourly]
                             
                             # Desagrega o valor diário predito em valores horários com base no perfil
-                            if 'hourly_profile_percentages' in st.session_state and st.session_state.hourly_profile_percentages:
+                            if 'hourly_profile_percentages' in st.session_state and st.session_state.hourly_profile_percentages and st.session_state.typical_daily_target_from_template > 0:
+                                # Ajusta o perfil para a soma diária prevista, se o perfil não for zero
                                 predicted_hourly_values = [predicted_daily_value * p for p in st.session_state.hourly_profile_percentages]
                             else:
-                                predicted_hourly_values = [predicted_daily_value / 24] * 24 # Fallback para distribuição uniforme
+                                predicted_hourly_values = [predicted_daily_value / 24] * 24 # Fallback para distribuição uniforme se não houver perfil
 
                             # Obtém o perfil de target horário para referência
                             hourly_target_profile = st.session_state.hourly_target_profile_productive_area if 'hourly_target_profile_productive_area' in st.session_state else [0]*24
