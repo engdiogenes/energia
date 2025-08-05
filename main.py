@@ -13,7 +13,7 @@ from email import encoders
 import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
-from datetime import datetime
+from datetime import datetime as dt_obj # Renomeado para evitar conflito com 'datetime' da lib padrão
 from statsmodels.tsa.arima.model import ARIMA
 from datetime import timedelta
 import streamlit.components.v1 as components
@@ -24,14 +24,13 @@ from oauth2client.service_account import ServiceAccountCredentials
 import numpy as np
 from matplotlib import cm
 import plotly.graph_objects as go
-import plotly.express as px # Adicionado: Importação de plotly.express para px.bar
+import plotly.express as px
 from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestRegressor, GradientBoostingRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.svm import SVR
 from sklearn.metrics import mean_absolute_error, mean_squared_error
-# Removidos imports duplicados: plotly.graph_objects e numpy
 
 st.set_page_config(
     page_title="PowerTrack",
@@ -40,28 +39,32 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
+# --- Initialize session state for data and selections ---
+if 'df' not in st.session_state:
+    st.session_state.df = pd.DataFrame()
+if 'df_filtered' not in st.session_state:
+    st.session_state.df_filtered = pd.DataFrame()
+if 'selected_date' not in st.session_state:
+    st.session_state.selected_date = dt_obj.today().date()
+if 'data_source_option' not in st.session_state: # Set default for radio button
+    st.session_state.data_source_option = "Google Sheets"
+
+
 # Caminho padrão do JSON
 CAMINHO_JSON_PADRAO = "limites_padrao.json"
 
 # Carregar automaticamente os limites se o arquivo existir
 if os.path.exists(CAMINHO_JSON_PADRAO):
     try:
-        # CORREÇÃO: `CAMINho_JSON_PADRAO` para `CAMINHO_JSON_PADRAO`
-        limites_df = pd.read_json(CAMINHO_JSON_PADRAO) 
+        limites_df = pd.read_json(CAMINHO_JSON_PADRAO)
         limites_df["Timestamp"] = pd.to_datetime(limites_df["Timestamp"], dayfirst=True)
         limites_df["Data"] = limites_df["Timestamp"].dt.date
         limites_df["Hora"] = limites_df["Timestamp"].dt.hour
         st.session_state.limites_df = limites_df
-        # O dicionário `limites_por_medidor_horario` precisa ser mais robusto aqui
-        # para lidar com todos os medidores dinamicamente, ou predefinir os medidores.
-        # Por simplicidade, vou usar um loop pelos medidores mapeados em `novos_rotulos`
-        # ou os que estão no arquivo JSON.
-        
-        # Garante que `limites_por_medidor_horario` seja populado corretamente
+
         st.session_state.limites_por_medidor_horario = {}
         for col in limites_df.columns:
             if col not in ["Timestamp", "Data", "Hora"]:
-                # Assume que o JSON tem 24 entradas para cada medidor para representar as horas
                 st.session_state.limites_por_medidor_horario[col] = list(limites_df[col])
         
     except Exception as e:
@@ -98,10 +101,6 @@ def carregar_dados(dados_colados):
     calcula o consumo horário e adiciona colunas agregadas.
     """
     # Converte para CSV string para reuso da função carregar_dados
-    # Isso é necessário porque `io.StringIO` espera uma string.
-    # Se `dados_colados` já vier de um `df.to_csv()`, pode ser necessário
-    # ajustar o `sep` ou garantir que o `limpar_valores` esteja correto para o formato de entrada.
-    # Para dados colados diretamente (como no text_area), `sep="\t"` é geralmente para tab-separated values.
     dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
     dados["Datetime"] = pd.to_datetime(dados["Date"] + " " + dados["Time"], dayfirst=True)
     dados = dados.sort_values("Datetime")
@@ -128,49 +127,34 @@ def carregar_dados(dados_colados):
         "MM_OFFI_QGBT-01-02_KWH.PresentValue": "PMDC-OFFICE"
     }
     
-    # Renomeia as colunas de acordo com os novos rótulos
-    # Filtra as colunas que realmente existem no DataFrame de entrada
     cols_to_rename = {old_name: new_name for old_name, new_name in novos_rotulos.items() if old_name in dados.columns}
     dados = dados.rename(columns=cols_to_rename)
     
-    # Atualiza a lista de medidores para incluir apenas os que foram renomeados e estão presentes
     medidores = list(cols_to_rename.values())
     
-    # Converte os valores dos medidores para float. `errors='coerce'` transforma erros em NaN.
     for col in medidores:
-        if col in dados.columns: # Garante que a coluna existe após o rename
+        if col in dados.columns:
             dados[col] = pd.to_numeric(dados[col], errors='coerce')
 
     consumo = dados[["Datetime"] + medidores].copy()
 
-    # CRÍTICA: Substituindo .abs() por .clip(lower=0) para tratar anomalias
     for col in medidores:
-        # Aplica .diff() apenas se houver mais de uma linha de dados
         if len(consumo[col]) > 1:
-            consumo[col] = consumo[col].diff().clip(lower=0) # Garante que o consumo seja sempre >= 0
-        else: # Se houver apenas uma linha, a diferença é NaN. Trata como 0.
+            consumo[col] = consumo[col].diff().clip(lower=0)
+        else:
             consumo[col] = 0
 
-    consumo = consumo.dropna(subset=medidores) # Remove linhas onde os medidores ficaram NaN após o diff/coerce
-    
-    # Adicionando colunas agregadas.
-    # É importante verificar se as colunas base para as agregações existem.
-    # Se QGBT1-MPTF ou QGBT2-MPTF não existirem, 'TRIM&FINAL' será NaN ou erro.
-    # Usaremos .get() com valor padrão 0 para evitar KeyError, mas isso pode mascarar dados faltantes.
-    # Uma abordagem mais robusta seria verificar a existência das colunas primeiro.
+    consumo = consumo.dropna(subset=medidores)
     
     consumo["TRIM&FINAL"] = consumo.get("QGBT1-MPTF", 0) + consumo.get("QGBT2-MPTF", 0)
     consumo["OFFICE + CANTEEN"] = consumo.get("OFFICE", 0) - consumo.get("PMDC-OFFICE", 0)
     
-    # Para "Área Produtiva", certifique-se de que todas as colunas envolvidas existem.
-    # Um tratamento mais robusto seria mapear cada nome para sua coluna, verificando a existência.
     consumo["Área Produtiva"] = (
         consumo.get("MP&L", 0) + consumo.get("GAHO", 0) + consumo.get("CAG", 0) + 
         consumo.get("SEOB", 0) + consumo.get("EBPC", 0) + consumo.get("PMDC-OFFICE", 0) + 
-        consumo.get("TRIM&FINAL", 0) + consumo.get("OFFICE + CANTEEN", 0) + 13.75 # 13.75 é uma constante?
+        consumo.get("TRIM&FINAL", 0) + consumo.get("OFFICE + CANTEEN", 0) + 13.75
     )
     
-    # Removendo colunas que foram agregadas, se elas existirem
     cols_to_drop = [col for col in ["QGBT1-MPTF", "QGBT2-MPTF"] if col in consumo.columns]
     if cols_to_drop:
         consumo = consumo.drop(columns=cols_to_drop)
@@ -178,13 +162,11 @@ def carregar_dados(dados_colados):
     return consumo
 
 # --- Função de Envio de E-mail ---
-# Esta função precisa estar definida no escopo global para ser chamada pelo botão na sidebar.
 def send_email(recipient_email, subject, body, attachment_path=None):
-    """Envia um e-mail com conteúdo HTML ou texto simples e anexo opcional."""
     sender_email = os.getenv("SMTP_USERNAME")
     sender_password = os.getenv("SMTP_PASSWORD")
     smtp_server = os.getenv("SMTP_SERVER")
-    smtp_port = int(os.getenv("SMTP_PORT", 587)) # Default to 587 if not set
+    smtp_port = int(os.getenv("SMTP_PORT", 587))
     
     if not all([sender_email, sender_password, smtp_server]):
         st.error("Credenciais SMTP incompletas. Verifique as variáveis de ambiente (SMTP_USERNAME, SMTP_PASSWORD, SMTP_SERVER, SMTP_PORT).")
@@ -195,7 +177,7 @@ def send_email(recipient_email, subject, body, attachment_path=None):
     msg['To'] = recipient_email
     msg['Subject'] = subject
 
-    msg.attach(MIMEText(body, 'plain')) # Pode ser 'html' se o corpo for HTML
+    msg.attach(MIMEText(body, 'plain'))
 
     if attachment_path:
         try:
@@ -214,7 +196,7 @@ def send_email(recipient_email, subject, body, attachment_path=None):
 
     try:
         server = smtplib.SMTP(smtp_server, smtp_port)
-        server.starttls()  # Upgrade connection to secure
+        server.starttls()
         server.login(sender_email, sender_password)
         text = msg.as_string()
         server.sendmail(sender_email, recipient_email, text)
@@ -228,19 +210,19 @@ def send_email(recipient_email, subject, body, attachment_path=None):
 
 # --- Sidebar (Barra Lateral) ---
 with st.sidebar:
-    st.image("https://images.unsplash.com/photo-1549646875-01e4695e6912?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", width=250) # Substitua pela sua logo
+    st.image("https://images.unsplash.com/photo-1549646875-01e4695e6912?q=80&w=2670&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D", width=250)
     st.title("PowerTrack ⚡")
     st.markdown("Monitoramento e Previsão de Consumo de Energia")
 
     st.header("Configurações de Dados")
-    data_source_option = st.radio("Selecione a fonte de dados:", ("Google Sheets", "Colar CSV"))
+    # Use session_state to control the radio button's value
+    data_source_option = st.radio("Selecione a fonte de dados:", 
+                                   ("Google Sheets", "Colar CSV"),
+                                   key='data_source_option')
 
-    df = None # Inicializa df como None
-
-    if data_source_option == "Google Sheets":
+    if st.session_state.data_source_option == "Google Sheets":
         st.info("Conectando ao Google Sheets...")
         try:
-            # Configuração do Google Sheets
             scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
             creds_json = {
                 "type": st.secrets["gcp_service_account"]["type"],
@@ -258,86 +240,83 @@ with st.sidebar:
             creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_json, scope)
             client = gspread.authorize(creds)
 
-            # Abra a planilha pelo nome (substitua 'NomeDaSuaPlanilha' pelo nome real da sua planilha)
             sheet = client.open("PowerTrack_Dados_Medidores").sheet1
             data = sheet.get_all_values()
             
-            # Converte a lista de listas em um DataFrame do Pandas
             header = data[0]
             df_gs = pd.DataFrame(data[1:], columns=header)
             
-            # Converte para CSV string para reuso da função carregar_dados
             csv_string_gs = df_gs.to_csv(index=False, sep='\t')
-            df = carregar_dados(csv_string_gs)
+            
+            st.session_state.df = carregar_dados(csv_string_gs) # Store df in session state
             
             st.success("Dados carregados do Google Sheets!")
-            st.write(f"Última atualização: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}")
+            st.write(f"Última atualização: {dt_obj.now().strftime('%d/%m/%Y %H:%M:%S')}")
+            # Optional: for debugging, display head of loaded data
+            # st.write("Dados carregados (primeiras linhas):")
+            # st.dataframe(st.session_state.df.head())
         except Exception as e:
             st.error(f"Erro ao carregar dados do Google Sheets: {e}")
-            st.info("Verifique se as credenciais estão corretas no `secrets.toml` ou se o nome da planilha está certo.")
+            st.info("Verifique se as credenciais estão corretas no `secrets.toml` e se o nome da planilha está certo. Certifique-se também de que a conta de serviço tem permissão de acesso à planilha.")
+            st.session_state.df = pd.DataFrame() # Ensure df is empty on error
 
-    elif data_source_option == "Colar CSV":
+    elif st.session_state.data_source_option == "Colar CSV":
         dados_colados_input = st.text_area("Cole seus dados CSV tabulados aqui:", height=300, 
                                             placeholder="Date\tTime\tMM_MPTF_QGBT-03_KWH.PresentValue\t...")
         if st.button("Carregar Dados Manuais"):
             if dados_colados_input:
                 try:
-                    df = carregar_dados(dados_colados_input)
+                    st.session_state.df = carregar_dados(dados_colados_input) # Store df in session state
                     st.success("Dados carregados com sucesso!")
                 except Exception as e:
                     st.error(f"Erro ao carregar dados: {e}. Verifique o formato do CSV.")
+                    st.session_state.df = pd.DataFrame() # Ensure df is empty on error
             else:
                 st.warning("Cole os dados CSV para carregar.")
+                st.session_state.df = pd.DataFrame() # Ensure df is empty if nothing pasted
 
-    # Se df foi carregado com sucesso, permite seleção da data
-    if df is not None and not df.empty:
-        df["date"] = pd.to_datetime(df["Datetime"].dt.date)
-        df["time"] = df["Datetime"].dt.time
+    # Only process selected_date and df_filtered if df is successfully loaded
+    if not st.session_state.df.empty:
+        st.session_state.df["date"] = pd.to_datetime(st.session_state.df["Datetime"].dt.date)
+        st.session_state.df["time"] = st.session_state.df["Datetime"].dt.time
         
-        # Filtro de data na sidebar
-        min_date = df["date"].min()
-        max_date = df["date"].max()
+        min_date = st.session_state.df["date"].min()
+        max_date = st.session_state.df["date"].max()
         
-        # Garante que a data selecionada esteja dentro do range de dados
-        if "selected_date" not in st.session_state or not (st.session_state.selected_date >= min_date and st.session_state.selected_date <= max_date):
-            st.session_state.selected_date = max_date # Define a última data como padrão
+        # Adjust selected_date if it's out of bounds after loading new data
+        if not (st.session_state.selected_date >= min_date and st.session_state.selected_date <= max_date):
+            st.session_state.selected_date = max_date # Default to latest date
 
         selected_date = st.date_input("Selecione a Data para Análise:", 
                                        value=st.session_state.selected_date,
                                        min_value=min_date, 
                                        max_value=max_date,
                                        key="date_selector")
-        st.session_state.selected_date = selected_date # Atualiza o estado da sessão
+        st.session_state.selected_date = selected_date # Update session state
 
-        df_filtered = df[df["date"] == pd.to_datetime(selected_date)]
+        # Filter df and store df_filtered in session state
+        st.session_state.df_filtered = st.session_state.df[st.session_state.df["date"] == pd.to_datetime(st.session_state.selected_date)]
 
         # --- Envio de E-mail ---
         st.markdown("---")
         st.subheader("Envio de Relatório por E-mail")
-        recipient_email = st.text_input("E-mail do destinatário:", value="seu_email@example.com") # Coloque um email padrão
+        recipient_email = st.text_input("E-mail do destinatário:", value="seu_email@example.com")
         if st.button("Enviar Relatório do Dia"):
             if recipient_email and "@" in recipient_email:
-                if df_filtered.empty:
+                if st.session_state.df_filtered.empty:
                     st.warning("Não há dados para a data selecionada para enviar relatório.")
                 else:
-                    # Gera um resumo do dia para o email
-                    total_plant_consumption_day = df_filtered["Área Produtiva"].sum() # Exemplo
-                    email_body = f"Relatório de Consumo de Energia para o dia {selected_date.strftime('%d/%m/%Y')}:\n\n"
+                    total_plant_consumption_day = st.session_state.df_filtered["Área Produtiva"].sum()
+                    email_body = f"Relatório de Consumo de Energia para o dia {st.session_state.selected_date.strftime('%d/%m/%Y')}:\n\n"
                     email_body += f"Consumo Total da Área Produtiva: {total_plant_consumption_day:.2f} kWh\n\n"
                     
-                    # Você pode adicionar mais detalhes aqui, como consumo por medidor
-                    # e comparação com limites para gerar alertas no email.
-                    
                     if "limites_por_medidor_horario" in st.session_state:
-                        # Exemplo de lógica de alerta (adapte conforme seus limites)
-                        for medidor in [col for col in df.columns if col not in ["Datetime", "date", "time"]]:
+                        for medidor in [col for col in st.session_state.df.columns if col not in ["Datetime", "date", "time"]]:
                             if medidor in st.session_state.limites_por_medidor_horario:
                                 limites_medidor = st.session_state.limites_por_medidor_horario[medidor]
                                 
-                                # Verifica se há dados filtrados para o medidor antes de acessar
-                                if medidor in df_filtered.columns:
-                                    # Ajusta para pegar a hora do dia para o agrupamento
-                                    consumo_horario_medidor = df_filtered.set_index(df_filtered["Datetime"].dt.hour)[medidor]
+                                if medidor in st.session_state.df_filtered.columns:
+                                    consumo_horario_medidor = st.session_state.df_filtered.set_index(st.session_state.df_filtered["Datetime"].dt.hour)[medidor]
                                     
                                     excesso_horas = []
                                     for hour, consumption_value in consumo_horario_medidor.items():
@@ -348,8 +327,8 @@ with st.sidebar:
                                         email_body += f"\n🚨 Alerta para {medidor}:\n" + "\n".join(excesso_horas)
                     
                     try:
-                        send_email(recipient_email, f"Relatório PowerTrack - {selected_date.strftime('%d/%m/%Y')}", email_body)
-                    except Exception as e: # Catch all exceptions from send_email
+                        send_email(recipient_email, f"Relatório PowerTrack - {st.session_state.selected_date.strftime('%d/%m/%Y')}", email_body)
+                    except Exception as e:
                          st.error(f"Erro inesperado ao enviar e-mail: {e}. Verifique o console para mais detalhes.")
             else:
                 st.error("Por favor, insira um endereço de e-mail válido.")
@@ -360,34 +339,24 @@ tab1, tab2, tab3, tab4, tab5, tab6, tab7, tab8 = st.tabs([
     "Conversion", "Month Prediction", "ML Prediction"
 ])
 
-# Verifica se df_filtered está definido e não vazio antes de usar
-if 'df_filtered' not in locals() or df_filtered.empty:
+# Now, use st.session_state.df_filtered for the check
+if st.session_state.df_filtered.empty:
     st.info("Por favor, carregue os dados na barra lateral para começar a análise.")
 else:
-    # Obtém a lista de medidores dinamicamente
-    # Exclui as colunas de data/hora e as agregadas para obter os medidores originais ou principais
-    # Recomenda-se manter uma lista predefinida dos "main_medidores" que você quer apresentar
+    # Use st.session_state.df and st.session_state.df_filtered directly in the tabs
+    df = st.session_state.df # Alias for brevity, but still references session state
+    df_filtered = st.session_state.df_filtered # Alias for brevity
+
     main_medidores = ["MP&L", "GAHO", "MAIW", "CAG", "SEOB", "OFFICE", "EBPC", "PCCB", "PMDC-OFFICE"]
     
     with tab1: # Overview
-        st.header("📊 Visão Geral do Consumo - " + selected_date.strftime("%d/%m/%Y"))
+        st.header("📊 Visão Geral do Consumo - " + st.session_state.selected_date.strftime("%d/%m/%Y"))
 
-        # Cálculo dos valores para os cards de resumo
         total_plant_consumption_day = df_filtered["Área Produtiva"].sum()
         
-        # Exemplo de como usar limites (adapte para seus casos reais)
-        # Supondo que você tenha uma meta diária total para a Área Produtiva
-        # Isso precisaria ser mais sofisticado para ser uma meta real, talvez somando limites horários
-        meta_diaria_area_produtiva = sum(st.session_state.limites_por_medidor_horario.get("Área Produtiva", [0]*24)) # Exemplo simples
+        meta_diaria_area_produtiva = sum(st.session_state.limites_por_medidor_horario.get("Área Produtiva", [0]*24))
 
         delta_area_produtiva = total_plant_consumption_day - meta_diaria_area_produtiva
-        
-        # O delta no st.metric mostra a diferença do valor atual para um valor base (que aqui é o delta_area_produtiva)
-        # Para mostrar se está acima ou abaixo da meta, o delta deve ser (valor_atual - meta)
-        # Se você quer um "saldo" (quanto falta ou sobrou), pode ser meta - valor_atual
-        
-        # Se delta_area_produtiva for positivo, está acima da meta (ruim). Se negativo, abaixo (bom).
-        # A cor "inverse" fará com que positivo (acima da meta) seja vermelho e negativo (abaixo da meta) seja verde.
         
         col_overview1, col_overview2, col_overview3 = st.columns(3)
         with col_overview1:
@@ -397,17 +366,14 @@ else:
         with col_overview3:
             st.metric("Diferença da Meta", f"{delta_area_produtiva:.2f} kWh", delta=f"{delta_area_produtiva:.2f} kWh", delta_color="inverse")
             
-
         st.subheader("Consumo Diário por Medidor (Gráfico de Barras Empilhadas)")
         
-        # Permite selecionar quais medidores visualizar
-        # Crie uma lista de medidores para o multiselect, excluindo as colunas de tempo e as agregadas finais
         all_possible_plot_cols = [col for col in df.columns if col not in ["Datetime", "date", "time", "TRIM&FINAL", "OFFICE + CANTEEN"]]
         
         selected_overview_medidores = st.multiselect(
             "Selecione os medidores para o gráfico:", 
             options=all_possible_plot_cols,
-            default=[col for col in all_possible_plot_cols if col in ["Área Produtiva", "MP&L", "GAHO", "MAIW"]] # Exemplo de default
+            default=[col for col in all_possible_plot_cols if col in ["Área Produtiva", "MP&L", "GAHO", "MAIW"]]
         )
 
         if selected_overview_medidores:
@@ -429,9 +395,8 @@ else:
         st.dataframe(df_filtered.set_index("Datetime"), use_container_width=True)
 
     with tab2: # Per Meter
-        st.header("📈 Consumo Detalhado por Medidor - " + selected_date.strftime("%d/%m/%Y"))
+        st.header("📈 Consumo Detalhado por Medidor - " + st.session_state.selected_date.strftime("%d/%m/%Y"))
         
-        # Filtra `main_medidores` para garantir que existam no df_filtered
         available_main_medidores = [m for m in main_medidores if m in df_filtered.columns]
         
         if not available_main_medidores:
@@ -449,11 +414,9 @@ else:
             fig_meter.add_trace(go.Scatter(x=df_meter_day["Hora"], y=df_meter_day["Consumo"], 
                                          mode='lines+markers', name='Consumo Real (kWh)'))
             
-            # Adiciona os limites se existirem
             if medidor_selecionado in st.session_state.limites_por_medidor_horario:
                 limites = st.session_state.limites_por_medidor_horario[medidor_selecionado]
-                # Garante que os limites tenham o mesmo número de pontos de hora (0-23)
-                horas_limites = list(range(len(limites))) # Assumindo 24h de limites
+                horas_limites = list(range(len(limites)))
                 fig_meter.add_trace(go.Scatter(x=horas_limites, y=limites, mode='lines', name='Limite (kWh)',
                                                 line=dict(dash='dash', color='red')))
             
@@ -472,7 +435,6 @@ else:
         if "limites_df" in st.session_state and not st.session_state.limites_df.empty:
             st.dataframe(st.session_state.limites_df.set_index("Timestamp"), use_container_width=True)
             
-            # Botão para download do JSON de limites
             json_limites = st.session_state.limites_df.to_json(orient="records", date_format="iso", indent=4)
             st.download_button(
                 label="Baixar limites como JSON",
@@ -489,35 +451,30 @@ else:
             limites_ap_diarios_kwh = sum(st.session_state.limites_por_medidor_horario["Área Produtiva"])
             
             import calendar
-            # Calcula o número de dias no mês da data selecionada
-            num_days_in_month = calendar.monthrange(selected_date.year, selected_date.month)[1]
+            num_days_in_month = calendar.monthrange(st.session_state.selected_date.year, st.session_state.selected_date.month)[1]
             
             meta_mensal_ap_kwh = limites_ap_diarios_kwh * num_days_in_month
             meta_mensal_ap_mwh = meta_mensal_ap_kwh / 1000
-            st.metric(f"Meta Mensal Estimada (Área Produtiva) para {selected_date.strftime('%B %Y')}", f"{meta_mensal_ap_mwh:.2f} MWh")
+            st.metric(f"Meta Mensal Estimada (Área Produtiva) para {st.session_state.selected_date.strftime('%B %Y')}", f"{meta_mensal_ap_mwh:.2f} MWh")
         else:
             st.info("Metas para 'Área Produtiva' não configuradas nos limites. Verifique `limites_padrao.json`.")
 
     with tab4: # Dashboard
         st.header("🖥️ Dashboard de Consumo")
         
-        # Painel de Resumo por Medidor
-        st.subheader("Resumo por Medidor (" + selected_date.strftime("%d/%m/%Y") + ")")
+        st.subheader("Resumo por Medidor (" + st.session_state.selected_date.strftime("%d/%m/%Y") + ")")
         
-        # Filtra apenas os medidores que têm dados no df_filtered
-        # Cuidado para não incluir 'Área Produtiva' aqui se for uma coluna agregada para o resumo
         display_medidores_on_dashboard = [m for m in main_medidores if m in df_filtered.columns]
         if "Área Produtiva" in df_filtered.columns:
-            display_medidores_on_dashboard.insert(0, "Área Produtiva") # Coloca a área produtiva no início
+            display_medidores_on_dashboard.insert(0, "Área Produtiva")
         
-        cols_dashboard = st.columns(4) # Define sempre 4 colunas
+        cols_dashboard = st.columns(4)
         
         for i, medidor in enumerate(display_medidores_on_dashboard):
-            with cols_dashboard[i % 4]: # Garante que as colunas se repetem a cada 4 medidores
+            with cols_dashboard[i % 4]:
                 consumo_medidor_dia = df_filtered[medidor].sum()
                 limite_medidor_dia = sum(st.session_state.limites_por_medidor_horario.get(medidor, [0]*24))
                 
-                # Se não houver limite, o delta não faz sentido
                 if limite_medidor_dia > 0:
                     delta_medidor = consumo_medidor_dia - limite_medidor_dia
                     st.metric(f"**{medidor}**", f"{consumo_medidor_dia:.2f} kWh", 
@@ -553,74 +510,60 @@ else:
     with tab5: # Calendar
         st.header("📅 Calendário de Consumo")
         
-        # Selecionar o mês do calendário
         current_month = st.date_input("Selecione o mês do calendário:", 
                                        value=st.session_state.selected_date.replace(day=1),
                                        format="DD/MM/YYYY")
 
-        # Gerar os dias do mês selecionado
         first_day_of_month = current_month.replace(day=1)
-        last_day_of_month = (first_day_of_month + timedelta(days=32)).replace(day=1) - timedelta(days=1) # Garante que pega o último dia do mês
+        last_day_of_month = (first_day_of_month + timedelta(days=32)).replace(day=1) - timedelta(days=1)
         
-        # O número de "espaços" em branco antes do primeiro dia do mês
-        start_weekday = first_day_of_month.weekday() # Monday=0, Sunday=6
+        start_weekday = first_day_of_month.weekday()
 
-        # Criar uma lista de todos os dias no mês
         all_days_in_month = [first_day_of_month + timedelta(days=i) for i in range((last_day_of_month - first_day_of_month).days + 1)]
 
-        # Preencher com dias em branco no início para alinhar com a semana
         calendar_days = [''] * start_weekday + all_days_in_month
 
-        # Preencher com dias em branco no final para completar a última semana
-        # O número de elementos para completar até o próximo múltiplo de 7
         remaining_fill = len(calendar_days) % 7
         if remaining_fill != 0:
             calendar_days.extend([''] * (7 - remaining_fill))
 
         week_days = ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]
 
-        # Cabeçalho do calendário (dias da semana)
         st.markdown(
             "<div style='display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;'>" +
-            # CORREÇÃO DA SINTAXE DO F-STRING AQUI: Aspas simples para o estilo interno
             "".join([f"<div style='font-weight: bold; text-align: center;'>{d}</div>" for d in week_days]) + 
             "</div>", unsafe_allow_html=True
         )
 
-        # Grade dos dias do calendário
         st.markdown("<div style='display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px;'>", unsafe_allow_html=True)
         for day_obj in calendar_days:
             if day_obj == '':
-                st.markdown("<div></div>", unsafe_allow_html=True) # Espaço em branco para dias fora do mês
+                st.markdown("<div></div>", unsafe_allow_html=True)
             else:
-                # Filtra os dados para o dia específico (garante que está comparando apenas a parte da data)
                 day_df_calendar = df[df['date'] == pd.to_datetime(day_obj.date())]
 
                 st.markdown(f"<div style='border: 1px solid #ccc; padding: 5px; height: 180px;'>", unsafe_allow_html=True)
                 st.markdown(f"<div style='font-weight: bold; text-align: center;'>{day_obj.day}</div>", unsafe_allow_html=True)
 
                 if not day_df_calendar.empty:
-                    # Calcula o consumo por hora para a Área Produtiva
                     day_consumption = day_df_calendar.groupby(day_df_calendar['Datetime'].dt.hour)['Área Produtiva'].sum().reset_index()
                     day_consumption.columns = ['Hora', 'Consumo']
 
-                    # Adiciona os limites da Área Produtiva para comparação
                     limites_ap = st.session_state.limites_por_medidor_horario.get("Área Produtiva", [0]*24)
                     
                     fig_day = go.Figure()
                     fig_day.add_trace(go.Bar(x=day_consumption['Hora'], y=day_consumption['Consumo'], name='Consumo'))
                     
-                    # Adiciona os limites como linha
                     horas_limite = list(range(len(limites_ap)))
                     fig_day.add_trace(go.Scatter(x=horas_limite, y=limites_ap, mode='lines', 
                                                  name='Limite', line=dict(dash='dash', color='red')))
 
                     fig_day.update_layout(
-                        margin=dict(l=0, r=0, t=0, b=0), # Margens mínimas para gráficos pequenos
-                        height=120, # Altura reduzida
+                        margin=dict(l=0, r=0, t=0, b=0),
+                        height=120,
                         showlegend=False,
-                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False), # Oculta rótulos e linhas do eixo X
-                        yaxis=dict(showticklabels=False, showgrid=False, zeroline=False)  # Oculta rótulos e linhas do eixo Y
+                        xaxis=dict(showticklabels=False, showgrid=False, zeroline=False),
+                        yaxis=dict(showticklabels=False, showgrid=False, zeroline=False)
                     )
                     st.plotly_chart(fig_day, use_container_width=True, config={'displayModeBar': False})
                 else:
@@ -637,13 +580,10 @@ else:
 
         if uploaded_file is not None:
             try:
-                # Lê o CSV
                 df_conversion = pd.read_csv(uploaded_file)
                 st.write("CSV carregado com sucesso! Primeiras linhas:")
                 st.dataframe(df_conversion)
 
-                # Converte para JSON
-                # Assumindo que o CSV tem colunas como 'Timestamp', 'medidor1', 'medidor2'
                 json_output = df_conversion.to_json(orient="records", date_format="iso", indent=4)
 
                 st.subheader("JSON Gerado:")
@@ -666,32 +606,26 @@ else:
         st.header("🗓️ Previsão de Consumo Mensal")
         
         st.subheader("Situação Atual do Mês")
-        # Filtra os dados para o mês e ano da data selecionada na sidebar
         current_month_data = df[
-            (df['date'].dt.month == selected_date.month) & 
-            (df['date'].dt.year == selected_date.year)
+            (df['date'].dt.month == st.session_state.selected_date.month) & 
+            (df['date'].dt.year == st.session_state.selected_date.year)
         ]
         
         if not current_month_data.empty:
             
-            # Reutiliza a meta mensal estimada da Área Produtiva
             if "limites_por_medidor_horario" in st.session_state and "Área Produtiva" in st.session_state.limites_por_medidor_horario:
                 limites_ap_diarios_kwh = sum(st.session_state.limites_por_medidor_horario["Área Produtiva"])
                 
                 import calendar
-                num_days_in_month = calendar.monthrange(selected_date.year, selected_date.month)[1]
+                num_days_in_month = calendar.monthrange(st.session_state.selected_date.year, st.session_state.selected_date.month)[1]
                 meta_mensal_ap_kwh = limites_ap_diarios_kwh * num_days_in_month
                 
-                # Dias que já passaram no mês até a data selecionada
-                days_passed = selected_date.day 
+                days_passed = st.session_state.selected_date.day 
                 
-                # Consumo acumulado até o dia selecionado
-                consumption_so_far = current_month_data[current_month_data['date'] <= selected_date]["Área Produtiva"].sum()
+                consumption_so_far = current_month_data[current_month_data['date'] <= st.session_state.selected_date]["Área Produtiva"].sum()
                 
-                # Dias restantes no mês (do dia seguinte à selected_date até o fim do mês)
                 remaining_days_in_month = num_days_in_month - days_passed
                 
-                # Previsão simples baseada na média diária até agora
                 avg_daily_consumption = consumption_so_far / days_passed if days_passed > 0 else 0
                 predicted_total_consumption = consumption_so_far + (avg_daily_consumption * remaining_days_in_month)
                 
@@ -704,57 +638,46 @@ else:
                 
                 n_simulations = st.slider("Número de Simulações:", 100, 10000, 1000)
                 
-                # Coleta dados históricos do consumo diário da Área Produtiva
                 daily_consumption_ap = df.groupby(df['date'])['Área Produtiva'].sum().reset_index()
                 
                 if not daily_consumption_ap.empty and len(daily_consumption_ap) > 1:
-                    # Calcula as variações diárias. Usamos diferenças absolutas ou percentuais
-                    # Aqui, a sugestão é usar a diferença em kWh diretamente, não percentual
                     daily_changes = daily_consumption_ap['Área Produtiva'].diff().dropna()
                     
                     if not daily_changes.empty:
                         simulated_consumptions = []
-                        # Pega o último consumo diário disponível nos dados históricos
-                        last_known_daily_consumption = daily_consumption_ap[daily_consumption_ap['date'] == selected_date]['Área Produtiva'].iloc[0] if selected_date in daily_consumption_ap['date'].values else daily_consumption_ap['Área Produtiva'].iloc[-1]
+                        
+                        last_known_daily_consumption = daily_consumption_ap[daily_consumption_ap['date'] == st.session_state.selected_date]['Área Produtiva'].iloc[0] if st.session_state.selected_date in daily_consumption_ap['date'].values else daily_consumption_ap['Área Produtiva'].iloc[-1]
                         
                         for _ in range(n_simulations):
-                            # Inicia o caminho da simulação com o último consumo diário conhecido (do selected_date)
                             sim_path_daily = [last_known_daily_consumption] 
                             for _ in range(remaining_days_in_month):
-                                # Amostra uma mudança aleatória dos históricos de mudanças
                                 change = np.random.choice(daily_changes) 
                                 next_consumption = sim_path_daily[-1] + change
-                                sim_path_daily.append(max(0, next_consumption)) # Garante que o consumo não seja negativo
+                                sim_path_daily.append(max(0, next_consumption))
                             
-                            # Adiciona os consumos simulados para os dias futuros (exclui o primeiro, que é o último conhecido)
                             simulated_consumptions.append(sim_path_daily[1:]) 
                         
                         simulated_consumptions_df = pd.DataFrame(simulated_consumptions).T
                         
-                        # Calcula média e percentis para cada dia futuro
                         mean_path = simulated_consumptions_df.mean(axis=1)
                         p5_path = simulated_consumptions_df.quantile(0.05, axis=1)
                         p95_path = simulated_consumptions_df.quantile(0.95, axis=1)
                         
-                        # Datas futuras para o gráfico (do dia seguinte ao selected_date até o fim do mês)
-                        future_dates = [selected_date + timedelta(days=i+1) for i in range(remaining_days_in_month)]
+                        future_dates = [st.session_state.selected_date + timedelta(days=i+1) for i in range(remaining_days_in_month)]
                         
                         fig_monte_carlo = go.Figure()
                         
-                        # Adiciona o consumo real até o selected_date
                         current_month_daily_consumption = current_month_data.groupby('date')['Área Produtiva'].sum().reset_index()
                         fig_monte_carlo.add_trace(go.Scatter(x=current_month_daily_consumption['date'], 
                                                              y=current_month_daily_consumption['Área Produtiva'], 
                                                              mode='lines+markers', name='Consumo Real (diário)'))
                         
-                        # Adiciona a previsão média
                         fig_monte_carlo.add_trace(go.Scatter(x=future_dates, y=mean_path, mode='lines', name='Previsão Média',
                                                              line=dict(color='blue')))
                         
-                        # Adiciona os intervalos de confiança (se houver dados suficientes)
                         if not simulated_consumptions_df.empty and len(simulated_consumptions_df.columns) > 1:
                             fig_monte_carlo.add_trace(go.Scatter(x=future_dates + future_dates[::-1],
-                                                                y=list(p95_path) + list(p5_path.iloc[::-1]), # Ajustado para .iloc
+                                                                y=list(p95_path) + list(p5_path.iloc[::-1]),
                                                                 fill='toself',
                                                                 fillcolor='rgba(0,100,80,0.2)',
                                                                 line=dict(color='rgba(255,255,255,0)'),
@@ -765,8 +688,6 @@ else:
                                                       xaxis_title="Data", yaxis_title="Consumo (kWh)")
                         st.plotly_chart(fig_monte_carlo, use_container_width=True)
                         
-                        # Diagnóstico Inteligente
-                        # Soma o consumo já ocorrido com a soma das médias diárias futuras
                         total_predicted_consumption_monte_carlo = consumption_so_far + mean_path.sum() 
                         
                         if total_predicted_consumption_monte_carlo > meta_mensal_ap_kwh:
@@ -791,45 +712,37 @@ else:
             st.info("Não há dados para o mês selecionado para realizar a previsão mensal. Verifique se os dados cobrem o mês selecionado.")
 
     with tab8: # ML Prediction
-        st.header("�� Previsão de Consumo com Machine Learning")
+        st.header(" Previsão de Consumo com Machine Learning")
 
         st.subheader("Configuração da Previsão de ML")
         
-        # Cria um DataFrame auxiliar para a previsão de ML
-        # Agrega o consumo horário para consumo diário para a área produtiva
-        if df is not None and not df.empty:
+        if not df.empty:
             df_ml = df.groupby(df['date'])['Área Produtiva'].sum().reset_index()
             df_ml.columns = ['date', 'consumption']
             
-            # Converte as datas para um formato numérico que os modelos de ML podem usar (e.g., dias desde uma data base)
-            # A data base será a primeira data do DataFrame de ML
             if not df_ml.empty:
                 base_date_ml = df_ml['date'].min()
                 df_ml['date_num'] = (df_ml['date'] - base_date_ml).dt.days
             else:
                 st.warning("Não há dados suficientes para preparar o conjunto de dados de ML.")
-                df_ml_ready = False # Flag para pular a seção de ML
+                df_ml_ready = False
             
-            if not df_ml.empty: # Verifica novamente se df_ml não está vazio após o processamento
-                # Define features (X) e target (y)
+            if not df_ml.empty:
                 X = df_ml[['date_num']]
                 y = df_ml['consumption']
 
-                # Divide os dados em conjuntos de treinamento e teste
-                # Garante que haja dados suficientes para split (pelo menos 2 para treinamento, 1 para teste)
-                if len(X) >= 3: # Regra geral para split: 2 para treino, 1 para teste
+                if len(X) >= 3:
                     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
                     df_ml_ready = True
                 else:
                     st.warning("Dados insuficientes para dividir em treino e teste. Usando todos os dados para treinamento e pulando a avaliação do modelo.")
-                    X_train, y_train = X, y # Treina com tudo
-                    X_test, y_test = pd.DataFrame(), pd.Series() # Sem dados de teste para avaliação
-                    df_ml_ready = True # Pode proceder com o treinamento, mas sem avaliação de performance
+                    X_train, y_train = X, y
+                    X_test, y_test = pd.DataFrame(), pd.Series()
+                    df_ml_ready = True
             else:
                 df_ml_ready = False
 
 
-            # Modelos de Machine Learning
             models = {
                 "Linear Regression": LinearRegression(),
                 "Random Forest": RandomForestRegressor(random_state=42),
@@ -838,17 +751,15 @@ else:
                 "Support Vector Machine": SVR()
             }
             
-            # Seleção do dia para previsão
-            selected_day_ml = st.date_input("Selecione o dia para prever o consumo:", value=datetime.today().date())
+            selected_day_ml = st.date_input("Selecione o dia para prever o consumo:", value=dt_obj.today().date())
             
-            # Converte a data selecionada para o formato numérico
             if df_ml_ready:
                 selected_day_num = (selected_day_ml - base_date_ml).days
-                selected_day_dt = pd.to_datetime(selected_day_ml) # Usado para o gráfico
+                selected_day_dt = pd.to_datetime(selected_day_ml)
             else:
                 st.info("Não é possível realizar previsões de ML sem dados históricos suficientes.")
                 selected_day_num = 0
-                selected_day_dt = pd.to_datetime(selected_day_ml) # Apenas para evitar erro, valor não significativo
+                selected_day_dt = pd.to_datetime(selected_day_ml)
 
             st.subheader("Resultados da Previsão")
 
@@ -856,7 +767,6 @@ else:
             fig = go.Figure()
 
             if df_ml_ready:
-                # Filtra os dados do mês selecionado para o gráfico
                 selected_month_ml = selected_day_ml.month
                 selected_year_ml = selected_day_ml.year
                 df_month_ml = df_ml[(df_ml["date"].dt.month == selected_month_ml) & 
@@ -870,7 +780,6 @@ else:
                         if not X_train.empty and not y_train.empty:
                             model.fit(X_train, y_train)
                             
-                            # Avaliação do modelo apenas se houver dados de teste
                             mae, rmse, accuracy = "N/A", "N/A", "N/A"
                             if not X_test.empty and not y_test.empty:
                                 y_pred = model.predict(X_test)
@@ -879,9 +788,8 @@ else:
                                 rmse_norm = rmse / y_test.mean() if y_test.mean() != 0 else np.inf
                                 accuracy = round(max(0, 1 - rmse_norm) * 100, 2)
                             
-                            prediction = model.predict(np.array([[selected_day_num]]))[0] # Previsão para o dia selecionado
+                            prediction = model.predict(np.array([[selected_day_num]]))[0]
                             
-                            # Gera o fit para todos os dados históricos para plotar
                             y_fit_all = model.predict(X) 
                             fit_df = pd.DataFrame({"date": df_ml["date"], "fit": y_fit_all})
                             fit_df_month = fit_df[(fit_df["date"].dt.month == selected_month_ml) & 
@@ -890,7 +798,6 @@ else:
                             fig.add_trace(go.Scatter(x=fit_df_month["date"], y=fit_df_month["fit"], 
                                                     mode='lines', name=f'Fit {name}'))
                             
-                            # Adiciona a previsão do dia selecionado como um marcador
                             fig.add_trace(go.Scatter(x=[selected_day_dt], y=[prediction], mode='markers',
                                                      name=f'Previsão {name} ({selected_day_dt.strftime("%d/%m")})', 
                                                      marker=dict(size=10, symbol='star', color='black')))
@@ -924,7 +831,6 @@ else:
 
                 results_df = pd.DataFrame(results)
                 if not results_df.empty:
-                    # Ordena apenas se houver valores válidos para ordenar
                     if "Acurácia (%)" in results_df.columns and pd.api.types.is_numeric_dtype(results_df["Acurácia (%)"]):
                         results_df = results_df.sort_values(by="Acurácia (%)", ascending=False).reset_index(drop=True)
                     
