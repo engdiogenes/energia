@@ -81,13 +81,16 @@ st.markdown("""
 
 
 def limpar_valores(texto):
+    # Garante que números como "4,303,339.00" são lidos corretamente como 4303339.00
     return texto.replace(",", "")
 
 
 def carregar_dados(dados_colados):
     dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
     dados["Datetime"] = pd.to_datetime(dados["Date"] + " " + dados["Time"], dayfirst=True)
-    dados = dados.sort_values("Datetime")
+    # Importante: Classificar os dados em ordem cronológica ascendente para o cálculo de diff()
+    dados = dados.sort_values("Datetime").reset_index(drop=True)
+
     colunas_originais = [
         "MM_MPTF_QGBT-03_KWH.PresentValue", "MM_GAHO_QLFE-01-01_KWH.PresentValue",
         "MM_MAIW_QGBT-GERAL_KWH.PresentValue", "MM_MPTF_QGBT-01_KWH.PresentValue",
@@ -113,35 +116,68 @@ def carregar_dados(dados_colados):
     medidores = list(novos_rotulos.values())
     dados[medidores] = dados[medidores].astype(float) # Garante que os valores são floats para os cálculos
 
-    # Define o módulo para a correção do wrap-around
-    # Baseado na descrição do usuário de 4.294.967.295 (2^32 - 1), o módulo é 2^32
-    MODULUS_VALUE = 2**32 # 4294967296.0
+    # Define o módulo para a correção do wrap-around (relevante se houver o comportamento de contador de 32 bits, mas não para resets bruscos)
+    MODULUS_VALUE = 2**32 # 4294967296.0 - O valor máximo teórico para um contador de 32 bits antes do "estouro".
+    
+    # Define um limite razoável para o consumo horário máximo.
+    # Qualquer diferença de leitura maior que este valor será considerada uma anomalia (reset, erro).
+    # AJUSTE ESTE VALOR COM BASE NA CAPACIDADE REAL MÁXIMA DE CONSUMO POR HORA DOS SEUS MEDIDORES!
+    MAX_PLAUSIBLE_HOURLY_CONSUMPTION = 10_000 # Exemplo: 10.000 kWh por hora.
+                                               # Salto de 787k ou 3.5M kWh é muito maior que isso e será capturado.
 
     consumo = dados[["Datetime"] + medidores].copy()
 
     for col in medidores:
-        # Calcula a diferença bruta entre leituras consecutivas
+        # Calcula a diferença bruta entre leituras consecutivas (current - previous)
         diff_raw = consumo[col].diff()
 
-        # Aplica a correção para o wrap-around:
-        # Se a diferença for negativa, significa que houve um wrap-around.
-        # Adicionamos o MODULUS_VALUE para obter o consumo real.
-        # Caso contrário, a diferença bruta é o consumo.
-        # Usamos uma função lambda para aplicar esta lógica elemento a elemento.
-        consumo[col] = diff_raw.apply(lambda x: x + MODULUS_VALUE if x < 0 else x)
+        # Aplica a lógica de correção:
+        # Se a diferença for negativa (contador diminuiu, o que não é consumo), considera 0.
+        # Se a diferença for positiva mas absurdamente grande, considera 0 (reset/anomalia).
+        # Caso contrário, é consumo normal.
+        def calculate_adjusted_consumption(raw_diff_val):
+            if pd.isna(raw_diff_val):
+                return np.nan # Mantém NaN para a primeira leitura, ou se o diff for NaN
 
-        # Garante que o consumo não seja negativo após a correção (deveria ser sempre positivo ou zero)
-        consumo[col] = consumo[col].apply(lambda x: max(0.0, x))
+            # Caso 1: Diferença negativa. Medidor diminuiu, o que é um erro ou reset. Considera consumo 0.
+            # A lógica de wrap-around (x + MODULUS_VALUE if x < 0) só seria aplicada se o "wrap" levasse a um valor negativo
+            # mas o contador continuasse incrementando a partir de lá. No seu caso, o salto para o negativo é acompanhado
+            # de um salto posterior massivo para o positivo, que não é um wrap-around clássico.
+            if raw_diff_val < 0:
+                # Se desejar tratar um "wrap-around" de MaxPos para MinNeg:
+                # potential_wrap = raw_diff_val + MODULUS_VALUE
+                # if potential_wrap > 0 and potential_wrap < MAX_PLAUSIBLE_HOURLY_CONSUMPTION:
+                #    return potential_wrap
+                # else:
+                #    return 0.0 # Ainda assim, se for um valor não plausível mesmo após wrap, zera.
+                
+                # Para os dados observados, a simples diminuição (raw_diff_val < 0) não é consumo.
+                return 0.0
 
-    # Remove a primeira linha que terá NaN devido à operação diff()
-    consumo = consumo.dropna()
+            # Caso 2: Diferença positiva, mas maior que o limite plausível. Isso é um salto de reset ou anomalia.
+            elif raw_diff_val > MAX_PLAUSIBLE_HOURLY_CONSUMPTION:
+                return 0.0
+
+            # Caso 3: Diferença positiva e dentro do limite plausível. É consumo normal.
+            else:
+                return raw_diff_val
+
+        consumo[col] = diff_raw.apply(calculate_adjusted_consumption)
+
+    # Remove a primeira linha que terá NaN devido à operação diff() e ao calculate_adjusted_consumption
+    # Usa `subset=medidores` para garantir que apenas as colunas de medidores sejam verificadas para NaN.
+    consumo = consumo.dropna(subset=medidores)
     
     # Seus cálculos adicionais que dependem dos medidores já corrigidos
     consumo["TRIM&FINAL"] = consumo["QGBT1-MPTF"] + consumo["QGBT2-MPTF"]
-    consumo["OFFICE + CANTEEN"] = consumo["OFFICE"] - consumo["PMDC-OFFICE"]
+    # Para "OFFICE + CANTEEN", se "OFFICE" for um medidor geral e "PMDC-OFFICE" um sub-medidor,
+    # a diferença é o consumo da "CANTEEN". Se o resultado der negativo, significa que PMDC-OFFICE
+    # consumiu mais que OFFICE, o que pode indicar erro ou bidirecionalidade.
+    # Garanto que o resultado não seja negativo para consumo.
+    consumo["OFFICE + CANTEEN"] = (consumo["OFFICE"] - consumo["PMDC-OFFICE"]).apply(lambda x: max(0.0, x))
     consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + \
-                                consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75
-    consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"])
+                                consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75 # 13.75 é um valor constante por período
+    consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"]) # Drop only if these aren't needed downstream for other calcs
     return consumo
 
 
@@ -417,12 +453,23 @@ if dados_colados:
                 # Calcular consumo horário por diferença
                 df_consumo = df[["Datetime"] + colunas_medidores].copy()
                 
-                # REPLICANDO A LÓGICA DE WRAP-AROUND PARA ESTE DATAFRAME TEMPORÁRIO
-                MODULUS_VALUE_LOCAL = 2**32 # 4294967296.0
+                # REPLICANDO A LÓGICA DE TRATAMENTO DE ANOMALIAS PARA ESTE DATAFRAME TEMPORÁRIO
+                # O mesmo MAX_PLAUSIBLE_HOURLY_CONSUMPTION deve ser usado.
+                # Assumindo que 10_000 kWh/hora é um limite seguro para consumo plausível.
+                LOCAL_MAX_PLAUSIBLE_HOURLY_CONSUMPTION = 10_000 
+                # Função para aplicar a lógica
+                def apply_local_consumption_logic(raw_diff_val):
+                    if pd.isna(raw_diff_val):
+                        return np.nan
+                    if raw_diff_val < 0:
+                        return 0.0
+                    elif raw_diff_val > LOCAL_MAX_PLAUSIBLE_HOURLY_CONSUMPTION:
+                        return 0.0
+                    else:
+                        return raw_diff_val
+
                 for col in colunas_medidores:
-                    diff_raw_local = df_consumo[col].diff()
-                    df_consumo[col] = diff_raw_local.apply(lambda x: x + MODULUS_VALUE_LOCAL if x < 0 else x)
-                    df_consumo[col] = df_consumo[col].apply(lambda x: max(0.0, x))
+                    df_consumo[col] = df_consumo[col].diff().apply(apply_local_consumption_logic)
 
                 df_consumo = df_consumo.dropna().reset_index(drop=True)
                 df_consumo["Data"] = df_consumo["Datetime"].dt.date
