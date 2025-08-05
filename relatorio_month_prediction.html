@@ -1,1 +1,96 @@
 
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <title>Relatório Técnico - Previsão de Consumo Energético</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; line-height: 1.6; background-color: #f9f9f9; }
+        h1, h2, h3 { color: #2c3e50; }
+        code, pre { background-color: #eef; padding: 5px; border-radius: 4px; display: block; }
+        .formula { background-color: #fff; border-left: 4px solid #3498db; padding: 10px; margin: 10px 0; font-family: 'Courier New', monospace; }
+        .section { margin-bottom: 40px; }
+    </style>
+</head>
+<body>
+    <h1>Relatório Técnico: Previsão de Consumo Energético</h1>
+
+    <div class="section">
+        <h2>1. Objetivo</h2>
+        <p>O objetivo da aba <strong>"Month Prediction"</strong> é prever o consumo energético da área produtiva ao longo do mês atual, comparando com os limites planejados e identificando possíveis excessos.</p>
+    </div>
+
+    <div class="section">
+        <h2>2. Cálculo dos Limites Diários</h2>
+        <p>Para cada dia do mês, calcula-se o limite de consumo energético com base nos medidores da área produtiva e um adicional fixo:</p>
+        <div class="formula">
+            Limite Diário = Soma dos Limites dos Medidores + (13.75 kWh × 24 horas)
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>3. Previsão de Consumo com Dados Reais</h2>
+        <p>O consumo previsto para o mês é calculado somando o consumo real até a data atual com a projeção dos dias restantes:</p>
+        <div class="formula">
+            Consumo Previsto = Consumo Real Acumulado + Projeção dos Dias Futuros
+        </div>
+        <p>A projeção dos dias futuros pode ser feita com base na média dos dias anteriores ou por simulação estatística.</p>
+    </div>
+
+    <div class="section">
+        <h2>4. Simulação de Monte Carlo</h2>
+        <p>Utiliza-se uma simulação de Monte Carlo com 1000 amostras para estimar o consumo futuro com base na média e desvio padrão do consumo diário observado:</p>
+        <div class="formula">
+            Simulação ~ N(μ, σ²)
+        </div>
+        <p>Onde:</p>
+        <ul>
+            <li><strong>μ</strong>: média do consumo diário observado</li>
+            <li><strong>σ</strong>: desvio padrão do consumo diário</li>
+        </ul>
+        <p>São calculados os percentis 5% e 95% para formar uma faixa de confiança de 90%.</p>
+    </div>
+
+    <div class="section">
+        <h2>5. Previsão com Modelo ARIMA</h2>
+        <p>O modelo ARIMA(1,1,1) é utilizado para prever os próximos 30 dias de consumo com base na série histórica:</p>
+        <div class="formula">
+            ARIMA(p=1, d=1, q=1)
+        </div>
+        <p>Onde:</p>
+        <ul>
+            <li><strong>p</strong>: número de termos autoregressivos</li>
+            <li><strong>d</strong>: número de diferenciações</li>
+            <li><strong>q</strong>: número de termos de média móvel</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>6. Diagnóstico e Classificação</h2>
+        <p>Com base nas previsões, o sistema classifica a tendência de consumo como:</p>
+        <ul>
+            <li><strong>Alta</strong>: tendência de ultrapassar o limite mensal</li>
+            <li><strong>Baixa</strong>: tendência de ficar abaixo do limite</li>
+            <li><strong>Estável</strong>: dentro da faixa esperada</li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2>7. Roteiro de Execução</h2>
+        <ol>
+            <li>Carrega os dados de consumo e limites diários</li>
+            <li>Calcula o consumo acumulado até a data atual</li>
+            <li>Calcula os limites diários e mensais</li>
+            <li>Executa a simulação de Monte Carlo</li>
+            <li>Executa a previsão com ARIMA</li>
+            <li>Compara os resultados com os limites</li>
+            <li>Gera gráficos e diagnóstico final</li>
+        </ol>
+    </div>
+
+    <footer>
+        <p style="text-align:center; color:gray;">Relatório gerado automaticamente - Sistema de Previsão Energética</p>
+    </footer>
+</body>
+</html>
+
