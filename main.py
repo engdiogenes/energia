@@ -111,11 +111,32 @@ def carregar_dados(dados_colados):
     }
     dados = dados.rename(columns=novos_rotulos)
     medidores = list(novos_rotulos.values())
-    dados[medidores] = dados[medidores].astype(float)
+    dados[medidores] = dados[medidores].astype(float) # Garante que os valores são floats para os cálculos
+
+    # Define o módulo para a correção do wrap-around
+    # Baseado na descrição do usuário de 4.294.967.295 (2^32 - 1), o módulo é 2^32
+    MODULUS_VALUE = 2**32 # 4294967296.0
+
     consumo = dados[["Datetime"] + medidores].copy()
+
     for col in medidores:
-        consumo[col] = consumo[col].diff().abs()
+        # Calcula a diferença bruta entre leituras consecutivas
+        diff_raw = consumo[col].diff()
+
+        # Aplica a correção para o wrap-around:
+        # Se a diferença for negativa, significa que houve um wrap-around.
+        # Adicionamos o MODULUS_VALUE para obter o consumo real.
+        # Caso contrário, a diferença bruta é o consumo.
+        # Usamos uma função lambda para aplicar esta lógica elemento a elemento.
+        consumo[col] = diff_raw.apply(lambda x: x + MODULUS_VALUE if x < 0 else x)
+
+        # Garante que o consumo não seja negativo após a correção (deveria ser sempre positivo ou zero)
+        consumo[col] = consumo[col].apply(lambda x: max(0.0, x))
+
+    # Remove a primeira linha que terá NaN devido à operação diff()
     consumo = consumo.dropna()
+    
+    # Seus cálculos adicionais que dependem dos medidores já corrigidos
     consumo["TRIM&FINAL"] = consumo["QGBT1-MPTF"] + consumo["QGBT2-MPTF"]
     consumo["OFFICE + CANTEEN"] = consumo["OFFICE"] - consumo["PMDC-OFFICE"]
     consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + \
@@ -395,7 +416,14 @@ if dados_colados:
 
                 # Calcular consumo horário por diferença
                 df_consumo = df[["Datetime"] + colunas_medidores].copy()
-                df_consumo[colunas_medidores] = df_consumo[colunas_medidores].diff()
+                
+                # REPLICANDO A LÓGICA DE WRAP-AROUND PARA ESTE DATAFRAME TEMPORÁRIO
+                MODULUS_VALUE_LOCAL = 2**32 # 4294967296.0
+                for col in colunas_medidores:
+                    diff_raw_local = df_consumo[col].diff()
+                    df_consumo[col] = diff_raw_local.apply(lambda x: x + MODULUS_VALUE_LOCAL if x < 0 else x)
+                    df_consumo[col] = df_consumo[col].apply(lambda x: max(0.0, x))
+
                 df_consumo = df_consumo.dropna().reset_index(drop=True)
                 df_consumo["Data"] = df_consumo["Datetime"].dt.date
 
@@ -706,14 +734,14 @@ if dados_colados:
                     col1.metric("🔋 Actual consumption accumulated up to the selected date (production area)", f"{consumo_max_mes:.2f} kWh")
                     col2.metric("🔮 Expected consumption for the month (based on current consumption + remaining targets)",
                                 f"{consumo_previsto_mes:.2f} kWh")
-                    # Calcular soma dos targets da área produtiva até o dia selecionado (mês atual)
+                    # Calcular soma dos targets da área produtiva até o dia selected (mês atual)
                     targets_ate_hoje = limites_mes[limites_mes["Data"].dt.date <= data_ref][
                         colunas_area_produtiva].sum().sum()
                     adicional_ate_hoje = limites_mes[limites_mes["Data"].dt.date <= data_ref][
                                              "Data"].dt.date.nunique() * 24 * 13.75
                     meta_ate_hoje = targets_ate_hoje + adicional_ate_hoje
 
-                    # Calcular consumo real da área produtiva até o dia selecionado (mês atual)
+                    # Calcular consumo real da área produtiva até o dia selected (mês atual)
                     consumo_real_ate_hoje = df_consumo[
                         (df_consumo["Datetime"].dt.month == data_ref.month) &
                         (df_consumo["Datetime"].dt.year == data_ref.year) &
@@ -761,8 +789,7 @@ if dados_colados:
                     consumo_estimado_total = consumo_ate_hoje + (media_diaria * dias_restantes)
 
                     # Calcular meta mensal real
-                    colunas_area_produtiva = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                              "TRIM&FINAL"]
+                    df_limites["Data"] = pd.to_datetime(df_limites["Data"])
                     df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
                     meta_mensal = df_limites[
                         (df_limites["Data"].dt.month == data_ref.month) &
@@ -777,21 +804,6 @@ if dados_colados:
                         delta=f"{delta_estimado:,.0f} kWh",
                         delta_color="inverse" if delta_estimado < 0 else "normal"
                     )
-
-                    consumo_ate_hoje = df_mes["Área Produtiva"].sum()
-                    dias_consumidos = df_mes["Data"].nunique()
-                    media_diaria = consumo_ate_hoje / dias_consumidos if dias_consumidos > 0 else 0
-                    dias_no_mes = pd.Period(data_ref.strftime("%Y-%m")).days_in_month
-                    dias_restantes = dias_no_mes - dias_consumidos
-                    consumo_estimado_total = consumo_ate_hoje + (media_diaria * dias_restantes)
-
-                    # Calcular meta mensal real
-                    df_limites["Data"] = pd.to_datetime(df_limites["Data"])
-                    df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
-                    meta_mensal = df_limites[
-                        (df_limites["Data"].dt.month == data_ref.month) &
-                        (df_limites["Data"].dt.year == data_ref.year)
-                        ]["Meta Horária"].sum()
 
                     consumo_ate_hoje = df_mes["Área Produtiva"].sum()
                     dias_consumidos = df_mes["Data"].nunique()
@@ -1072,7 +1084,7 @@ if dados_colados:
                             df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
                             meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
 
-                            # Garantir que a linha da meta vá até o fim do mês da data selecionada
+                            # Garantir que a linha da meta vá até o fim do mês da data selected
                             data_base = st.session_state.data_selecionada
                             ultimo_dia_mes = datetime(data_base.year, data_base.month + 1, 1) - timedelta(
                                 days=1) if data_base.month < 12 else datetime(data_base.year, 12, 31)
@@ -1115,7 +1127,7 @@ if dados_colados:
                             df_limites = st.session_state.limites_df.copy()
                             df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
-                            # Filtrar mês e ano selecionado
+                            # Filtrar mês e ano selected
                             mes = st.session_state.data_selecionada.month
                             ano = st.session_state.data_selecionada.year
                             df_limites = df_limites[
@@ -1330,11 +1342,11 @@ if dados_colados:
                     "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN"
                 ]
 
-                # DataFrame de consumo e data selecionada
+                # DataFrame de consumo e data selected
                 df = st.session_state.consumo
                 data_ref = st.session_state.data_selecionada
 
-                # Filtrar o mês e ano da data selecionada
+                # Filtrar o mês e ano da data selected
                 df_mes = df[
                     (df["Datetime"].dt.month == data_ref.month) &
                     (df["Datetime"].dt.year == data_ref.year)
@@ -1470,4 +1482,3 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
-
