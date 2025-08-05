@@ -91,7 +91,7 @@ st.markdown("""
         padding-top: 1rem;
         padding-bottom: 1rem;
     }
-    /* Removida a linha que ocultava o cabeçalho e rodapé */
+    /* Removida a linha que ocultava o cabeçalho e rodapé - ISSO CAUSAVA O PROBLEMA! */
     /* header, footer { visibility: hidden; } */ 
     [data-testid="stSidebar"] {
         background-color: #f0f2f6;
@@ -676,7 +676,7 @@ if dados_colados:
                 This section provides a visual overview of daily energy consumption in the production area.
                 Each day is represented with a mini chart showing hourly usage compared to predefined limits.
                 Use this calendar to identify patterns, detect anomalies, and monitor energy efficiency over time. 3 month a go only.
-                """)
+                """, unsafe_allow_html=True)
 
                 consumo_completo["Data"] = consumo_completo["Datetime"].dt.date
                 dias_unicos = sorted(consumo_completo["Data"].unique())
@@ -743,7 +743,7 @@ if dados_colados:
                 This section is reserved for the application creator and is intended solely for configuring and converting hourly consumption limits. 
                 It allows the transformation of CSV files containing per-meter hourly limits into a JSON format compatible with the PowerTrack system. 
                 This functionality ensures that reference data is properly structured and ready for use in the platform’s analysis and forecasting tools.
-                """)
+                """, unsafe_allow_html=True)
 
                 uploaded_file = st.file_uploader("Upload the CSV file", type="csv")
                 if uploaded_file is not None:
@@ -1114,7 +1114,7 @@ if dados_colados:
                         - **{estaveis}** simulations indicate stability  
 
                         📉 The general trend is **{tendencia}**, which suggests that **{risco}**.
-                        """)
+                        """, unsafe_allow_html=True)
 
 
 
@@ -1305,7 +1305,7 @@ if dados_colados:
                                 ✅ To date, there is a positive balance of **{saldo_energia:,.0f} kWh** energy.
                                 This allows approximately **{horas_extras:.1f} horas** monthly air conditioning extras,
                                 which is equivalent to approximately **{dias_extras:.1f} dias** complete with additional air conditioning.
-                                """)
+                                """, unsafe_allow_html=True)
                             else:
                                 horas_a_economizar = abs(saldo_energia) / 785
                                 dias_a_economizar = horas_a_economizar / 8
@@ -1313,7 +1313,7 @@ if dados_colados:
                                 ⚠️ Consumption in the production area to date has exceeded the target by **{abs(saldo_energia):,.0f} kWh**.
                                 To return to the monthly limit, it will be necessary to save approximately**{horas_a_economizar:.1f} hours**
                                 air conditioning, which represents approximately **{dias_a_economizar:.1f} dias** for continuous use.
-                                """)
+                                """, unsafe_allow_html=True)
 
                             # Métricas
                             st.markdown("### 📈 Resumo das Metas Mensais")
