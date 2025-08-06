@@ -100,6 +100,10 @@ st.markdown("""
     [data-testid="stSidebar"] > div:first-child {
         padding-top: 0rem;
     }
+    /* Adição para forçar uma altura mínima no conteúdo principal */
+    main {
+        min-height: 80vh; /* Ajuste este valor conforme necessário (e.g., 80% da altura da viewport) */
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -1701,4 +1705,3 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
-
