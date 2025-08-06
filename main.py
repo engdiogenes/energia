@@ -34,6 +34,7 @@ import plotly.graph_objects as go
 import numpy as np
 
 st.set_page_config(page_title="PowerTrack", page_icon="⚡", layout="wide")
+st.title("PowerTrack - Painel de Gestão de Energia ⚡")
 
 # Caminho padrão do JSON
 CAMINHO_JSON_PADRAO = "limites_padrao.json"
@@ -1729,5 +1730,6 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
+
 
 
