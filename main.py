@@ -99,6 +99,10 @@ st.markdown("""
     main {
         min-height: 80vh; /* Ajuste este valor conforme necessário (e.g., 80% da altura da viewport) */
     }
+    /* NOVO: Esconde o botão de settings/três pontos */
+    [data-testid="stToolbarSettings"] {
+        display: none;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -1700,4 +1704,3 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
-
