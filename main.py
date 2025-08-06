@@ -33,7 +33,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 import plotly.graph_objects as go
 import numpy as np
 
-st.set_page_config(page_title="PowerTrack", page_icon="⚡", layout="wide")
+st.set_page_config(page_title="PowerTrackk", page_icon="⚡", layout="wide")
 st.title("PowerTrack - Painel de Gestão de Energia ⚡")
 
 # Caminho padrão do JSON
@@ -1730,6 +1730,7 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
+
 
 
 
