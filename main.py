@@ -43,6 +43,11 @@ st.set_page_config(
 # Caminho padrão do JSON
 CAMINHO_JSON_PADRAO = "limites_padrao.json"
 
+# Definindo colunas da área produtiva globalmente para reuso
+colunas_area_produtiva = [
+    "MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"
+]
+
 # Carregar automaticamente os limites se o arquivo existir
 if os.path.exists(CAMINHO_JSON_PADRAO):
     try:
@@ -57,6 +62,26 @@ if os.path.exists(CAMINHO_JSON_PADRAO):
             for medidor in limites_df.columns
             if medidor not in ["Timestamp", "Data", "Hora"]
         }
+        
+        # Pré-cálculo do perfil horário e meta diária da Área Produtiva a partir do template de limites
+        # Isso assume que o `limites_por_medidor_horario` (que representa um dia de template) está disponível.
+        # Ele é usado como um perfil para desagregar previsões diárias em horárias.
+        hourly_target_profile_productive_area = []
+        for h in range(24):
+            hourly_sum = 0
+            for medidor in colunas_area_produtiva:
+                if medidor in st.session_state.limites_por_medidor_horario and h < len(st.session_state.limites_por_medidor_horario[medidor]):
+                    hourly_sum += st.session_state.limites_por_medidor_horario[medidor][h]
+            hourly_sum += 13.75 # Add the fixed value per hour
+            hourly_target_profile_productive_area.append(hourly_sum)
+        
+        st.session_state.hourly_target_profile_productive_area = hourly_target_profile_productive_area
+        st.session_state.typical_daily_target_from_template = sum(hourly_target_profile_productive_area)
+        if st.session_state.typical_daily_target_from_template == 0:
+            st.session_state.hourly_profile_percentages = [1/24] * 24 # Fallback to uniform if targets sum to zero
+        else:
+            st.session_state.hourly_profile_percentages = [x / st.session_state.typical_daily_target_from_template for x in hourly_target_profile_productive_area]
+
     except Exception as e:
         st.warning(f"Erro ao carregar limites padrão: {e}")
 
@@ -66,9 +91,8 @@ st.markdown("""
         padding-top: 1rem;
         padding-bottom: 1rem;
     }
-    header, footer {
-        visibility: hidden;
-    }
+    /* Removida a linha que ocultava o cabeçalho e rodapé */
+    /* header, footer { visibility: hidden; } */ 
     [data-testid="stSidebar"] {
         background-color: #f0f2f6;
         padding: 1.5rem 1rem;
@@ -84,6 +108,32 @@ def limpar_valores(texto):
     # Garante que números como "4,303,339.00" são lidos corretamente como 4303339.00
     return texto.replace(",", "")
 
+def get_daily_productive_area_target(target_date, limites_df, colunas_area_produtiva):
+    """
+    Calcula a meta diária da Área Produtiva para uma dada data.
+    Se a data não estiver em limites_df, usa o template diário típico.
+    """
+    day_targets_df = limites_df[limites_df['Data'] == target_date]
+    
+    # Se há targets específicos para esta data, usa-os
+    if not day_targets_df.empty:
+        daily_total = 0
+        for h in range(24):
+            hourly_sum = 0
+            # Encontra a linha para a hora específica
+            hourly_row = day_targets_df[day_targets_df['Hora'] == h]
+            if not hourly_row.empty:
+                for medidor in colunas_area_produtiva:
+                    if medidor in hourly_row.columns:
+                        hourly_sum += hourly_row[medidor].iloc[0] # Assume que há apenas uma entrada por hora
+                hourly_sum += 13.75 # Adiciona o valor constante fixo por hora
+            daily_total += hourly_sum
+        return daily_total
+    # Se não há targets específicos, usa o template diário típico pré-calculado
+    elif 'typical_daily_target_from_template' in st.session_state:
+        return st.session_state.typical_daily_target_from_template
+    else:
+        return 0 # Valor padrão se não houver template nem dados específicos
 
 def carregar_dados(dados_colados):
     dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
@@ -140,18 +190,7 @@ def carregar_dados(dados_colados):
                 return np.nan # Mantém NaN para a primeira leitura, ou se o diff for NaN
 
             # Caso 1: Diferença negativa. Medidor diminuiu, o que é um erro ou reset. Considera consumo 0.
-            # A lógica de wrap-around (x + MODULUS_VALUE if x < 0) só seria aplicada se o "wrap" levasse a um valor negativo
-            # mas o contador continuasse incrementando a partir de lá. No seu caso, o salto para o negativo é acompanhado
-            # de um salto posterior massivo para o positivo, que não é um wrap-around clássico.
             if raw_diff_val < 0:
-                # Se desejar tratar um "wrap-around" de MaxPos para MinNeg:
-                # potential_wrap = raw_diff_val + MODULUS_VALUE
-                # if potential_wrap > 0 and potential_wrap < MAX_PLAUSIBLE_HOURLY_CONSUMPTION:
-                #    return potential_wrap
-                # else:
-                #    return 0.0 # Ainda assim, se for um valor não plausível mesmo após wrap, zera.
-                
-                # Para os dados observados, a simples diminuição (raw_diff_val < 0) não é consumo.
                 return 0.0
 
             # Caso 2: Diferença positiva, mas maior que o limite plausível. Isso é um salto de reset ou anomalia.
@@ -339,6 +378,25 @@ if dados_colados:
                     for medidor in limites_dia_df.columns
                     if medidor not in ["Timestamp", "Data", "Hora"]
                 }
+                
+                # Re-cálculo do perfil horário e meta diária da Área Produtiva a partir do template de limites
+                # Isso é crucial para a aba de ML que usa este perfil para desagregação
+                hourly_target_profile_productive_area = []
+                for h in range(24):
+                    hourly_sum = 0
+                    for medidor in colunas_area_produtiva:
+                        if medidor in st.session_state.limites_por_medidor_horario and h < len(st.session_state.limites_por_medidor_horario[medidor]):
+                            hourly_sum += st.session_state.limites_por_medidor_horario[medidor][h]
+                    hourly_sum += 13.75 # Add the fixed value per hour
+                    hourly_target_profile_productive_area.append(hourly_sum)
+                
+                st.session_state.hourly_target_profile_productive_area = hourly_target_profile_productive_area
+                st.session_state.typical_daily_target_from_template = sum(hourly_target_profile_productive_area)
+                if st.session_state.typical_daily_target_from_template == 0:
+                    st.session_state.hourly_profile_percentages = [1/24] * 24 # Fallback to uniform if targets sum to zero
+                else:
+                    st.session_state.hourly_profile_percentages = [x / st.session_state.typical_daily_target_from_template for x in hourly_target_profile_productive_area]
+
 
             st.session_state.data_selecionada = data_selecionada
 
@@ -536,9 +594,9 @@ if dados_colados:
                     df_limites = st.session_state.limites_df.copy()
                     df_limites["Data"] = pd.to_datetime(df_limites["Data"])
 
-                    colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                    "TRIM&FINAL"]
-                    df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                    # colunas_area já definida globalmente
+
+                    df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
                     df_limites["Meta Diária"] = df_limites["Meta Horária"]  # já é por hora
 
                     df_limites["Ano"] = df_limites["Data"].dt.year
@@ -557,8 +615,6 @@ if dados_colados:
                     }])
 
                     st.dataframe(styled_df, use_container_width=True)
-
-
 
                 else:
                     st.warning("Nenhum limite foi carregado.")
@@ -735,9 +791,7 @@ if dados_colados:
                     data_ref = st.session_state.data_selecionada
                     df_consumo = st.session_state.consumo.copy()
 
-                    colunas_area_produtiva = [
-                        "MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"
-                    ]
+                    # colunas_area_produtiva já definida globalmente
 
                     limites_df["Data"] = pd.to_datetime(limites_df["Data"])
                     limites_mes = limites_df[
@@ -820,8 +874,7 @@ if dados_colados:
                     consumo_estimado_total = consumo_ate_hoje + (media_diaria * dias_restantes)
 
                     # Calcular meta mensal real
-                    colunas_area_produtiva = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                              "TRIM&FINAL"]
+                    # colunas_area_produtiva já definida globalmente
                     df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
                     meta_mensal = df_limites[
                         (df_limites["Data"].dt.month == data_ref.month) &
@@ -953,9 +1006,8 @@ if dados_colados:
                         df_limites = st.session_state.limites_df.copy()
                         df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
-                        colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                        "TRIM&FINAL"]
-                        df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                        # colunas_area já definida globalmente
+                        df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
                         meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
 
                         # Filtrar apenas o mês e ano da data selecionada
@@ -994,9 +1046,8 @@ if dados_colados:
                         df_limites = st.session_state.limites_df.copy()
                         df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
-                        colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                        "TRIM&FINAL"]
-                        df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                        # colunas_area já definida globalmente
+                        df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
                         meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
                         meta_diaria_df["Data"] = pd.to_datetime(meta_diaria_df["Data"], errors='coerce')
 
@@ -1093,9 +1144,8 @@ if dados_colados:
                             df_limites = st.session_state.limites_df.copy()
                             df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
-                            colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                            "TRIM&FINAL"]
-                            df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                            # colunas_area já definida globalmente
+                            df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
                             meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
 
                             # Adicionar linha de metas reais ao gráfico
@@ -1126,9 +1176,8 @@ if dados_colados:
                             df_limites = st.session_state.limites_df.copy()
                             df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
-                            colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                            "TRIM&FINAL"]
-                            df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                            # colunas_area já definida globalmente
+                            df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
                             meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
 
                             # Garantir que a linha da meta vá até o fim do mês da data selected
@@ -1187,9 +1236,8 @@ if dados_colados:
                                 ]
 
                             # Calcular meta diária
-                            colunas_area = ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
-                                            "TRIM&FINAL"]
-                            df_limites["Meta Horária"] = df_limites[colunas_area].sum(axis=1) + 13.75
+                            # colunas_area já definida globalmente
+                            df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
                             meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
                             meta_diaria_df.rename(columns={"Meta Horária": "Meta Original"}, inplace=True)
 
@@ -1384,10 +1432,7 @@ if dados_colados:
                     "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN", "PCCB"
                 ]
                 # Medidores da área produtiva
-                medidores_produtivos = [
-                    "MP&L", "GAHO", "MAIW", "CAG", "SEOB", "EBPC",
-                    "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN"
-                ]
+                # colunas_area_produtiva já definida globalmente
 
                 # DataFrame de consumo e data selected
                 df = st.session_state.consumo
@@ -1400,12 +1445,15 @@ if dados_colados:
                     ]
 
                 # Calcular o consumo total da área produtiva
-                consumo_total_produtivo = df_mes[medidores_produtivos].sum().sum()
+                consumo_total_produtivo = df_mes[colunas_area_produtiva].sum().sum()
 
                 # Exibir o resultado
                 st.metric("🔧 Total consumption of the productive area in the month", f"{consumo_total_produtivo:,.0f} kWh")
 
-                consumo_por_medidor = df_mes[medidores].sum().to_dict()
+                # Ajustar a lista de medidores para o mapa, garantindo que colunas_area_produtiva esteja incluída
+                medidores_para_mapa = list(set(colunas_area_produtiva + ["PCCB"])) # PCCB é o "THIRD PARTS"
+
+                consumo_por_medidor = df_mes[medidores_para_mapa].sum().to_dict()
 
                 # Normalização para tamanho e cor
                 valores = list(consumo_por_medidor.values())
@@ -1429,9 +1477,14 @@ if dados_colados:
                     Node(id="THIRD PARTS", label="THIRD PARTS", size=35, color="#ff7f0e"),
                 ]
 
-                for idx, nome in enumerate(medidores):
+                # Adiciona PCCB como um nó separado para 'THIRD PARTS'
+                pccb_consumo = consumo_por_medidor.get("PCCB", 0)
+                nodes.append(Node(id="PCCB", label=f"Emissions Lab\n{pccb_consumo:,.0f} kWh", size=tamanho_no(pccb_consumo), color=cor_no(len(medidores_para_mapa)-1)))
+
+
+                for idx, nome in enumerate(colunas_area_produtiva): # Itera apenas sobre medidores produtivos
                     consumo = consumo_por_medidor.get(nome, 0)
-                    label = f"{'Emissions Lab' if nome == 'PCCB' else nome}\n{consumo:,.0f} kWh"
+                    label = f"{nome}\n{consumo:,.0f} kWh"
                     size = tamanho_no(consumo)
                     color = cor_no(idx)
                     nodes.append(Node(id=nome, label=label, size=size, color=color))
@@ -1439,93 +1492,212 @@ if dados_colados:
                 edges = [
                             Edge(source="Full Plant", target="PRODUCTIVE AREAS"),
                             Edge(source="Full Plant", target="THIRD PARTS"),
+                            Edge(source="THIRD PARTS", target="PCCB") # Conecta PCCB a THIRD PARTS
                         ] + [
-                            Edge(source="PRODUCTIVE AREAS", target=nome) for nome in medidores if nome != "PCCB"
-                        ] + [
-                            Edge(source="THIRD PARTS", target="PCCB")
+                            Edge(source="PRODUCTIVE AREAS", target=nome) for nome in colunas_area_produtiva
                         ]
 
                 config = Config(width=1000, height=600, directed=True, hierarchical=True)
                 agraph(nodes=nodes, edges=edges, config=config)
 
             with tabs[8]:
-                st.subheader("⚙️ ML prediction")
+                st.subheader("⚙️ ML Prediction for Productive Area Consumption")
 
-                # Converter dados horários em consumo diário
-                df_diario = st.session_state.consumo.copy()
-                df_diario["date"] = pd.to_datetime(df_diario["Datetime"]).dt.date
-                df_diario = df_diario.groupby("date")["Área Produtiva"].sum().reset_index()
-                df_diario.columns = ["date", "consumption"]
+                if 'consumo' not in st.session_state or 'limites_df' not in st.session_state:
+                    st.warning("Please load consumption data and limits first to enable ML prediction.")
+                    st.stop()
 
-                selected_day = st.date_input("Select a day for prediction", value=st.session_state.data_selecionada)
+                # 1. Prepare Data for ML
+                df_consumo_area = st.session_state.consumo.copy()
+                df_consumo_area['date'] = df_consumo_area['Datetime'].dt.date
+                df_consumo_area_daily = df_consumo_area.groupby('date')['Área Produtiva'].sum().reset_index()
+                df_consumo_area_daily.rename(columns={'Área Produtiva': 'consumption'}, inplace=True)
 
-                df = df_diario.sort_values("date")
-                df["day_num"] = (pd.to_datetime(df["date"]) - pd.to_datetime(df["date"]).min()).dt.days
-                selected_day = pd.to_datetime(selected_day)
-                selected_day_num = (selected_day - pd.to_datetime(df["date"]).min()).days
+                # Adiciona targets diários
+                df_consumo_area_daily['daily_target'] = df_consumo_area_daily['date'].apply(
+                    lambda d: get_daily_productive_area_target(d, st.session_state.limites_df, colunas_area_produtiva)
+                )
+                
+                # Adiciona day_num
+                df_consumo_area_daily['day_num'] = (pd.to_datetime(df_consumo_area_daily['date']) - pd.to_datetime(df_consumo_area_daily['date']).min()).dt.days
+                
+                # Ordena para consistência da série temporal
+                df_consumo_area_daily = df_consumo_area_daily.sort_values('date').reset_index(drop=True)
 
-                X = df[["day_num"]]
-                y = df["consumption"]
-                X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+                st.markdown("### 📈 Daily Consumption: Actual, Target & Prediction")
+                
+                # Input do usuário para o horizonte de previsão
+                prediction_days_count = st.slider("Number of days to predict", 1, 30, 7)
+                
+                # Define a data de corte para os dados de treinamento (data selecionada na sidebar)
+                cutoff_date = st.session_state.data_selecionada
 
-                models = {
-                    "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
-                    "Linear Regression": LinearRegression(),
-                    "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=42),
-                    "K-Nearest Neighbors": KNeighborsRegressor(n_neighbors=3),
-                    "Support Vector Regression": SVR()
-                }
+                # Prepara os dados de treinamento (todos os dados até e incluindo cutoff_date)
+                df_train = df_consumo_area_daily[df_consumo_area_daily['date'] <= cutoff_date].copy()
+                
+                # Gera datas futuras para previsão
+                last_train_date = df_train['date'].max()
+                future_dates = pd.date_range(start=last_train_date + timedelta(days=1), periods=prediction_days_count, freq='D').date
+                
+                # Cria DataFrame para futuras previsões com day_num e daily_target
+                df_predict_future = pd.DataFrame({'date': future_dates})
+                df_predict_future['day_num'] = (pd.to_datetime(df_predict_future['date']) - pd.to_datetime(df_consumo_area_daily['date']).min()).dt.days
+                
+                # Atribui targets diários para dias futuros (recorre ao template típico se não houver limite específico)
+                df_predict_future['daily_target'] = df_predict_future['date'].apply(
+                    lambda d: get_daily_productive_area_target(d, st.session_state.limites_df, colunas_area_produtiva)
+                )
 
-                results = []
-                fig = go.Figure()
+                if df_train.empty:
+                    st.warning("Not enough historical data to train the models. Please ensure data is loaded for dates prior to the selected day.")
+                else:
+                    X_train = df_train[['day_num', 'daily_target']]
+                    y_train = df_train['consumption']
 
-                selected_month = selected_day.month
-                selected_year = selected_day.year
-                df_month = df[(pd.to_datetime(df["date"]).dt.month == selected_month) & (
-                            pd.to_datetime(df["date"]).dt.year == selected_year)]
+                    X_predict_future = df_predict_future[['day_num', 'daily_target']]
 
-                fig.add_trace(
-                    go.Scatter(x=df_month["date"], y=df_month["consumption"], mode='lines+markers', name='Real'))
+                    models = {
+                        "Random Forest": RandomForestRegressor(n_estimators=100, random_state=42),
+                        "Gradient Boosting": GradientBoostingRegressor(n_estimators=100, random_state=42),
+                        "Linear Regression": LinearRegression()
+                    }
 
-                for name, model in models.items():
-                    model.fit(X_train, y_train)
-                    y_pred = model.predict(X_test)
-                    mae = mean_absolute_error(y_test, y_pred)
-                    rmse = np.sqrt(mean_squared_error(y_test, y_pred))
-                    prediction = model.predict([[selected_day_num]])[0]
-                    y_fit = model.predict(X)
+                    daily_predictions = {}
+                    model_metrics = []
 
-                    fit_df = pd.DataFrame({"date": df["date"], "fit": y_fit})
-                    fit_df_month = fit_df[(pd.to_datetime(fit_df["date"]).dt.month == selected_month) & (
-                                pd.to_datetime(fit_df["date"]).dt.year == selected_year)]
+                    for name, model in models.items():
+                        try:
+                            model.fit(X_train, y_train)
+                            # Previsões para dias futuros
+                            predictions_future = model.predict(X_predict_future)
+                            daily_predictions[name] = pd.Series(predictions_future, index=df_predict_future['date'])
 
-                    fig.add_trace(
-                        go.Scatter(x=fit_df_month["date"], y=fit_df_month["fit"], mode='lines', name=f'{name} Fit'))
-                    fig.add_trace(go.Scatter(x=[selected_day], y=[prediction], mode='markers',
-                                             name=f'{name} Prediction', marker=dict(size=10)))
+                            # Avalia performance no conjunto de treinamento para uma métrica geral
+                            y_train_pred = model.predict(X_train)
+                            mae = mean_absolute_error(y_train, y_train_pred)
+                            rmse = np.sqrt(mean_squared_error(y_train, y_train_pred))
+                            
+                            rmse_norm = rmse / y_train.mean() if y_train.mean() != 0 else 0
+                            accuracy = max(0, 1 - rmse_norm)
+                            
+                            model_metrics.append({
+                                "Model": name,
+                                "MAE (Train)": round(mae, 2),
+                                "RMSE (Train)": round(rmse, 2),
+                                "Accuracy (Train %)": round(accuracy * 100, 2)
+                            })
+                        except Exception as e:
+                            st.warning(f"Could not train {name} model: {e}")
+                            daily_predictions[name] = pd.Series([np.nan] * prediction_days_count, index=df_predict_future['date'])
+                    
+                    if model_metrics:
+                        st.dataframe(pd.DataFrame(model_metrics).sort_values(by="Accuracy (Train %)", ascending=False), use_container_width=True)
 
-                    rmse_norm = rmse / y_test.mean()
-                    accuracy = max(0, 1 - rmse_norm)
+                    # Plot das Previsões Diárias
+                    fig_daily = go.Figure()
 
-                    results.append({
-                        "Model": name,
-                        "MAE": round(mae, 2),
-                        "RMSE": round(rmse, 2),
-                        "Accuracy (%)": round(accuracy * 100, 2),
-                        "Prediction for selected day": round(prediction, 2)
-                    })
+                    # Consumo Real (até a data de corte)
+                    fig_daily.add_trace(go.Scatter(
+                        x=df_train['date'],
+                        y=df_train['consumption'],
+                        mode='lines+markers',
+                        name='Actual Consumption',
+                        line=dict(color='blue')
+                    ))
+                    
+                    # Targets Diários (todos os targets disponíveis no histórico e futuros)
+                    # Mescla o df_train (que tem as datas do histórico) e o df_predict_future (que tem as datas futuras)
+                    # para criar um único DataFrame com todas as datas e seus respectivos daily_target
+                    full_target_df = pd.concat([df_train[['date', 'daily_target']], df_predict_future[['date', 'daily_target']]]).drop_duplicates().sort_values('date')
 
-                fig.update_layout(title="Energy Consumption Forecast (Selected Month)",
-                                  xaxis_title="Date",
-                                  yaxis_title="Consumption (kWh)",
-                                  legend_title="Legend")
-                st.plotly_chart(fig)
+                    fig_daily.add_trace(go.Scatter(
+                        x=full_target_df['date'],
+                        y=full_target_df['daily_target'],
+                        mode='lines',
+                        name='Daily Target',
+                        line=dict(color='green', dash='dot')
+                    ))
 
-                results_df = pd.DataFrame(results).sort_values(by="Accuracy (%)", ascending=False).reset_index(
-                    drop=True)
-                st.subheader("📊 Model Performance and Predictions")
-                st.dataframe(results_df, use_container_width=True)
+                    # Previsões
+                    for name, preds in daily_predictions.items():
+                        if not preds.isnull().all():
+                            fig_daily.add_trace(go.Scatter(
+                                x=preds.index,
+                                y=preds.values,
+                                mode='lines+markers',
+                                name=f'Predicted ({name})',
+                                line=dict(dash='dash')
+                            ))
 
+                    fig_daily.update_layout(
+                        title='Daily Consumption: Actual, Target & Prediction',
+                        xaxis_title='Date',
+                        yaxis_title='Consumption (kWh)',
+                        legend_title='Legend',
+                        template='plotly_white'
+                    )
+                    st.plotly_chart(fig_daily, use_container_width=True)
+
+                    st.markdown("### 📊 Hourly Consumption Prediction for a Future Day")
+                    
+                    # Seleciona o melhor modelo para desagregação horária
+                    if model_metrics:
+                        best_model_name = pd.DataFrame(model_metrics).sort_values(by="Accuracy (Train %)", ascending=False).iloc[0]['Model']
+                        best_daily_predictions = daily_predictions.get(best_model_name, pd.Series())
+                    else:
+                        best_daily_predictions = pd.Series() # Série vazia se nenhum modelo foi treinado
+
+                    if not best_daily_predictions.empty:
+                        # Permite que o usuário selecione qual dia predito deseja ver a quebra horária
+                        future_day_options = list(best_daily_predictions.index)
+                        if future_day_options:
+                            selected_future_day_for_hourly = st.selectbox(
+                                "Select a predicted day to view hourly breakdown:",
+                                future_day_options,
+                                format_func=lambda d: d.strftime('%Y-%m-%d')
+                            )
+                            
+                            predicted_daily_value = best_daily_predictions.loc[selected_future_day_for_hourly]
+                            
+                            # Desagrega o valor diário predito em valores horários com base no perfil
+                            if 'hourly_profile_percentages' in st.session_state and st.session_state.hourly_profile_percentages and st.session_state.typical_daily_target_from_template > 0:
+                                # Ajusta o perfil para a soma diária prevista, se o perfil não for zero
+                                predicted_hourly_values = [predicted_daily_value * p for p in st.session_state.hourly_profile_percentages]
+                            else:
+                                predicted_hourly_values = [predicted_daily_value / 24] * 24 # Fallback para distribuição uniforme se não houver perfil
+
+                            # Obtém o perfil de target horário para referência
+                            hourly_target_profile = st.session_state.hourly_target_profile_productive_area if 'hourly_target_profile_productive_area' in st.session_state else [0]*24
+
+                            # Plot das previsões horárias
+                            fig_hourly = go.Figure()
+                            fig_hourly.add_trace(go.Scatter(
+                                x=list(range(24)),
+                                y=predicted_hourly_values,
+                                mode='lines+markers',
+                                name='Predicted Hourly Consumption',
+                                line=dict(color='orange')
+                            ))
+                            fig_hourly.add_trace(go.Scatter(
+                                x=list(range(24)),
+                                y=hourly_target_profile,
+                                mode='lines',
+                                name='Hourly Target',
+                                line=dict(color='green', dash='dot')
+                            ))
+                            
+                            fig_hourly.update_layout(
+                                title=f'Hourly Consumption Prediction for {selected_future_day_for_hourly.strftime("%Y-%m-%d")}',
+                                xaxis_title='Hour of Day',
+                                yaxis_title='Consumption (kWh)',
+                                legend_title='Legend',
+                                template='plotly_white'
+                            )
+                            st.plotly_chart(fig_hourly, use_container_width=True)
+                        else:
+                            st.info("No future days predicted to show hourly breakdown.")
+                    else:
+                        st.info("No daily predictions available to disaggregate into hourly values.")
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
