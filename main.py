@@ -1222,16 +1222,16 @@ if dados_colados:
 
                 consumo_por_medidor = df_mes[medidores_para_mapa].sum().to_dict()
 
-                valores = list(consumo_por_medidor.values())
-                min_val, max_val = min(valores), max(valores)
-                norm = mcolors.Normalize(vmin=min_val, vmax=max_val)
+                # A função 'tamanho_no' original não será mais usada para medidores individuais
+                # Defina um tamanho fixo para os nós dos medidores individuais
+                FIXED_METER_NODE_SIZE = 30 # Ajuste este valor se precisar de nós maiores ou menores
+
+                # Removendo a função tamanho_no, pois não será usada para medidores individuais
+                # def tamanho_no(valor):
+                #     return 20 + 30 * ((valor - min_val) / (max_val - min_val)) if max_val > min_val else 30
+
+                # A função cor_no permanece para diferenciar os medidores por cor
                 cmap = cm.get_cmap('tab10')
-
-
-                def tamanho_no(valor):
-                    return 20 + 30 * ((valor - min_val) / (max_val - min_val)) if max_val > min_val else 30
-
-
                 def cor_no(idx):
                     rgba = cmap(idx % 10)
                     return mcolors.to_hex(rgba)
@@ -1244,15 +1244,15 @@ if dados_colados:
                 ]
 
                 pccb_consumo = consumo_por_medidor.get("PCCB", 0)
-                nodes.append(Node(id="PCCB", label=f"Emissions Lab\n{pccb_consumo:,.0f} kWh", size=tamanho_no(pccb_consumo), color=cor_no(len(medidores_para_mapa)-1)))
+                # Usando FIXED_METER_NODE_SIZE aqui
+                nodes.append(Node(id="PCCB", label=f"Emissions Lab\n{pccb_consumo:,.0f} kWh", size=FIXED_METER_NODE_SIZE, color=cor_no(len(medidores_para_mapa)-1)))
 
 
                 for idx, nome in enumerate(colunas_area_produtiva):
                     consumo = consumo_por_medidor.get(nome, 0)
                     label = f"{nome}\n{consumo:,.0f} kWh"
-                    size = tamanho_no(consumo)
-                    color = cor_no(idx)
-                    nodes.append(Node(id=nome, label=label, size=size, color=color))
+                    # Usando FIXED_METER_NODE_SIZE aqui
+                    nodes.append(Node(id=nome, label=label, size=FIXED_METER_NODE_SIZE, color=cor_no(idx)))
 
                 edges = [
                             Edge(source="Full Plant", target="PRODUCTIVE AREAS"),
@@ -1442,4 +1442,5 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
+
 
