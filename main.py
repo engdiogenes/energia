@@ -108,6 +108,7 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
+st.title("PowerTrack - Energy Management Dashboard ⚡")
 
 def limpar_valores(texto):
     # Garante que números como "4,303,339.00" são lidos corretamente como 4303339.00
@@ -229,7 +230,7 @@ def carregar_dados(dados_colados):
     return consumo
 
 
- st.title(" Energy data analyser")
+ #st.title(" Energy data analyser")
 
 with st.sidebar:
     # st.sidebar.image("logo.png", width=360)
@@ -1728,4 +1729,5 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
+
 
