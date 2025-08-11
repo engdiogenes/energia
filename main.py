@@ -14,7 +14,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
-from statsmodels.tsa.arima.model import ARIMA # CORRIGIDO: Importação correta do ARIMA
+from statsmodels.tsa.arima.model import ARIMA
 from datetime import timedelta
 import streamlit.components.v1 as components
 from streamlit_agraph import agraph, Node, Edge, Config
@@ -146,7 +146,7 @@ def get_daily_productive_area_target(target_date, limites_df, colunas_area_produ
         return 0 # Valor padrão se não houver template nem dados específicos
 
 def carregar_dados(dados_colados):
-    dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
+    dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\\t")
     dados["Datetime"] = pd.to_datetime(dados["Date"] + " " + dados["Time"], dayfirst=True)
     # Importante: Classificar os dados em ordem cronológica ascendente para o cálculo de diff()
     dados = dados.sort_values("Datetime").reset_index(drop=True)
@@ -224,7 +224,7 @@ def carregar_dados(dados_colados):
     # consumiu mais que OFFICE, o que pode indicar erro ou bidirecionalidade.
     # Garanto que o resultado não seja negativo para consumo.
     consumo["OFFICE + CANTEEN"] = (consumo["OFFICE"] - consumo["PMDC-OFFICE"]).apply(lambda x: max(0.0, x))
-    consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + \
+    consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + \\
                                 consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75 # 13.75 é um valor constante por período
     consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"]) # Drop only if these aren't needed downstream for other calcs
     return consumo
@@ -251,8 +251,8 @@ with st.sidebar:
         dados = sheet.get_all_values()
 
         # Converte para texto tabulado (como se fosse colado manualmente)
-        linhas = ["\t".join(linha) for linha in dados]
-        texto_tabulado = "\n".join(linhas)
+        linhas = ["\\t".join(linha) for linha in dados]
+        texto_tabulado = "\\n".join(linhas)
         return texto_tabulado
 
 
@@ -261,7 +261,7 @@ with st.sidebar:
     if origem_dados == "Google Sheets":
         dados_colados = obter_dados_do_google_sheets()
         # Converter os dados colados em DataFrame temporário para extrair a última data
-        df_temp = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
+        df_temp = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\\t")
         df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
         if not df_temp.empty:
             df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
@@ -331,8 +331,8 @@ with st.sidebar:
 
                 # Adiciona alerta se houver medidores excedidos
                 if medidores_excedidos:
-                    body += "\n⚠️ Alerta: Os seguintes medidores ultrapassaram seus limites diários:\n"
-                    body += "\n".join(medidores_excedidos)
+                    body += "\\n⚠️ Alerta: Os seguintes medidores ultrapassaram seus limites diários:\\n"
+                    body += "\\n".join(medidores_excedidos)
 
                 msg.attach(MIMEText(body, "plain"))
 
@@ -546,7 +546,7 @@ if dados_colados:
                 # consumo diário do Mês
 
                 # Carregar os dados do Google Sheets (substitua 'dados_colados' pela variável real)
-                df = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
+                df = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\\t")
                 df["Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=True)
                 df = df.sort_values("Datetime").reset_index(drop=True)
 
@@ -725,7 +725,7 @@ if dados_colados:
                 This section provides a visual overview of daily energy consumption in the production area.
                 Each day is represented with a mini chart showing hourly usage compared to predefined limits.
                 Use this calendar to identify patterns, detect anomalies, and monitor energy efficiency over time. 3 month a go only.
-                """)
+                """, unsafe_allow_html=True)
 
                 consumo_completo["Data"] = consumo_completo["Datetime"].dt.date
                 dias_unicos = sorted(consumo_completo["Data"].unique())
@@ -748,10 +748,10 @@ if dados_colados:
                                     limites_area_dia = [
                                         sum(
                                             limites_df_calendar[limites_df_calendar["Hora"] == h][medidor].values[0]
-                                            if medidor in limites_df_calendar.columns and not \
+                                            if medidor in limites_df_calendar.columns and not \\
                                             limites_df_calendar[limites_df_calendar["Hora"] == h][medidor].empty
                                             else 0
-                                            for medidor in \
+                                            for medidor in \\
                                             ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
                                              "TRIM&FINAL"]
                                         ) + 13.75
@@ -792,7 +792,7 @@ if dados_colados:
                 This section is reserved for the application creator and is intended solely for configuring and converting hourly consumption limits. 
                 It allows the transformation of CSV files containing per-meter hourly limits into a JSON format compatible with the PowerTrack system. 
                 This functionality ensures that reference data is properly structured and ready for use in the platform’s analysis and forecasting tools.
-                """)
+                """, unsafe_allow_html=True)
 
                 uploaded_file = st.file_uploader("Upload the CSV file", type="csv")
                 if uploaded_file is not None:
@@ -1305,7 +1305,8 @@ if dados_colados:
                                 ✅ To date, there is a positive balance of **{saldo_energia:,.0f} kWh** energy.
                                 This allows approximately **{horas_extras:.1f} horas** monthly air conditioning extras,
                                 which is equivalent to approximately **{dias_extras:.1f} dias** complete with additional air conditioning.
-                                """)
+                                """
+                                )
                             else:
                                 horas_a_economizar = abs(saldo_energia) / 785
                                 dias_a_economizar = horas_a_economizar / 8
@@ -1313,7 +1314,8 @@ if dados_colados:
                                 ⚠️ Consumption in the production area to date has exceeded the target by **{abs(saldo_energia):,.0f} kWh**.
                                 To return to the monthly limit, it will be necessary to save approximately**{horas_a_economizar:.1f} hours**
                                 air conditioning, which represents approximately **{dias_a_economizar:.1f} dias** for continuous use.
-                                """)
+                                """
+                                )
 
                             # Métricas
                             st.markdown("### 📈 Resumo das Metas Mensais")
@@ -1483,12 +1485,12 @@ if dados_colados:
 
                 # Adiciona PCCB como um nó separado para 'THIRD PARTS'
                 pccb_consumo = consumo_por_medidor.get("PCCB", 0)
-                nodes.append(Node(id="PCCB", label=f"Emissions Lab\\n{pccb_consumo:,.0f} kWh", size=tamanho_no(pccb_consumo), color=cor_no(len(medidores_para_mapa)-1)))
+                nodes.append(Node(id="PCCB", label=f"Emissions Lab\\\n{pccb_consumo:,.0f} kWh", size=tamanho_no(pccb_consumo), color=cor_no(len(medidores_para_mapa)-1)))
 
 
                 for idx, nome in enumerate(colunas_area_produtiva): # Itera apenas sobre medidores produtivos
                     consumo_medidor_atual = consumo_por_medidor.get(nome, 0) # Use a variable name to avoid shadowing
-                    label = f"{nome}\\n{consumo_medidor_atual:,.0f} kWh"
+                    label = f"{nome}\\\n{consumo_medidor_atual:,.0f} kWh"
                     size = tamanho_no(consumo_medidor_atual)
                     color = cor_no(idx)
                     nodes.append(Node(id=nome, label=label, size=size, color=color))
@@ -1689,9 +1691,8 @@ if dados_colados:
                             ))
 
                             # Adiciona a curva de consumo real, se houver dados para o dia selecionado
-                            # É importante converter o `selected_future_day_for_hourly` para `date` para a comparação correta.
                             actual_hourly_data_for_selected_day = st.session_state.consumo[
-                                (st.session_state.consumo['Datetime'].dt.date == selected_future_day_for_hourly.date()) & # .date() adicionado aqui
+                                (st.session_state.consumo['Datetime'].dt.date == selected_future_day_for_hourly) & # Removido o .date() extra
                                 (st.session_state.consumo['Área Produtiva'].notna())
                             ]
 
