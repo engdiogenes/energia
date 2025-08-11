@@ -192,7 +192,7 @@ def carregar_dados(dados_colados):
         diff_raw = consumo[col].diff()
 
         # Aplica a lógica de correção:
-        # Se a diferença for negativa (medidor diminuiu, o que não é consumo), considera 0.
+        # Se a diferença for negativa (contador diminuiu, o que não é consumo), considera 0.
         # Se a diferença for positiva mas absurdamente grande, considera 0 (reset/anomalia).
         # Caso contrário, é consumo normal.
         def calculate_adjusted_consumption(raw_diff_val):
@@ -224,8 +224,8 @@ def carregar_dados(dados_colados):
     # consumiu mais que OFFICE, o que pode indicar erro ou bidirecionalidade.
     # Garanto que o resultado não seja negativo para consumo.
     consumo["OFFICE + CANTEEN"] = (consumo["OFFICE"] - consumo["PMDC-OFFICE"]).apply(lambda x: max(0.0, x))
-    consumo["Área Produtiva"] = (consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + 
-                                consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75) # 13.75 é um valor constante por período
+    consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + \
+                                consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75 # 13.75 é um valor constante por período
     consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"]) # Drop only if these aren't needed downstream for other calcs
     return consumo
 
@@ -241,7 +241,7 @@ with st.sidebar:
 
 
     def obter_dados_do_google_sheets():
-        scope = ["https://sheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         creds_dict = st.secrets["google_sheets"]
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 
@@ -680,7 +680,7 @@ if dados_colados:
                             label=f"{medidor}",
                             value=f"{valor} kWh",
                             delta=f"{valor - limite:.2f} kWh",
-                            delta_color="normal" if excedido else "inverse"
+                            delta_color="inverse" if excedido else "inverse"
                         )
 
                 st.divider()
@@ -725,7 +725,7 @@ if dados_colados:
                 This section provides a visual overview of daily energy consumption in the production area.
                 Each day is represented with a mini chart showing hourly usage compared to predefined limits.
                 Use this calendar to identify patterns, detect anomalies, and monitor energy efficiency over time. 3 month a go only.
-                """, unsafe_allow_html=True)
+                """)
 
                 consumo_completo["Data"] = consumo_completo["Datetime"].dt.date
                 dias_unicos = sorted(consumo_completo["Data"].unique())
@@ -792,7 +792,7 @@ if dados_colados:
                 This section is reserved for the application creator and is intended solely for configuring and converting hourly consumption limits. 
                 It allows the transformation of CSV files containing per-meter hourly limits into a JSON format compatible with the PowerTrack system. 
                 This functionality ensures that reference data is properly structured and ready for use in the platform’s analysis and forecasting tools.
-                """, unsafe_allow_html=True)
+                """)
 
                 uploaded_file = st.file_uploader("Upload the CSV file", type="csv")
                 if uploaded_file is not None:
@@ -1305,8 +1305,7 @@ if dados_colados:
                                 ✅ To date, there is a positive balance of **{saldo_energia:,.0f} kWh** energy.
                                 This allows approximately **{horas_extras:.1f} horas** monthly air conditioning extras,
                                 which is equivalent to approximately **{dias_extras:.1f} dias** complete with additional air conditioning.
-                                """
-                                )
+                                """)
                             else:
                                 horas_a_economizar = abs(saldo_energia) / 785
                                 dias_a_economizar = horas_a_economizar / 8
@@ -1314,8 +1313,7 @@ if dados_colados:
                                 ⚠️ Consumption in the production area to date has exceeded the target by **{abs(saldo_energia):,.0f} kWh**.
                                 To return to the monthly limit, it will be necessary to save approximately**{horas_a_economizar:.1f} hours**
                                 air conditioning, which represents approximately **{dias_a_economizar:.1f} dias** for continuous use.
-                                """
-                                )
+                                """)
 
                             # Métricas
                             st.markdown("### 📈 Resumo das Metas Mensais")
@@ -1689,21 +1687,6 @@ if dados_colados:
                                 name='Hourly Target',
                                 line=dict(color='green', dash='dot')
                             ))
-
-                            # Adiciona a curva de consumo real, se houver dados para o dia selecionado
-                            actual_hourly_data_for_selected_day = st.session_state.consumo[
-                                (st.session_state.consumo['Datetime'].dt.date == selected_future_day_for_hourly) &
-                                (st.session_state.consumo['Área Produtiva'].notna())
-                            ]
-
-                            if not actual_hourly_data_for_selected_day.empty:
-                                fig_hourly.add_trace(go.Scatter(
-                                    x=actual_hourly_data_for_selected_day['Datetime'].dt.hour,
-                                    y=actual_hourly_data_for_selected_day['Área Produtiva'],
-                                    mode='lines+markers',
-                                    name='Actual Hourly Consumption',
-                                    line=dict(color='blue', dash='solid')
-                                ))
                             
                             fig_hourly.update_layout(
                                 title=f'Hourly Consumption Prediction for {selected_future_day_for_hourly.strftime("%Y-%m-%d")}',
@@ -1720,3 +1703,4 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
+
