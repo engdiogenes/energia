@@ -14,7 +14,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
-from statsmodels.tsa.arima.model.arima import ARIMA # Import ARIMA correctly
+from statsmodels.tsa.arima.model import ARIMA # CORRIGIDO: Importação correta do ARIMA
 from datetime import timedelta
 import streamlit.components.v1 as components
 from streamlit_agraph import agraph, Node, Edge, Config
@@ -1689,8 +1689,9 @@ if dados_colados:
                             ))
 
                             # Adiciona a curva de consumo real, se houver dados para o dia selecionado
+                            # É importante converter o `selected_future_day_for_hourly` para `date` para a comparação correta.
                             actual_hourly_data_for_selected_day = st.session_state.consumo[
-                                (st.session_state.consumo['Datetime'].dt.date == selected_future_day_for_hourly) &
+                                (st.session_state.consumo['Datetime'].dt.date == selected_future_day_for_hourly.date()) & # .date() adicionado aqui
                                 (st.session_state.consumo['Área Produtiva'].notna())
                             ]
 
