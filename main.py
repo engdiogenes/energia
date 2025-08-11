@@ -14,7 +14,7 @@ import matplotlib
 import matplotlib.pyplot as plt
 import matplotlib.dates as mdates
 from datetime import datetime
-from statsmodels.tsa.arima.model import ARIMA
+from statsmodels.tsa.arima.model.arima import ARIMA # Import ARIMA correctly
 from datetime import timedelta
 import streamlit.components.v1 as components
 from streamlit_agraph import agraph, Node, Edge, Config
@@ -1483,12 +1483,12 @@ if dados_colados:
 
                 # Adiciona PCCB como um nó separado para 'THIRD PARTS'
                 pccb_consumo = consumo_por_medidor.get("PCCB", 0)
-                nodes.append(Node(id="PCCB", label=f"Emissions Lab\n{pccb_consumo:,.0f} kWh", size=tamanho_no(pccb_consumo), color=cor_no(len(medidores_para_mapa)-1)))
+                nodes.append(Node(id="PCCB", label=f"Emissions Lab\\n{pccb_consumo:,.0f} kWh", size=tamanho_no(pccb_consumo), color=cor_no(len(medidores_para_mapa)-1)))
 
 
                 for idx, nome in enumerate(colunas_area_produtiva): # Itera apenas sobre medidores produtivos
                     consumo_medidor_atual = consumo_por_medidor.get(nome, 0) # Use a variable name to avoid shadowing
-                    label = f"{nome}\n{consumo_medidor_atual:,.0f} kWh"
+                    label = f"{nome}\\n{consumo_medidor_atual:,.0f} kWh"
                     size = tamanho_no(consumo_medidor_atual)
                     color = cor_no(idx)
                     nodes.append(Node(id=nome, label=label, size=size, color=color))
@@ -1687,6 +1687,21 @@ if dados_colados:
                                 name='Hourly Target',
                                 line=dict(color='green', dash='dot')
                             ))
+
+                            # Adiciona a curva de consumo real, se houver dados para o dia selecionado
+                            actual_hourly_data_for_selected_day = st.session_state.consumo[
+                                (st.session_state.consumo['Datetime'].dt.date == selected_future_day_for_hourly) &
+                                (st.session_state.consumo['Área Produtiva'].notna())
+                            ]
+
+                            if not actual_hourly_data_for_selected_day.empty:
+                                fig_hourly.add_trace(go.Scatter(
+                                    x=actual_hourly_data_for_selected_day['Datetime'].dt.hour,
+                                    y=actual_hourly_data_for_selected_day['Área Produtiva'],
+                                    mode='lines+markers',
+                                    name='Actual Hourly Consumption',
+                                    line=dict(color='blue', dash='solid')
+                                ))
                             
                             fig_hourly.update_layout(
                                 title=f'Hourly Consumption Prediction for {selected_future_day_for_hourly.strftime("%Y-%m-%d")}',
