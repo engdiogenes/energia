@@ -146,7 +146,7 @@ def get_daily_productive_area_target(target_date, limites_df, colunas_area_produ
         return 0 # Valor padrão se não houver template nem dados específicos
 
 def carregar_dados(dados_colados):
-    dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\\t")
+    dados = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
     dados["Datetime"] = pd.to_datetime(dados["Date"] + " " + dados["Time"], dayfirst=True)
     # Importante: Classificar os dados em ordem cronológica ascendente para o cálculo de diff()
     dados = dados.sort_values("Datetime").reset_index(drop=True)
@@ -192,7 +192,7 @@ def carregar_dados(dados_colados):
         diff_raw = consumo[col].diff()
 
         # Aplica a lógica de correção:
-        # Se a diferença for negativa (contador diminuiu, o que não é consumo), considera 0.
+        # Se a diferença for negativa (medidor diminuiu, o que não é consumo), considera 0.
         # Se a diferença for positiva mas absurdamente grande, considera 0 (reset/anomalia).
         # Caso contrário, é consumo normal.
         def calculate_adjusted_consumption(raw_diff_val):
@@ -224,7 +224,7 @@ def carregar_dados(dados_colados):
     # consumiu mais que OFFICE, o que pode indicar erro ou bidirecionalidade.
     # Garanto que o resultado não seja negativo para consumo.
     consumo["OFFICE + CANTEEN"] = (consumo["OFFICE"] - consumo["PMDC-OFFICE"]).apply(lambda x: max(0.0, x))
-    consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + \\
+    consumo["Área Produtiva"] = consumo["MP&L"] + consumo["GAHO"] + consumo["CAG"] + consumo["SEOB"] + consumo["EBPC"] + \
                                 consumo["PMDC-OFFICE"] + consumo["TRIM&FINAL"] + consumo["OFFICE + CANTEEN"] + 13.75 # 13.75 é um valor constante por período
     consumo = consumo.drop(columns=["QGBT1-MPTF", "QGBT2-MPTF"]) # Drop only if these aren't needed downstream for other calcs
     return consumo
@@ -241,7 +241,7 @@ with st.sidebar:
 
 
     def obter_dados_do_google_sheets():
-        scope = ["https://spreadsheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
+        scope = ["https://sheets.google.com/feeds", "https://www.googleapis.com/auth/drive"]
         creds_dict = st.secrets["google_sheets"]
         creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
 
@@ -251,8 +251,8 @@ with st.sidebar:
         dados = sheet.get_all_values()
 
         # Converte para texto tabulado (como se fosse colado manualmente)
-        linhas = ["\\t".join(linha) for linha in dados]
-        texto_tabulado = "\\n".join(linhas)
+        linhas = ["\t".join(linha) for linha in dados]
+        texto_tabulado = "\n".join(linhas)
         return texto_tabulado
 
 
@@ -261,7 +261,7 @@ with st.sidebar:
     if origem_dados == "Google Sheets":
         dados_colados = obter_dados_do_google_sheets()
         # Converter os dados colados em DataFrame temporário para extrair a última data
-        df_temp = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\\t")
+        df_temp = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
         df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
         if not df_temp.empty:
             df_temp["Datetime"] = pd.to_datetime(df_temp["Date"] + " " + df_temp["Time"], dayfirst=True)
@@ -331,8 +331,8 @@ with st.sidebar:
 
                 # Adiciona alerta se houver medidores excedidos
                 if medidores_excedidos:
-                    body += "\\n⚠️ Alerta: Os seguintes medidores ultrapassaram seus limites diários:\\n"
-                    body += "\\n".join(medidores_excedidos)
+                    body += "\n⚠️ Alerta: Os seguintes medidores ultrapassaram seus limites diários:\n"
+                    body += "\n".join(medidores_excedidos)
 
                 msg.attach(MIMEText(body, "plain"))
 
@@ -546,7 +546,7 @@ if dados_colados:
                 # consumo diário do Mês
 
                 # Carregar os dados do Google Sheets (substitua 'dados_colados' pela variável real)
-                df = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\\t")
+                df = pd.read_csv(io.StringIO(limpar_valores(dados_colados)), sep="\t")
                 df["Datetime"] = pd.to_datetime(df["Date"] + " " + df["Time"], dayfirst=True)
                 df = df.sort_values("Datetime").reset_index(drop=True)
 
@@ -680,7 +680,7 @@ if dados_colados:
                             label=f"{medidor}",
                             value=f"{valor} kWh",
                             delta=f"{valor - limite:.2f} kWh",
-                            delta_color="inverse" if excedido else "inverse"
+                            delta_color="normal" if excedido else "inverse"
                         )
 
                 st.divider()
@@ -748,10 +748,10 @@ if dados_colados:
                                     limites_area_dia = [
                                         sum(
                                             limites_df_calendar[limites_df_calendar["Hora"] == h][medidor].values[0]
-                                            if medidor in limites_df_calendar.columns and not \\
+                                            if medidor in limites_df_calendar.columns and not \
                                             limites_df_calendar[limites_df_calendar["Hora"] == h][medidor].empty
                                             else 0
-                                            for medidor in \\
+                                            for medidor in \
                                             ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
                                              "TRIM&FINAL"]
                                         ) + 13.75
@@ -1485,12 +1485,12 @@ if dados_colados:
 
                 # Adiciona PCCB como um nó separado para 'THIRD PARTS'
                 pccb_consumo = consumo_por_medidor.get("PCCB", 0)
-                nodes.append(Node(id="PCCB", label=f"Emissions Lab\\\n{pccb_consumo:,.0f} kWh", size=tamanho_no(pccb_consumo), color=cor_no(len(medidores_para_mapa)-1)))
+                nodes.append(Node(id="PCCB", label=f"Emissions Lab\n{pccb_consumo:,.0f} kWh", size=tamanho_no(pccb_consumo), color=cor_no(len(medidores_para_mapa)-1)))
 
 
                 for idx, nome in enumerate(colunas_area_produtiva): # Itera apenas sobre medidores produtivos
                     consumo_medidor_atual = consumo_por_medidor.get(nome, 0) # Use a variable name to avoid shadowing
-                    label = f"{nome}\\\n{consumo_medidor_atual:,.0f} kWh"
+                    label = f"{nome}\n{consumo_medidor_atual:,.0f} kWh"
                     size = tamanho_no(consumo_medidor_atual)
                     color = cor_no(idx)
                     nodes.append(Node(id=nome, label=label, size=size, color=color))
@@ -1692,7 +1692,7 @@ if dados_colados:
 
                             # Adiciona a curva de consumo real, se houver dados para o dia selecionado
                             actual_hourly_data_for_selected_day = st.session_state.consumo[
-                                (st.session_state.consumo['Datetime'].dt.date == selected_future_day_for_hourly) & # Removido o .date() extra
+                                (st.session_state.consumo['Datetime'].dt.date == selected_future_day_for_hourly) &
                                 (st.session_state.consumo['Área Produtiva'].notna())
                             ]
 
