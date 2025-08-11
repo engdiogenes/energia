@@ -56,31 +56,40 @@ if os.path.exists(CAMINHO_JSON_PADRAO):
         limites_df["Data"] = limites_df["Timestamp"].dt.date
         limites_df["Hora"] = limites_df["Timestamp"].dt.hour
         st.session_state.limites_df = limites_df
-        st.session_state.limites_por_medidor_horario = {
-            medidor: list(
-                limites_df[limites_df["Data"] == limites_df["Data"].min()].sort_values("Hora")[medidor].values)
-            for medidor in limites_df.columns
-            if medidor not in ["Timestamp", "Data", "Hora"]
-        }
+        # O limites_por_medidor_horario será recalculado após a seleção da data
+        # no corpo principal da página para garantir que use a data correta.
+        # Apenas inicializa aqui para evitar KeyErrors.
+        st.session_state.limites_por_medidor_horario = {} 
         
         # Pré-cálculo do perfil horário e meta diária da Área Produtiva a partir do template de limites
         # Isso assume que o `limites_por_medidor_horario` (que representa um dia de template) está disponível.
         # Ele é usado como um perfil para desagregar previsões diárias em horárias.
-        hourly_target_profile_productive_area = []
-        for h in range(24):
-            hourly_sum = 0
-            for medidor in colunas_area_produtiva:
-                if medidor in st.session_state.limites_por_medidor_horario and h < len(st.session_state.limites_por_medidor_horario[medidor]):
-                    hourly_sum += st.session_state.limites_por_medidor_horario[medidor][h]
-            hourly_sum += 13.75 # Add the fixed value per hour
-            hourly_target_profile_productive_area.append(hourly_sum)
-        
-        st.session_state.hourly_target_profile_productive_area = hourly_target_profile_productive_area
-        st.session_state.typical_daily_target_from_template = sum(hourly_target_profile_productive_area)
-        if st.session_state.typical_daily_target_from_template == 0:
-            st.session_state.hourly_profile_percentages = [1/24] * 24 # Fallback to uniform if targets sum to zero
+        # Para que esta inicialização seja útil para o "initial_sidebar_state", vamos garantir que o primeiro dia do JSON seja usado.
+        if not limites_df.empty:
+            first_day_df = limites_df[limites_df["Data"] == limites_df["Data"].min()]
+            hourly_target_profile_productive_area_initial = []
+            for h in range(24):
+                hourly_sum = 0
+                for medidor in colunas_area_produtiva:
+                    if medidor in first_day_df.columns: # Check if column exists
+                        # Get the value for the current hour and medidor, default to 0 if not found
+                        val = first_day_df[first_day_df["Hora"] == h][medidor].iloc[0] if not first_day_df[first_day_df["Hora"] == h].empty else 0
+                        hourly_sum += val
+                hourly_sum += 13.75 # Add the fixed value per hour
+                hourly_target_profile_productive_area_initial.append(hourly_sum)
+            
+            st.session_state.hourly_target_profile_productive_area = hourly_target_profile_productive_area_initial
+            st.session_state.typical_daily_target_from_template = sum(hourly_target_profile_productive_area_initial)
+            if st.session_state.typical_daily_target_from_template == 0:
+                st.session_state.hourly_profile_percentages = [1/24] * 24 # Fallback to uniform if targets sum to zero
+            else:
+                st.session_state.hourly_profile_percentages = [x / st.session_state.typical_daily_target_from_template for x in hourly_target_profile_productive_area_initial]
         else:
-            st.session_state.hourly_profile_percentages = [x / st.session_state.typical_daily_target_from_template for x in hourly_target_profile_productive_area]
+            # Fallback if limites_df is empty
+            st.session_state.hourly_target_profile_productive_area = [0] * 24
+            st.session_state.typical_daily_target_from_template = 0
+            st.session_state.hourly_profile_percentages = [1/24] * 24
+
 
     except Exception as e:
         st.warning(f"Erro ao carregar limites padrão: {e}")
@@ -282,12 +291,28 @@ with st.sidebar:
 
                 # Verifica se algum medidor ultrapassou o limite diário
                 medidores_excedidos = []
-                dados_dia = st.session_state.consumo[
+                # Garante que os dados do dia estejam atualizados antes de verificar.
+                # Se o limites_por_medidor_horario for inicializado vazio e não atualizado, pode dar erro.
+                # Para fins de e-mail, pode-se usar uma soma geral do dia em vez de limites horários específicos.
+                dados_dia_email = st.session_state.consumo[
                     st.session_state.consumo["Datetime"].dt.date == st.session_state.data_selecionada]
-                for medidor in st.session_state.limites_por_medidor_horario:
-                    if medidor in dados_dia.columns:
-                        consumo_total = dados_dia[medidor].sum()
-                        limite_total = sum(st.session_state.limites_por_medidor_horario[medidor])
+                
+                # Recalcula limites para o dia da data selecionada para o e-mail
+                limites_para_email_por_medidor_horario = {}
+                if "limites_df" in st.session_state:
+                    limites_df_email = st.session_state.limites_df
+                    limites_dia_df_email = limites_df_email[limites_df_email["Data"] == st.session_state.data_selecionada]
+                    limites_para_email_por_medidor_horario = {
+                        medidor: list(limites_dia_df_email.sort_values("Hora")[medidor].values)
+                        for medidor in limites_dia_df_email.columns
+                        if medidor not in ["Timestamp", "Data", "Hora"]
+                    }
+
+
+                for medidor in limites_para_email_por_medidor_horario:
+                    if medidor in dados_dia_email.columns:
+                        consumo_total = dados_dia_email[medidor].sum()
+                        limite_total = sum(limites_para_email_por_medidor_horario[medidor])
                         if consumo_total > limite_total:
                             medidores_excedidos.append(
                                 f"- {medidor}: {consumo_total:.2f} kWh (limite: {limite_total:.2f} kWh)")
@@ -333,93 +358,57 @@ if dados_colados:
 
             # Recuperar ou inicializar a data selecionada
             if "data_selecionada" not in st.session_state:
-                st.session_state.data_selecionada = datas_disponiveis[-1]
+                st.session_state.data_selecionada = datas_disponiveis[-1] # Default to the most recent date
 
-            # Navegação por botões
-            col_a, col_b, col_c = st.sidebar.columns([1, 2, 1])
-            with col_a:
-                if st.button("◀", key="dia_anterior"):
-                    idx = datas_disponiveis.index(st.session_state.data_selecionada)
-                    if idx > 0:
-                        st.session_state.data_selecionada = datas_disponiveis[idx - 1]
-            with col_c:
-                if st.button("▶", key="dia_posterior"):
-                    idx = datas_disponiveis.index(st.session_state.data_selecionada)
-                    if idx < len(datas_disponiveis) - 1:
-                        st.session_state.data_selecionada = datas_disponiveis[idx + 1]
-
-            # Campo de seleção de data
-            data_selecionada = st.sidebar.date_input(
-                "Select the date",
-                value=st.session_state.data_selecionada,
-                min_value=min(datas_disponiveis),
-                max_value=max(datas_disponiveis)
-            )
-            st.session_state.data_selecionada = data_selecionada
-
-            # Créditos e data no rodapé da sidebar (logo após o campo de data)
-            st.sidebar.markdown(
-                f"""
-                <hr style="margin-top: 2rem; margin-bottom: 0.5rem;">
-                <div style='font-size: 0.8rem; color: gray; text-align: center;'>
-                    Desenvolvido por <strong>Diógenes Oliveira</strong>
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
-
-            st.session_state.data_selecionada = data_selecionada
-
-            # 🔄 Atualizar os limites por medidor e hora com base na nova data selecionada
-            if "limites_df" in st.session_state:
-                limites_df = st.session_state.limites_df
-                limites_dia_df = limites_df[limites_df["Data"] == data_selecionada]
-                st.session_state.limites_por_medidor_horario = {
-                    medidor: list(limites_dia_df.sort_values("Hora")[medidor].values)
-                    for medidor in limites_dia_df.columns
-                    if medidor not in ["Timestamp", "Data", "Hora"]
-                }
-                
-                # Re-cálculo do perfil horário e meta diária da Área Produtiva a partir do template de limites
-                # Isso é crucial para a aba de ML que usa este perfil para desagregação
-                hourly_target_profile_productive_area = []
-                for h in range(24):
-                    hourly_sum = 0
-                    for medidor in colunas_area_produtiva:
-                        if medidor in st.session_state.limites_por_medidor_horario and h < len(st.session_state.limites_por_medidor_horario[medidor]):
-                            hourly_sum += st.session_state.limites_por_medidor_horario[medidor][h]
-                    hourly_sum += 13.75 # Add the fixed value per hour
-                    hourly_target_profile_productive_area.append(hourly_sum)
-                
-                st.session_state.hourly_target_profile_productive_area = hourly_target_profile_productive_area
-                st.session_state.typical_daily_target_from_template = sum(hourly_target_profile_productive_area)
-                if st.session_state.typical_daily_target_from_template == 0:
-                    st.session_state.hourly_profile_percentages = [1/24] * 24 # Fallback to uniform if targets sum to zero
-                else:
-                    st.session_state.hourly_profile_percentages = [x / st.session_state.typical_daily_target_from_template for x in hourly_target_profile_productive_area]
-
-
-            st.session_state.data_selecionada = data_selecionada
-
-            dados_dia = consumo[consumo["Datetime"].dt.date == data_selecionada]
-            horas = dados_dia["Datetime"].dt.hour
-            medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
-
+            # Define as abas ANTES do bloco de atualização de limites,
+            # pois a atualização de limites depende da data selecionada na aba Overview
             tabs = st.tabs(["Overview", "Per meter", "Targets", "Dashboard", "Calendar", "Conversion ",
                             "Month prediction", "Meter's layout", "Ml prediction"])
 
             # TABS 1 - VISÃO GERAL
             with tabs[0]:
-                st.subheader(f"Report of the day:  {data_selecionada.strftime('%d/%m/%Y')}")
+                # --- NOVO LOCAL PARA SELEÇÃO DE DATA E BOTÕES DE NAVEGAÇÃO ---
+                temp_data_selecionada = st.session_state.data_selecionada
+
+                col_a_overview, col_b_overview, col_c_overview = st.columns([1, 2, 1])
+                with col_a_overview:
+                    if st.button("◀", key="dia_anterior_overview"):
+                        idx = datas_disponiveis.index(st.session_state.data_selecionada)
+                        if idx > 0:
+                            temp_data_selecionada = datas_disponiveis[idx - 1]
+
+                with col_c_overview:
+                    if st.button("▶", key="dia_posterior_overview"):
+                        idx = datas_disponiveis.index(st.session_state.data_selecionada)
+                        if idx < len(datas_disponiveis) - 1:
+                            temp_data_selecionada = datas_disponiveis[idx + 1]
+
+                current_date_from_widget = st.date_input(
+                    "Select the date",
+                    value=temp_data_selecionada,
+                    min_value=min(datas_disponiveis),
+                    max_value=max(datas_disponiveis),
+                    key="date_input_overview"
+                )
+
+                # Se o widget de data alterou a data, ele tem precedência
+                if current_date_from_widget != temp_data_selecionada:
+                    temp_data_selecionada = current_date_from_widget
+
+                # Finalmente, atualiza o session state com a data escolhida para esta execução
+                st.session_state.data_selecionada = temp_data_selecionada
+                # --- FIM NOVO LOCAL ---
+
+                st.subheader(f"Report of the day:  {st.session_state.data_selecionada.strftime('%d/%m/%Y')}")
                 # Cálculos
                 Consumo_gab = 300
-                consumo_area = dados_dia["Área Produtiva"].sum()
-                consumo_pccb = dados_dia["PCCB"].sum() if "PCCB" in dados_dia else 0
-                consumo_maiw = dados_dia["MAIW"].sum() if "MAIW" in dados_dia else 0
+                consumo_area = dados_dia["Área Produtiva"].sum() if not dados_dia.empty else 0
+                consumo_pccb = dados_dia["PCCB"].sum() if "PCCB" in dados_dia and not dados_dia.empty else 0
+                consumo_maiw = dados_dia["MAIW"].sum() if "MAIW" in dados_dia and not dados_dia.empty else 0
                 consumo_geral = consumo_area + consumo_pccb + consumo_maiw + Consumo_gab
 
                 # Determina até que hora há dados disponíveis
-                ultima_hora_disponivel = dados_dia["Datetime"].dt.hour.max()
+                ultima_hora_disponivel = dados_dia["Datetime"].dt.hour.max() if not dados_dia.empty else -1
 
                 # Calcula limites apenas até a última hora com dados
                 limites_area = sum(
@@ -429,12 +418,13 @@ if dados_colados:
                         "MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN", "TRIM&FINAL"
                     ]
                     if medidor in st.session_state.limites_por_medidor_horario
-                ) + 13.75 * (ultima_hora_disponivel + 1)
+                ) + 13.75 * (ultima_hora_disponivel + 1) if ultima_hora_disponivel >= 0 else 0
+
 
                 limite_pccb = sum(
-                    st.session_state.limites_por_medidor_horario.get("PCCB", [0] * 24)[:ultima_hora_disponivel + 1])
+                    st.session_state.limites_por_medidor_horario.get("PCCB", [0] * 24)[:ultima_hora_disponivel + 1]) if ultima_hora_disponivel >=0 else 0
                 limite_maiw = sum(
-                    st.session_state.limites_por_medidor_horario.get("MAIW", [0] * 24)[:ultima_hora_disponivel + 1])
+                    st.session_state.limites_por_medidor_horario.get("MAIW", [0] * 24)[:ultima_hora_disponivel + 1]) if ultima_hora_disponivel >=0 else 0
                 limite_geral = limites_area + limite_pccb + limite_maiw + Consumo_gab
 
                 # Deltas e saldos
@@ -455,13 +445,13 @@ if dados_colados:
                 col1, col2, col3 = st.columns(3)
                 col4, col5, col6 = st.columns(3)
 
-                col1.metric("🎯 Daily Target -  Full Plant", f"{limite_geral:.2f} kWh")
+                col1.metric("🎯 Daily Target - Full Plant", f"{limite_geral:.2f} kWh")
                 col2.metric("⚡ Daily Consumption - Full Plant", f"{consumo_geral:.2f} kWh",
                             delta=f"{delta_geral:.2f} kWh",
                             delta_color="normal" if delta_geral == 0 else ("inverse" if delta_geral < 0 else "off"))
                 col3.metric("📉 Balance of the Day (Ful Plant)", f"{saldo_geral:.2f} kWh", delta_color="inverse")
 
-                col4.metric("🎯 Daily Target -  Productive areas", f"{limites_area:.2f} kWh")
+                col4.metric("🎯 Daily Target - Productive areas", f"{limites_area:.2f} kWh")
                 col5.metric("🏭 Daily Consumption - Productive areas", f"{consumo_area:.2f} kWh",
                             delta=f"{delta_area:.2f} kWh",
                             delta_color="normal" if delta_area == 0 else ("inverse" if delta_area < 0 else "off"))
@@ -549,6 +539,41 @@ if dados_colados:
                 # fim consumo diário do Mês
 
                 st.divider()
+
+            # 🔄 Atualizar os limites por medidor e hora com base na data selecionada
+            # Este bloco foi movido para cá para garantir que a `st.session_state.data_selecionada`
+            # já tenha sido atualizada pelo widget na aba Overview.
+            if "limites_df" in st.session_state:
+                limites_df = st.session_state.limites_df
+                limites_dia_df = limites_df[limites_df["Data"] == st.session_state.data_selecionada]
+                st.session_state.limites_por_medidor_horario = {
+                    medidor: list(limites_dia_df.sort_values("Hora")[medidor].values)
+                    for medidor in limites_dia_df.columns
+                    if medidor not in ["Timestamp", "Data", "Hora"]
+                }
+                
+                # Re-cálculo do perfil horário e meta diária da Área Produtiva a partir do template de limites
+                hourly_target_profile_productive_area = []
+                for h in range(24):
+                    hourly_sum = 0
+                    for medidor in colunas_area_produtiva:
+                        if medidor in st.session_state.limites_por_medidor_horario and h < len(st.session_state.limites_por_medidor_horario[medidor]):
+                            hourly_sum += st.session_state.limites_por_medidor_horario[medidor][h]
+                    hourly_sum += 13.75 # Add the fixed value per hour
+                    hourly_target_profile_productive_area.append(hourly_sum)
+                
+                st.session_state.hourly_target_profile_productive_area = hourly_target_profile_productive_area
+                st.session_state.typical_daily_target_from_template = sum(hourly_target_profile_productive_area)
+                if st.session_state.typical_daily_target_from_template == 0:
+                    st.session_state.hourly_profile_percentages = [1/24] * 24 # Fallback to uniform if targets sum to zero
+                else:
+                    st.session_state.hourly_profile_percentages = [x / st.session_state.typical_daily_target_from_template for x in hourly_target_profile_productive_area]
+
+            # Redefinindo dados_dia e medidores_disponiveis AQUI para usar a data_selecionada atualizada
+            dados_dia = consumo[consumo["Datetime"].dt.date == st.session_state.data_selecionada]
+            horas = dados_dia["Datetime"].dt.hour
+            medidores_disponiveis = [col for col in dados_dia.columns if col != "Datetime"]
+
             with tabs[1]:
                 st.subheader(" Graphs by Meter with Limit Curve")
                 for medidor in medidores_disponiveis:
@@ -560,6 +585,7 @@ if dados_colados:
                         name="Consumo"
                     ))
 
+                    # Garante que 'limites' seja acessado após a atualização do session_state
                     limites = st.session_state.limites_por_medidor_horario.get(medidor, [5.0] * 24)
                     fig.add_trace(go.Scatter(
                         x=list(range(24)),
@@ -627,7 +653,8 @@ if dados_colados:
                 for idx, medidor in enumerate(medidores_disponiveis):
                     with colunas[idx % 4]:
                         valor = round(dados_dia[medidor].sum(), 2)
-                        limite = round(sum(st.session_state.limites_por_medidor_horario[medidor]), 2)
+                        # Garante que 'limites_por_medidor_horario' esteja atualizado
+                        limite = round(sum(st.session_state.limites_por_medidor_horario.get(medidor, [0])), 2)
                         excedido = valor > limite
                         st.metric(
                             label=f"{medidor}",
@@ -651,6 +678,7 @@ if dados_colados:
                             name="Consumo",
                             line=dict(color="blue")
                         ))
+                        # Garante que 'limites_por_medidor_horario' esteja atualizado
                         limites = st.session_state.limites_por_medidor_horario.get(medidor, [5.0] * 24)
                         fig.add_trace(go.Scatter(
                             x=list(range(24)),
@@ -690,18 +718,18 @@ if dados_colados:
                     for i, dia in enumerate(semana):
                         with cols[i]:
                             st.caption(dia.strftime('%d/%m'))
-                            dados_dia = consumo_completo[consumo_completo["Datetime"].dt.date == dia.date()]
-                            if not dados_dia.empty:
+                            dados_dia_calendar = consumo_completo[consumo_completo["Datetime"].dt.date == dia.date()]
+                            if not dados_dia_calendar.empty:
                                 # Obter limites do JSON para o dia específico
                                 if "limites_df" in st.session_state:
-                                    limites_dia_df = st.session_state.limites_df[
+                                    limites_df_calendar = st.session_state.limites_df[
                                         st.session_state.limites_df["Data"] == dia.date()
                                         ]
                                     limites_area_dia = [
                                         sum(
-                                            limites_dia_df[limites_dia_df["Hora"] == h][medidor].values[0]
-                                            if medidor in limites_dia_df.columns and not
-                                            limites_dia_df[limites_dia_df["Hora"] == h][medidor].empty
+                                            limites_df_calendar[limites_df_calendar["Hora"] == h][medidor].values[0]
+                                            if medidor in limites_df_calendar.columns and not
+                                            limites_df_calendar[limites_df_calendar["Hora"] == h][medidor].empty
                                             else 0
                                             for medidor in
                                             ["MP&L", "GAHO", "CAG", "SEOB", "EBPC", "PMDC-OFFICE", "OFFICE + CANTEEN",
@@ -714,14 +742,14 @@ if dados_colados:
 
                                 fig = go.Figure()
                                 fig.add_trace(go.Scatter(
-                                    x=dados_dia["Datetime"].dt.strftime("%H:%M"),
-                                    y=dados_dia["Área Produtiva"],
+                                    x=dados_dia_calendar["Datetime"].dt.strftime("%H:%M"),
+                                    y=dados_dia_calendar["Área Produtiva"],
                                     mode="lines",
                                     line=dict(color="green"),
                                 ))
                                 fig.add_trace(go.Scatter(
-                                    x=dados_dia["Datetime"].dt.strftime("%H:%M"),
-                                    y=[limites_area_dia[dt.hour] for dt in dados_dia["Datetime"]],
+                                    x=dados_dia_calendar["Datetime"].dt.strftime("%H:%M"),
+                                    y=[limites_area_dia[dt.hour] for dt in dados_dia_calendar["Datetime"]],
                                     mode="lines",
                                     line=dict(color="red", dash="dash"),
                                     showlegend=False
@@ -1346,10 +1374,18 @@ if dados_colados:
 
                                     # Simular 100 trajetórias futuras
                                     n_simulations = 500
-                                    future_simulations = [
-                                        y_hist[-1] + np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=future_hours))
-                                        for _ in range(n_simulations)
-                                    ]
+                                    simulated_values = []
+                                    # Ensure last value is not NaN before simulation
+                                    if not np.isnan(y_hist[-1]):
+                                        for _ in range(n_simulations):
+                                            # Ensure that the consumption doesn't go below zero if noise is large
+                                            sim_path = y_hist[-1] + np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=future_hours))
+                                            simulated_values.append(np.maximum(0, sim_path)) # Prevent negative consumption
+                                    else:
+                                        # Handle case where last y_hist value is NaN
+                                        simulated_values = [np.zeros(future_hours) for _ in range(n_simulations)]
+
+                                    future_simulations = simulated_values
                                     time_future = pd.date_range(start=data_base + timedelta(hours=1),
                                                                 periods=future_hours, freq='H')
 
@@ -1484,9 +1520,9 @@ if dados_colados:
 
 
                 for idx, nome in enumerate(colunas_area_produtiva): # Itera apenas sobre medidores produtivos
-                    consumo = consumo_por_medidor.get(nome, 0)
-                    label = f"{nome}\n{consumo:,.0f} kWh"
-                    size = tamanho_no(consumo)
+                    consumo_medidor_atual = consumo_por_medidor.get(nome, 0) # Use a variable name to avoid shadowing
+                    label = f"{nome}\n{consumo_medidor_atual:,.0f} kWh"
+                    size = tamanho_no(consumo_medidor_atual)
                     color = cor_no(idx)
                     nodes.append(Node(id=nome, label=label, size=size, color=color))
 
@@ -1537,7 +1573,7 @@ if dados_colados:
                 df_train = df_consumo_area_daily[df_consumo_area_daily['date'] <= cutoff_date].copy()
                 
                 # Gera datas futuras para previsão
-                last_train_date = df_train['date'].max()
+                last_train_date = df_train['date'].max() if not df_train.empty else pd.to_datetime(cutoff_date)
                 future_dates = pd.date_range(start=last_train_date + timedelta(days=1), periods=prediction_days_count, freq='D').date
                 
                 # Cria DataFrame para futuras previsões com day_num e daily_target
@@ -1663,6 +1699,9 @@ if dados_colados:
                                 predicted_hourly_values = [predicted_daily_value / 24] * 24 # Fallback para distribuição uniforme
 
                             # Obtém o perfil de target horário para referência
+                            # Assegura que hourly_target_profile_productive_area está atualizado para a data selecionada.
+                            # Como o bloco de atualização de limites foi movido para depois das abas,
+                            # st.session_state.hourly_target_profile_productive_area já deve refletir a data atual.
                             hourly_target_profile = st.session_state.hourly_target_profile_productive_area if 'hourly_target_profile_productive_area' in st.session_state else [0]*24
 
                             # Plot das previsões horárias
