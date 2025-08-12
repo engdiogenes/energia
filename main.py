@@ -737,7 +737,7 @@ if dados_colados:
                             else:
                                 st.markdown("_Sem dados_")
 
-            # TABS 5 - CALENDÁRIO
+            # TABS 5 - CONVERSION (CSV to JSON)
             with tabs[5]:
                 st.title("CSV to JSON - Hourly Limits per Meter")
                 st.markdown("""
@@ -763,8 +763,8 @@ if dados_colados:
                         df["Timestamp"] = df["Timestamp"].dt.strftime("%d/%m/%Y %H:%M")
 
                         # Adiciona sufixo incremental para timestamps duplicados
-                        df["Timestamp"] = df["Timestamp"] + df.groupby("Timestamp").cumcount().apply(
-                            lambda x: f" #{x + 1}" if x > 0 else "")
+                        df["Timestamp"] = df.groupby("Timestamp").cumcount().apply(
+                            lambda x: f" #{x + 1}" if x > 0 else "") + df["Timestamp"]
 
                         # Define o índice e remove colunas originais
                         df.set_index("Timestamp", inplace=True)
@@ -1192,12 +1192,12 @@ if dados_colados:
                                 method='ffill').reset_index()
                             meta_diaria_df.columns = ["Data", "Meta Horária"]
 
-                            # Adicionar linha de metas reais ao gráfico
+                            # Add the real target line to the chart
                             fig.add_trace(go.Scatter(
                                 x=meta_diaria_df["Data"],
                                 y=meta_diaria_df["Meta Horária"],
                                 mode='lines',
-                                name='Meta Diária Real',
+                                name='Real Daily Target',
                                 line=dict(color='crimson', dash='dot')
                             ))
 
@@ -1216,7 +1216,7 @@ if dados_colados:
                             st.subheader(
                                 "📊 Daily Comparison: Actual Consumption vs. Original and Adjusted Targets (Proportional Distribution)")
 
-                            # Preparar dados
+                            # Prepare data
                             df_consumo = st.session_state.consumo.copy()
                             df_consumo["Data"] = df_consumo["Datetime"].dt.date
                             consumo_diario = df_consumo.groupby("Data")["Área Produtiva"].sum().reset_index()
@@ -1224,7 +1224,7 @@ if dados_colados:
                             df_limites = st.session_state.limites_df.copy()
                             df_limites["Data"] = pd.to_datetime(df_limites["Data"]).dt.date
 
-                            # Filtrar mês e ano selected
+                            # Filter selected month and year
                             mes = st.session_state.data_selecionada.month
                             ano = st.session_state.data_selecionada.year
                             df_limites = df_limites[
@@ -1236,17 +1236,17 @@ if dados_colados:
                                 (pd.to_datetime(consumo_diario["Data"]).dt.year == ano)
                                 ]
 
-                            # Calcular meta diária
-                            # colunas_area já definida globalmente
+                            # Calculate daily target
+                            # colunas_area already defined globally
                             df_limites["Meta Horária"] = df_limites[colunas_area_produtiva].sum(axis=1) + 13.75
                             meta_diaria_df = df_limites.groupby("Data")["Meta Horária"].sum().reset_index()
                             meta_diaria_df.rename(columns={"Meta Horária": "Meta Original"}, inplace=True)
 
-                            # Mesclar com consumo real
+                            # Merge with actual consumption
                             df_plot = meta_diaria_df.merge(consumo_diario, on="Data", how="left")
                             df_plot.rename(columns={"Área Produtiva": "Consumo Real"}, inplace=True)
 
-                            # Calcular nova meta ajustada proporcional ao perfil de consumo
+                            # Calculate new target adjusted proportionally to consumption profile
                             hoje = st.session_state.data_selecionada
                             df_plot["Nova Meta Ajustada"] = df_plot["Meta Original"]
 
@@ -1264,39 +1264,39 @@ if dados_colados:
                                     mask_passado, "Consumo Real"]
                                 df_plot.loc[mask_futuro, "Nova Meta Ajustada"] = proporcoes * saldo
 
-                                # Ajuste final para garantir igualdade exata
+                                # Final adjustment to ensure exact equality
                                 diferenca_final = meta_total - df_plot["Nova Meta Ajustada"].sum()
                                 if abs(diferenca_final) > 0.01:
                                     idx_ultimo = df_plot[mask_futuro].index[-1]
                                     df_plot.loc[idx_ultimo, "Nova Meta Ajustada"] += diferenca_final
 
-                            # Gráfico interativo
+                            # Interactive chart
                             fig = go.Figure()
                             fig.add_trace(go.Scatter(
                                 x=df_plot["Data"], y=df_plot["Consumo Real"],
-                                mode='lines+markers', name='Consumo Real Diário', line=dict(color='blue')
+                                mode='lines+markers', name='Actual Daily Consumption', line=dict(color='blue')
                             ))
                             fig.add_trace(go.Scatter(
                                 x=df_plot["Data"], y=df_plot["Meta Original"],
-                                mode='lines', name='Meta Original Diária', line=dict(dash='dash', color='black')
+                                mode='lines', name='Original Daily Target', line=dict(dash='dash', color='black')
                             ))
                             fig.add_trace(go.Scatter(
                                 x=df_plot["Data"], y=df_plot["Nova Meta Ajustada"],
-                                mode='lines', name='Nova Meta Ajustada', line=dict(dash='dot', color='orange')
+                                mode='lines', name='New Adjusted Target', line=dict(dash='dot', color='orange')
                             ))
                             fig.update_layout(
-                                title='Consumo Diário da Área Produtiva vs Metas (Distribuição Proporcional)',
-                                xaxis_title='Data',
-                                yaxis_title='Energia (kWh)',
-                                legend_title='Legenda',
+                                title='Daily Production Area Consumption vs Targets (Proportional Distribution)',
+                                xaxis_title='Date',
+                                yaxis_title='Energy (kWh)',
+                                legend_title='Legend',
                                 hovermode='x unified',
                                 template='plotly_white'
                             )
                             st.plotly_chart(fig, use_container_width=True)
-                            # Diagnóstico Interativo - Climatização Extra
+                            # Interactive Diagnosis - Extra Air Conditioning
                             st.subheader("🧠 Interactive Diagnosis - Extra Air Conditioning")
 
-                            # Cálculo do saldo de energia até o momento
+                            # Calculate energy balance up to now
                             saldo_energia = meta_ate_hoje - consumo_real_ate_hoje
 
                             if saldo_energia >= 0:
@@ -1304,8 +1304,8 @@ if dados_colados:
                                 dias_extras = horas_extras / 8
                                 st.success(f"""
                                 ✅ To date, there is a positive balance of **{saldo_energia:,.0f} kWh** energy.
-                                This allows approximately **{horas_extras:.1f} horas** monthly air conditioning extras,
-                                which is equivalent to approximately **{dias_extras:.1f} dias** complete with additional air conditioning.
+                                This allows approximately **{horas_extras:.1f} hours** monthly air conditioning extras,
+                                which is equivalent to approximately **{dias_extras:.1f} days** complete with additional air conditioning.
                                 """)
                             else:
                                 horas_a_economizar = abs(saldo_energia) / 785
@@ -1313,20 +1313,20 @@ if dados_colados:
                                 st.error(f"""
                                 ⚠️ Consumption in the production area to date has exceeded the target by **{abs(saldo_energia):,.0f} kWh**.
                                 To return to the monthly limit, it will be necessary to save approximately**{horas_a_economizar:.1f} hours**
-                                air conditioning, which represents approximately **{dias_a_economizar:.1f} dias** for continuous use.
+                                air conditioning, which represents approximately **{dias_a_economizar:.1f} days** for continuous use.
                                 """)
 
-                            # Métricas
-                            st.markdown("### 📈 Resumo das Metas Mensais")
+                            # Metrics
+                            st.markdown("### 📈 Monthly Target Summary")
                             col1, col2 = st.columns(2)
-                            col1.metric("🎯 Meta Mensal Original (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
-                            col2.metric("🛠️ Meta Mensal Ajustada (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
+                            col1.metric("🎯 Original Monthly Target (kWh)", f"{df_plot['Meta Original'].sum():,.0f}")
+                            col2.metric("🛠️ Adjusted Monthly Target (kWh)", f"{df_plot['Nova Meta Ajustada'].sum():,.0f}")
 
                             # --------------------------
 
 
-                            # Forecast Interativo com Monte Carlo
-                            st.subheader("📈 Forecast Interativo com Monte Carlo")
+                            # Interactive Monte Carlo Forecast
+                            st.subheader("📈 Interactive Monte Carlo Forecast")
 
                             if 'consumo' in st.session_state and 'data_selecionada' in st.session_state:
                                 df = st.session_state.consumo.copy()
@@ -1344,7 +1344,7 @@ if dados_colados:
                                     y_hist = df_past['Área Produtiva'].tail(past_hours).values
                                     time_hist = df_past.tail(past_hours).index
 
-                                    # Simular 100 trajetórias futuras
+                                    # Simulate 100 future trajectories
                                     n_simulations = 500
                                     future_simulations = [
                                         y_hist[-1] + np.cumsum(np.random.normal(loc=0.1, scale=0.5, size=future_hours))
@@ -1353,24 +1353,24 @@ if dados_colados:
                                     time_future = pd.date_range(start=data_base + timedelta(hours=1),
                                                                 periods=future_hours, freq='H')
 
-                                    # Paleta de cores variadas
+                                    # Varied color palette
                                     cmap = cm.get_cmap('tab20', n_simulations)
                                     colors = [f'rgba({int(r * 255)},{int(g * 255)},{int(b * 255)},0.4)' for r, g, b, _
                                               in cmap(np.linspace(0, 1, n_simulations))]
 
-                                    # Gráfico principal
+                                    # Main chart
                                     fig = go.Figure()
 
-                                    # Linha preta do histórico
+                                    # Historical black line
                                     fig.add_trace(go.Scatter(
                                         x=time_hist,
                                         y=y_hist,
                                         mode='lines',
-                                        name='Histórico',
+                                        name='Historical',
                                         line=dict(color='black')
                                     ))
 
-                                    # Linhas coloridas das simulações futuras
+                                    # Colored lines of future simulations
                                     for sim, color in zip(future_simulations, colors):
                                         fig.add_trace(go.Scatter(
                                             x=time_future,
@@ -1380,7 +1380,7 @@ if dados_colados:
                                             showlegend=False
                                         ))
 
-                                    # Histograma lateral real
+                                    # Real side histogram
                                     final_values = [sim[-1] for sim in future_simulations]
                                     hist_counts, hist_bins = np.histogram(final_values, bins=30)
                                     bin_centers = 0.5 * (hist_bins[:-1] + hist_bins[1:])
@@ -1397,9 +1397,9 @@ if dados_colados:
                                         ))
 
                                     fig.update_layout(
-                                        title="Forecasts com Monte Carlo Sampling",
-                                        xaxis_title="Tempo",
-                                        yaxis_title="Consumo de Energia - Área Produtiva",
+                                        title="Forecasts with Monte Carlo Sampling",
+                                        xaxis_title="Time",
+                                        yaxis_title="Energy Consumption - Production Area",
                                         template="plotly_white"
                                     )
 
@@ -1415,90 +1415,141 @@ if dados_colados:
                 with open("relatorio_month_prediction.html", "r", encoding="utf-8") as f:
                     html_content = f.read()
 
-                st.markdown("### 📘 Relatório Técnico Detalhado")
+                st.markdown("### 📘 Technical Detailed Report")
                 components.html(html_content, height=1000, scrolling=True)
 
 
-            with tabs[7]:  # ou ajuste o índice conforme necessário
+            with tabs[7]:  # or adjust the index as necessary
                 st.subheader("📍 Meter's Layout")
 
                 data_ref = st.session_state.data_selecionada
                 df_mes = st.session_state.consumo[
                     (st.session_state.consumo["Datetime"].dt.month == data_ref.month) &
                     (st.session_state.consumo["Datetime"].dt.year == data_ref.year)
-                    ]
+                ].copy() # Ensure df_mes is a copy to prevent SettingWithCopyWarning
 
-                medidores = [
-                    "MP&L", "GAHO", "MAIW", "CAG", "SEOB", "EBPC",
-                    "PMDC-OFFICE", "TRIM&FINAL", "OFFICE + CANTEEN", "PCCB"
-                ]
-                # Medidores da área produtiva
-                # colunas_area_produtiva já definida globalmente
+                # Define the areas relevant for the graph, including the main groupings
+                # colunas_area_produtiva is already defined globally.
 
-                # DataFrame de consumo e data selected
-                df = st.session_state.consumo
-                data_ref = st.session_state.data_selecionada
+                # Calculate total consumptions for the key nodes
+                consumo_area_produtiva_total = df_mes[colunas_area_produtiva].sum().sum()
+                consumo_pccb_total = df_mes["PCCB"].sum() # Emissions Lab is PCCB
+                consumo_full_plant_total = consumo_area_produtiva_total + consumo_pccb_total
 
-                # Filtrar o mês e ano da data selected
-                df_mes = df[
-                    (df["Datetime"].dt.month == data_ref.month) &
-                    (df["Datetime"].dt.year == data_ref.year)
-                    ]
+                st.metric("🔧 Total consumption of the productive area in the month", f"{consumo_area_produtiva_total:,.0f} kWh")
 
-                # Calcular o consumo total da área produtiva
-                consumo_total_produtivo = df_mes[colunas_area_produtiva].sum().sum()
+                # Collect all relevant consumption values to determine the size scaling range
+                all_values_for_sizing = []
+                if consumo_full_plant_total > 0: # Only add if meaningful
+                    all_values_for_sizing.append(consumo_full_plant_total)
+                if consumo_area_produtiva_total > 0:
+                    all_values_for_sizing.append(consumo_area_produtiva_total)
+                if consumo_pccb_total > 0:
+                    all_values_for_sizing.append(consumo_pccb_total)
 
-                # Exibir o resultado
-                st.metric("🔧 Total consumption of the productive area in the month", f"{consumo_total_produtivo:,.0f} kWh")
-
-                # Ajustar a lista de medidores para o mapa, garantindo que colunas_area_produtiva esteja incluída
-                medidores_para_mapa = list(set(colunas_area_produtiva + ["PCCB"])) # PCCB é o "THIRD PARTS"
-
-                consumo_por_medidor = df_mes[medidores_para_mapa].sum().to_dict()
-
-                # Normalização para tamanho e cor
-                valores = list(consumo_por_medidor.values())
-                min_val, max_val = min(valores), max(valores)
-                norm = mcolors.Normalize(vmin=min_val, vmax=max_val)
-                cmap = cm.get_cmap('tab10')
-
-
+                # Add individual productive area consumptions
+                for medidor in colunas_area_produtiva:
+                    if medidor in df_mes.columns:
+                        val = df_mes[medidor].sum()
+                        if val > 0:
+                            all_values_for_sizing.append(val)
+                
+                # Handle case where all_values_for_sizing is empty or all zeros
+                if not all_values_for_sizing:
+                    min_val, max_val = 0, 1 # Default range
+                    base_size = 30 # Default size for nodes if no consumption data
+                else:
+                    min_val = min(all_values_for_sizing)
+                    max_val = max(all_values_for_sizing)
+                    base_size = 20 # Minimum size for a node
+                    
                 def tamanho_no(valor):
-                    return 20 + 30 * ((valor - min_val) / (max_val - min_val)) if max_val > min_val else 30
-
+                    if max_val == min_val: # All values are the same or only one value
+                        return base_size + 10 # A fixed, slightly larger size
+                    # Scale between base_size and base_size + 40 (e.g., 20-60)
+                    return base_size + 40 * ((valor - min_val) / (max_val - min_val))
 
                 def cor_no(idx):
-                    rgba = cmap(idx % 10)
-                    return mcolors.to_hex(rgba)
+                    # Use a consistent color mapping for visual distinction
+                    colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"]
+                    return colors[idx % len(colors)]
 
+                nodes = []
+                edges = []
 
-                nodes = [
-                    Node(id="Full Plant", label="Full Plant", size=50, color="#1f77b4"),
-                    Node(id="PRODUCTIVE AREAS", label="PRODUCTIVE AREAS", size=35, color="#2ca02c"),
-                    Node(id="THIRD PARTS", label="THIRD PARTS", size=35, color="#ff7f0e"),
-                ]
+                # Add Full Plant node
+                nodes.append(Node(
+                    id="Full Plant",
+                    label=f"Full Plant\n{consumo_full_plant_total:,.0f} kWh",
+                    size=tamanho_no(consumo_full_plant_total),
+                    color=cor_no(0) # Consistent color for root
+                ))
 
-                # Adiciona PCCB como um nó separado para 'THIRD PARTS'
-                pccb_consumo = consumo_por_medidor.get("PCCB", 0)
-                nodes.append(Node(id="PCCB", label=f"Emissions Lab\n{pccb_consumo:,.0f} kWh", size=tamanho_no(pccb_consumo), color=cor_no(len(medidores_para_mapa)-1)))
+                # Add Productive Areas node
+                nodes.append(Node(
+                    id="PRODUCTIVE AREAS",
+                    label=f"Productive Areas\n{consumo_area_produtiva_total:,.0f} kWh",
+                    size=tamanho_no(consumo_area_produtiva_total),
+                    color=cor_no(1) # Consistent color for productive areas group
+                ))
+                edges.append(Edge(source="Full Plant", target="PRODUCTIVE AREAS"))
 
+                # Add Third Parts node (conceptual grouping for PCCB)
+                nodes.append(Node(
+                    id="THIRD PARTS",
+                    label=f"Third Parts\n(Emissions Lab Group)\n{consumo_pccb_total:,.0f} kWh",
+                    size=tamanho_no(consumo_pccb_total), # Size equal to Emissions Lab (PCCB)
+                    color=cor_no(2) # Consistent color for third parts group
+                ))
+                edges.append(Edge(source="Full Plant", target="THIRD PARTS"))
 
-                for idx, nome in enumerate(colunas_area_produtiva): # Itera apenas sobre medidores produtivos
-                    consumo = consumo_por_medidor.get(nome, 0)
-                    label = f"{nome}\n{consumo:,.0f} kWh"
-                    size = tamanho_no(consumo)
-                    color = cor_no(idx)
-                    nodes.append(Node(id=nome, label=label, size=size, color=color))
+                # Add PCCB node (Emissions Lab)
+                nodes.append(Node(
+                    id="PCCB",
+                    label=f"Emissions Lab\n{consumo_pccb_total:,.0f} kWh",
+                    size=tamanho_no(consumo_pccb_total),
+                    color=cor_no(3) # Consistent color for PCCB
+                ))
+                edges.append(Edge(source="THIRD PARTS", target="PCCB"))
 
-                edges = [
-                            Edge(source="Full Plant", target="PRODUCTIVE AREAS"),
-                            Edge(source="Full Plant", target="THIRD PARTS"),
-                            Edge(source="THIRD PARTS", target="PCCB") # Conecta PCCB a THIRD PARTS
-                        ] + [
-                            Edge(source="PRODUCTIVE AREAS", target=nome) for nome in colunas_area_produtiva
-                        ]
+                # Add individual productive area nodes and their edges
+                for idx, nome in enumerate(colunas_area_produtiva):
+                    if nome in df_mes.columns:
+                        consumo_individual = df_mes[nome].sum()
+                        nodes.append(Node(
+                            id=nome,
+                            label=f"{nome}\n{consumo_individual:,.0f} kWh",
+                            size=tamanho_no(consumo_individual),
+                            color=cor_no(idx + 4) # Offset index to get different colors
+                        ))
+                        edges.append(Edge(source="PRODUCTIVE AREAS", target=nome))
 
-                config = Config(width=800, height=1000, directed=True, hierarchical=True)
+                # Configure graph layout
+                config = Config(
+                    width=1000, # Increased width for better spread
+                    height=1000, # Increased height
+                    directed=True,
+                    nodeHighlightBehavior=True,
+                    highlightColor="#F7BE85",
+                    collapsible=True,
+                    node={"labelProperty": "label"},
+                    link={"labelProperty": "label", "renderLabel": True},
+                    hierarchical=True,
+                    # Hierarchical layout specific configurations
+                    physics=True, # Enable physics for better node placement
+                    layout={
+                        "hierarchical": {
+                            "enabled": True,
+                            "levelSeparation": 150, # Distance between levels
+                            "nodeSpacing": 100, # Distance between nodes in same level
+                            "treeSpacing": 200, # Distance between independent trees
+                            "direction": "UD", # Up-Down
+                            "sortMethod": "directed" # Sort based on hierarchy
+                        }
+                    }
+                )
+                
+                # Render the graph
                 agraph(nodes=nodes, edges=edges, config=config)
 
             with tabs[8]:
@@ -1697,6 +1748,3 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
-
-
-
