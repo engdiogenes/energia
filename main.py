@@ -1498,7 +1498,7 @@ if dados_colados:
                             Edge(source="PRODUCTIVE AREAS", target=nome) for nome in colunas_area_produtiva
                         ]
 
-                config = Config(width=1000, height=600, directed=True, hierarchical=True)
+                config = Config(width=1000, height=1000, directed=True, hierarchical=True)
                 agraph(nodes=nodes, edges=edges, config=config)
 
             with tabs[8]:
@@ -1697,4 +1697,5 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
+
 
