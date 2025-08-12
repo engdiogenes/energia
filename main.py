@@ -1526,9 +1526,9 @@ if dados_colados:
 
                 # Configure graph layout
                 config = Config(
-                    width=1000, # Increased width for better spread
-                    height=2000, # Increased height
-                    directed=True,
+                    width=2000, # Increased width for better spread
+                    height=500, # Increased height
+                    directed=False,
                     nodeHighlightBehavior=True,
                     highlightColor="#F7BE85",
                     collapsible=True,
@@ -1748,4 +1748,5 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
+
 
