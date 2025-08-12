@@ -1527,7 +1527,7 @@ if dados_colados:
                 # Configure graph layout
                 config = Config(
                     width=2000, # Increased width for better spread
-                    height=500, # Increased height
+                    height=800, # Increased height
                     directed=False,
                     nodeHighlightBehavior=True,
                     highlightColor="#F7BE85",
@@ -1540,9 +1540,9 @@ if dados_colados:
                     layout={
                         "hierarchical": {
                             "enabled": True,
-                            "levelSeparation": 150, # Distance between levels
-                            "nodeSpacing": 100, # Distance between nodes in same level
-                            "treeSpacing": 200, # Distance between independent trees
+                            "levelSeparation": 300, # Distance between levels
+                            "nodeSpacing": 300, # Distance between nodes in same level
+                            "treeSpacing": 400, # Distance between independent trees
                             "direction": "UD", # Up-Down
                             "sortMethod": "directed" # Sort based on hierarchy
                         }
@@ -1748,5 +1748,6 @@ if dados_colados:
 
     except Exception as e:
         st.error(f"Erro ao processar os dados: {e}")
+
 
 
