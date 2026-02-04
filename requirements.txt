@@ -8,7 +8,6 @@ plotly==5.20.0
 streamlit-calendar==0.0.9
 fpdf2==2.7.0
 gspread==5.12.0
-oauth2client
 statsmodels==0.14.1
 streamlit-agraph==0.2.5
 scikit-learn==1.2.2
